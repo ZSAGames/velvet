@@ -234,192 +234,250 @@
             cursor: not-allowed;
         }
 
+        /* Cyberpunk Main Menu Styling */
+        .cyber-panel {
+            position: relative;
+            background: linear-gradient(165deg, rgba(12, 14, 22, 0.96) 0%, rgba(7, 8, 14, 0.98) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.55);
+            box-shadow:
+                0 0 65px rgba(220, 38, 38, 0.28),
+                0 0 25px rgba(6, 182, 212, 0.14),
+                inset 0 0 30px rgba(220, 38, 38, 0.08);
+            clip-path: polygon(0 16px, 16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px));
+        }
+
+        .cyber-btn-primary {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(90deg, #10b981 0%, #059669 50%, #f59e0b 100%);
+            background-size: 200% 100%;
+            color: #04060a;
+            clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.45);
+        }
+        .cyber-btn-primary:hover {
+            background-position: 100% 0;
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.65);
+        }
+        .cyber-btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .cyber-btn-sec {
+            position: relative;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            clip-path: polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .cyber-btn-sec:hover {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: #fbbf24;
+            transform: translateY(-1.5px);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.28);
+        }
+
+        /* Zone Transition Fade Curtain */
+        #zone-transition-curtain {
+            pointer-events: none;
+            transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         canvas {
             display: block;
             width: 100%;
             height: 100%;
             image-rendering: pixelated;
+            outline: none;
+        }
+
+        /* ZSAGAMES Intro Transitions */
+        #intro-overlay {
+            pointer-events: all;
+        }
+        #intro-logo-box {
+            opacity: 0;
+            transform: scale(0.94);
+            transition: opacity 1s ease-in-out, transform 3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #intro-logo-box.intro-visible {
+            opacity: 1;
+            transform: scale(1.04);
+        }
+        #main-menu-overlay {
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        #main-menu-overlay.menu-visible {
+            opacity: 1;
         }
     </style>
 </head>
-<body class="relative w-screen h-screen overflow-hidden bg-zinc-950 select-none">
+<body tabindex="0" autofocus class="relative w-screen h-screen overflow-hidden bg-zinc-950 select-none outline-none">
 
     <!-- CRT Scanline & Vignette Effect (Toggled off in Low-End PC Mode) -->
     <div id="crt-overlay-layer" class="crt-overlay"></div>
 
-    <!-- MAIN MENU OVERLAY -->
-    <div id="main-menu-overlay" class="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-y-auto">
-        <div class="max-w-lg w-full bg-zinc-900/95 border-2 border-red-700/80 rounded-2xl p-6 sm:p-8 shadow-[0_0_70px_rgba(220,38,38,0.25)] text-center space-y-5">
-            <!-- Language Selector Pill Bar -->
-            <div class="flex items-center justify-center gap-1.5 bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-xl">
-                <span class="text-[10px] font-bold uppercase text-zinc-400 px-2" data-i18n="lang_label">JĘZYK:</span>
-                <button onclick="window.game.setLanguage('pl')" id="lang-btn-menu-pl" class="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-amber-500 text-zinc-950 transition">🇵🇱 PL</button>
-                <button onclick="window.game.setLanguage('en')" id="lang-btn-menu-en" class="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇬🇧 EN</button>
-                <button onclick="window.game.setLanguage('uk')" id="lang-btn-menu-uk" class="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇺🇦 UA</button>
-                <button onclick="window.game.setLanguage('ru')" id="lang-btn-menu-ru" class="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇷🇺 RU</button>
+    <!-- ROOM / ZONE TRANSITION FADE CURTAIN -->
+    <div id="zone-transition-curtain" class="fixed inset-0 z-[42] bg-black opacity-0"></div>
+
+    <!-- UNSKIPPABLE ZSAGAMES INTRO OVERLAY -->
+    <div id="intro-overlay" class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center select-none">
+        <div id="intro-logo-box" class="text-center px-6">
+            <div class="text-4xl sm:text-7xl font-extrabold tracking-[0.38em] text-white font-display drop-shadow-[0_0_35px_rgba(245,158,11,0.55)]">
+                ZSAGAMES
+            </div>
+            <div class="mt-3 h-0.5 w-32 mx-auto bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-80"></div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY (Cyberpunk Syndicate UI + Full 3D Falling Cash Canvas on Sides) -->
+    <div id="main-menu-overlay" class="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-hidden">
+        <!-- 3D Falling Cash Stacks Canvas Background -->
+        <canvas id="menuCashCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+        <div class="relative z-10 max-w-lg w-full cyber-panel p-6 sm:p-8 text-center space-y-5">
+            <!-- Top Cyberpunk Telemetry Header Strip -->
+            <div class="flex items-center justify-between text-[10px] tracking-widest uppercase text-cyan-400/80 border-b border-zinc-800/90 pb-2.5">
+                <span class="flex items-center gap-1.5 font-bold">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                    SYS // VELVET_OS v4.9
+                </span>
+                <span class="text-amber-400/90 font-extrabold">DEBT_PROTOCOL: ACTIVE</span>
             </div>
 
-            <div class="space-y-2">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/90 border border-red-700/60 text-[11px] font-extrabold uppercase tracking-widest text-red-300">
-                    <span>♠</span> <span data-i18n="menu_genre">ROGUELITE PRZETRWANIA DŁUGU 2D</span> <span>🎲</span>
+            <!-- Language Selector Pill Bar -->
+            <div class="flex items-center justify-center gap-1.5 bg-zinc-950/90 border border-zinc-800/90 p-1.5 rounded-lg">
+                <button onclick="window.game.setLanguage('pl')" id="lang-btn-menu-pl" class="px-3 py-1 rounded text-xs font-extrabold bg-amber-500 text-zinc-950 transition">🇵🇱 PL</button>
+                <button onclick="window.game.setLanguage('en')" id="lang-btn-menu-en" class="px-3 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇬🇧 EN</button>
+                <button onclick="window.game.setLanguage('uk')" id="lang-btn-menu-uk" class="px-3 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇺🇦 UA</button>
+                <button onclick="window.game.setLanguage('ru')" id="lang-btn-menu-ru" class="px-3 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">🇷🇺 RU</button>
+            </div>
+
+            <!-- Title Box (Responsive sizing so long titles never overflow) -->
+            <div class="space-y-2 py-2 px-2 bg-zinc-950/70 border-y border-red-500/30 relative">
+                <div class="text-[10px] font-extrabold tracking-[0.3em] text-cyan-400 uppercase" data-i18n="menu_subtitle">
+                    // CYKL DŁUGU //
                 </div>
-                <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white font-display neon-text" data-i18n="game_title">
+                <h1 class="text-2xl sm:text-4xl font-extrabold tracking-wide text-white font-display neon-text leading-tight break-words" data-i18n="game_title">
                     AKSAMITNA OTCHŁAŃ
                 </h1>
-                <p class="text-xs sm:text-sm text-amber-400 font-bold tracking-widest uppercase" data-i18n="menu_subtitle">
-                    // PROTOTYP CYKLU DŁUGU //
-                </p>
-                <p class="text-xs text-zinc-400 leading-relaxed pt-1" data-i18n="menu_desc">
-                    Obudź się w kryjówce. Sprawdź swoją dzienną Kwotę i Nocny Modyfikator. Idź ulicą Blackwater do kasyna, poznaj zasady z wbudowanym Trenerem i wróć do łóżka, zanim upłynie 6:00 na zegarze zmiany.
-                </p>
+                <div class="h-0.5 w-24 mx-auto bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
             </div>
 
-            <!-- Main Menu Buttons -->
-            <div class="space-y-2.5 pt-1">
-                <button id="menu-btn-play" onclick="window.game.closeMainMenu()" class="btn-gritty w-full bg-emerald-500 hover:bg-emerald-400 border-emerald-700 text-zinc-950 font-extrabold py-3.5 rounded-xl text-sm sm:text-base uppercase tracking-wider shadow-lg" data-i18n="menu_play">
-                    ▶ WEJDŹ DO KRYJÓWKI (START / WZNÓW)
+            <!-- Cyberpunk Action Buttons -->
+            <div class="space-y-3 pt-1">
+                <button id="menu-btn-play" onclick="window.game.closeMainMenu()" class="cyber-btn-primary w-full font-extrabold py-4 px-5 text-sm sm:text-base uppercase tracking-widest flex items-center justify-center gap-2">
+                    <span data-i18n="menu_play">▶ WEJDŹ DO GRY</span>
                 </button>
-                <div class="grid grid-cols-2 gap-2.5">
-                    <button onclick="window.game.openSettingsModal(true)" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-amber-300 font-bold py-2.5 px-3 rounded-xl text-xs uppercase tracking-wider" data-i18n="menu_settings">
-                        ⚙ USTAWIENIA / FPS
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="window.game.openSettingsModal(true)" class="cyber-btn-sec text-amber-300 font-extrabold py-3 px-3 text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        <span data-i18n="menu_settings">⚙ USTAWIENIA</span>
                     </button>
-                    <button onclick="window.game.openGuideModal(true)" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-sky-300 font-bold py-2.5 px-3 rounded-xl text-xs uppercase tracking-wider" data-i18n="menu_guide">
-                        ? PORADNIK GRACZA
+                    <button onclick="window.game.openGuideModal(true)" class="cyber-btn-sec text-cyan-300 font-extrabold py-3 px-3 text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        <span data-i18n="menu_guide">? ZASADY</span>
                     </button>
                 </div>
-                <button onclick="window.game.quickToggleLowEnd()" id="menu-lowend-btn" class="w-full py-2 px-3 rounded-lg border border-zinc-800 bg-zinc-950/80 hover:bg-zinc-800/80 text-[11px] font-bold text-zinc-400 flex items-center justify-between transition">
-                    <span data-i18n="menu_lowend_label">⚡ TRYB DLA SŁABYCH PC (FPS BOOST):</span>
-                    <span id="menu-lowend-status" class="text-zinc-400 font-extrabold">WYŁ. (WYSOKA JAKOŚĆ)</span>
-                </button>
-            </div>
 
-            <div class="border-t border-zinc-800 pt-3 flex items-center justify-between text-[11px] text-zinc-500">
-                <span data-i18n="menu_controls">Sterowanie: WASD / Strzałki + [E] Interakcja</span>
-                <span data-i18n="menu_esc">ESC: Menu / Ustawienia</span>
+                <button onclick="window.game.quickToggleLowEnd()" id="menu-lowend-btn" class="cyber-btn-sec w-full py-2.5 px-4 text-[11px] font-bold text-zinc-300 flex items-center justify-between">
+                    <span data-i18n="menu_lowend_label">⚡ FPS BOOST:</span>
+                    <span id="menu-lowend-status" class="text-zinc-400 font-extrabold">WYŁ.</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- TOP HUD BAR (Always visible so player can monitor timer, cash, quota & challenge even inside casino tables) -->
-    <header class="fixed top-0 left-0 right-0 z-30 pointer-events-none p-2 sm:p-3 flex flex-col gap-2">
-        <div class="max-w-7xl w-full mx-auto flex flex-wrap items-center justify-between gap-2 bg-zinc-950/90 border border-zinc-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-2xl pointer-events-auto">
+    <!-- TOP HUD BAR (Streamlined & Decluttered) -->
+    <header class="fixed top-0 left-0 right-0 z-30 pointer-events-none p-2 sm:p-3 flex flex-col gap-1.5">
+        <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-2 bg-zinc-950/90 border border-zinc-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-2xl pointer-events-auto">
             
-            <!-- Left: Day, Zone & Shift Clock -->
-            <div class="flex items-center gap-2.5">
-                <div class="bg-red-950/80 border border-red-700/60 px-2.5 py-1.5 rounded-lg text-center">
-                    <div class="text-[10px] uppercase tracking-widest text-red-400 font-bold" data-i18n="hud_cycle">CYKL</div>
-                    <div id="hud-day" class="text-base sm:text-lg font-extrabold text-white leading-none">DZIEŃ 1</div>
+            <!-- Left: Day, Shift Clock & Active Modifier Pill -->
+            <div class="flex items-center gap-2">
+                <div class="bg-red-950/80 border border-red-700/60 px-2.5 py-1 rounded-lg text-center">
+                    <div id="hud-day" class="text-sm sm:text-base font-extrabold text-white leading-none">DZIEŃ 1</div>
                 </div>
 
                 <!-- 6-Minute Countdown Timer -->
-                <div id="hud-timer-box" class="bg-zinc-900 border border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all">
-                    <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" id="hud-timer-dot"></div>
+                <div id="hud-timer-box" class="bg-zinc-900 border border-zinc-700 px-3 py-1 rounded-lg flex items-center gap-2 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="hud-timer-dot"></div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
+                        <div class="text-[9px] uppercase tracking-widest text-zinc-400 leading-none">
                             <span id="hud-timer-label">PORANEK</span>
                         </div>
-                        <div id="hud-timer" class="text-lg sm:text-xl font-extrabold tracking-wider text-amber-400 leading-none">06:00</div>
+                        <div id="hud-timer" class="text-base sm:text-lg font-extrabold tracking-wider text-amber-400 leading-none mt-0.5">06:00</div>
                     </div>
                 </div>
 
-                <!-- Current Zone & Nightly Modifier Badge -->
-                <div class="hidden lg:flex flex-col px-2.5 py-1 rounded bg-zinc-900/70 border border-zinc-800">
-                    <div class="flex items-center gap-1.5">
-                        <span id="hud-zone" class="text-[11px] font-bold text-zinc-200">KRYJÓWKA</span>
-                        <span class="text-zinc-600">•</span>
-                        <span id="hud-modifier-name" class="text-[11px] font-extrabold text-amber-400">WPROWADZENIE</span>
-                    </div>
-                    <span id="hud-modifier-desc" class="text-[10px] text-zinc-400 truncate max-w-[230px]">Krupier pasuje na 16+ • Bankomat Krwi +25%</span>
+                <!-- Compact Zone & Modifier Pill -->
+                <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/70 border border-zinc-800 text-[11px]">
+                    <span id="hud-zone" class="font-bold text-zinc-300">KRYJÓWKA</span>
+                    <span class="text-zinc-600">•</span>
+                    <span id="hud-modifier-name" class="font-extrabold text-amber-400">WPROWADZENIE</span>
+                    <span id="hud-modifier-desc" class="hidden"></span>
                 </div>
             </div>
 
             <!-- Center: Bankroll vs Daily Quota Progress -->
-            <div class="flex-1 min-w-[200px] max-w-md mx-auto bg-zinc-900/90 border border-zinc-800 px-3.5 py-1.5 rounded-lg">
+            <div class="flex-1 min-w-[180px] max-w-sm mx-auto bg-zinc-900/90 border border-zinc-800 px-3 py-1 rounded-lg">
                 <div class="flex items-center justify-between text-xs mb-1">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-zinc-400 uppercase text-[10px] font-bold" data-i18n="hud_cash_label">GOTÓWKA:</span>
-                        <span id="hud-cash" class="text-emerald-400 font-extrabold text-sm sm:text-base">$500</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-zinc-400 uppercase text-[10px] font-bold" data-i18n="hud_quota_label">KWOTA:</span>
-                        <span id="hud-quota" class="text-amber-400 font-extrabold text-sm sm:text-base">$1,000</span>
-                    </div>
+                    <span id="hud-cash" class="text-emerald-400 font-extrabold text-sm sm:text-base">$500</span>
+                    <span class="text-zinc-600 font-bold">/</span>
+                    <span id="hud-quota" class="text-amber-400 font-extrabold text-sm sm:text-base">$1,000</span>
                 </div>
-                <!-- Progress Bar -->
-                <div class="w-full h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800 p-0.5">
+                <div class="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                     <div id="hud-quota-bar" class="h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-amber-400 rounded-full transition-all duration-300" style="width: 50%"></div>
                 </div>
             </div>
 
-            <!-- Right: Challenge Tokens, Relics & Utility Controls -->
-            <div class="flex items-center gap-1.5 sm:gap-2">
-                <!-- Live FPS Counter (Visible when toggled in Settings) -->
+            <!-- Right: Challenge Pill, Tokens, Relics & Utility Controls -->
+            <div class="flex items-center gap-1.5">
                 <div id="hud-fps" class="hidden bg-zinc-900 border border-emerald-700/60 px-2 py-1 rounded text-[10px] font-extrabold text-emerald-400">
                     60 FPS
                 </div>
 
+                <!-- Compact Daily Challenge Pill -->
+                <div id="hud-challenge-box" class="hidden lg:flex items-center gap-2 bg-zinc-900/90 border border-amber-900/50 px-2.5 py-1 rounded-lg text-[11px]">
+                    <span id="hud-challenge-text" class="text-zinc-300 truncate max-w-[190px]">Wygraj 2 rozdania</span>
+                    <span id="hud-challenge-status" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700/50 shrink-0">0/2</span>
+                </div>
+
                 <!-- Challenge Tokens -->
-                <div class="bg-amber-950/50 border border-amber-600/50 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
-                    <span class="text-amber-400 text-sm">🪙</span>
-                    <div>
-                        <div class="text-[9px] uppercase text-amber-300/80 leading-none" data-i18n="hud_tokens_label">ŻETONY</div>
-                        <div id="hud-tokens" class="text-sm font-extrabold text-amber-300 leading-tight">1</div>
-                    </div>
+                <div class="bg-amber-950/50 border border-amber-600/50 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                    <span class="text-amber-400 text-xs">🪙</span>
+                    <span id="hud-tokens" class="text-xs sm:text-sm font-extrabold text-amber-300">1</span>
                 </div>
 
                 <!-- Owned Relics Tray -->
-                <div id="hud-relics" class="hidden xl:flex items-center gap-1 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg min-h-[38px]">
-                    <span class="text-[10px] text-zinc-500 px-1" data-i18n="hud_no_relics">Brak Reliktów</span>
-                </div>
+                <div id="hud-relics" class="hidden xl:flex items-center gap-1 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg min-h-[30px]"></div>
 
-                <!-- Quick Language Cycle Button -->
-                <button id="btn-hud-lang" onclick="window.game.cycleLanguage()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-amber-300 text-xs font-extrabold px-2 py-2 rounded-lg" title="Zmień język / Change Language">
+                <!-- Hidden legacy directive holder to keep DOM references clean -->
+                <span id="hud-directive-text" class="hidden"></span>
+
+                <button id="btn-hud-lang" onclick="window.game.cycleLanguage()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-amber-300 text-xs font-extrabold px-2 py-1.5 rounded-lg">
                     🇵🇱 PL
                 </button>
 
-                <!-- Fast-Forward Clock Toggle (For testing/speedrunning) -->
-                <button id="btn-clock-speed" onclick="window.game.toggleClockSpeed()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2 py-2 rounded-lg">
+                <button id="btn-clock-speed" onclick="window.game.toggleClockSpeed()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2 py-1.5 rounded-lg">
                     1x ⏱️
                 </button>
 
-                <!-- Settings / Low-End PC Button -->
-                <button onclick="window.game.openSettingsModal()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-amber-300 text-xs font-bold px-2.5 py-2 rounded-lg" title="Ustawienia / Settings">
+                <button onclick="window.game.openSettingsModal()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-amber-300 text-xs font-bold px-2.5 py-1.5 rounded-lg">
                     ⚙
                 </button>
 
-                <!-- Pause Menu Button -->
-                <button onclick="window.game.openPauseModal()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2.5 py-2 rounded-lg" title="Pauza / Pause [ESC]">
+                <button onclick="window.game.openPauseModal()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2.5 py-1.5 rounded-lg">
                     ⏸
                 </button>
-            </div>
-        </div>
-
-        <!-- Secondary Sub-Bar: Active Objective Banner & Daily Challenge Tracker -->
-        <div class="max-w-7xl w-full mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pointer-events-auto">
-            <!-- Current Phase Directive -->
-            <div id="hud-directive" class="flex-1 bg-zinc-950/85 border border-zinc-800/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 shadow-lg">
-                <span id="hud-directive-dot" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                <span id="hud-directive-text" class="text-zinc-200 font-medium truncate">
-                    PORANEK: Sprawdź Terminal CRT i Ołtarz Reliktów, a potem użyj ŁÓŻKA [E], aby zacząć zmianę.
-                </span>
-            </div>
-
-            <!-- Daily Challenge Pill -->
-            <div id="hud-challenge-box" class="bg-zinc-950/85 border border-amber-900/60 backdrop-blur px-3 py-1.5 rounded-lg text-xs flex items-center justify-between gap-3 shadow-lg">
-                <div class="flex items-center gap-1.5 truncate">
-                    <span class="text-amber-400 font-bold uppercase text-[10px] tracking-wider shrink-0" data-i18n="hud_challenge_label">WYZWANIE:</span>
-                    <span id="hud-challenge-text" class="text-zinc-300 truncate">Wygraj 2 rozdania przy stole VIP Blackjack</span>
-                </div>
-                <span id="hud-challenge-status" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700/50 shrink-0">
-                    +2 🪙
-                </span>
             </div>
         </div>
     </header>
 
     <!-- MAIN 2D TOP-DOWN GAME CANVAS -->
     <main class="relative w-full h-full">
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" tabindex="0"></canvas>
 
         <!-- Floating Contextual Interaction Prompt (Bottom Center) -->
         <div id="interact-prompt" class="hidden fixed bottom-24 sm:bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
@@ -539,18 +597,9 @@
                     <p id="term-challenge-progress" class="text-xs text-emerald-300/80 mt-1"></p>
                 </div>
 
-                <!-- Syndicate Protocol Instructions -->
-                <div class="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-300 space-y-1.5 leading-relaxed">
-                    <div class="text-emerald-400 font-bold uppercase tracking-wider mb-1" data-i18n="term_directives_title">DYREKTYWY OPERACYJNE:</div>
-                    <p data-i18n="term_dir_1">1. Wydawaj 🪙 Żetony Wyzwań przy Ołtarzu Reliktów w mieszkaniu na stałe ulepszenia.</p>
-                    <p data-i18n="term_dir_2">2. Użyj Łóżka, aby rozpocząć 6-minutową Nocną Zmianę (lub zasnąć po zebraniu Kwoty).</p>
-                    <p data-i18n="term_dir_3">3. Wyjdź na ulicę i wejdź do Kasyna Aksamitna Otchłań na wschodzie.</p>
-                    <p data-i18n="term_dir_4">4. Zdobądź Wymaganą Kwotę przed upływem czasu 06:00 i wróć do swojego Łóżka.</p>
-                </div>
-
                 <div class="flex justify-end gap-3 pt-1">
                     <button onclick="window.game.closeModals()" class="btn-gritty bg-emerald-600 hover:bg-emerald-500 border-emerald-800 text-zinc-950 font-extrabold px-5 py-2.5 rounded-xl text-xs sm:text-sm" data-i18n="term_ack">
-                        POTWIERDŹ I ZAMKNIJ TERMINAL
+                        ZAMKNIJ [ESC]
                     </button>
                 </div>
             </div>
@@ -584,14 +633,11 @@
             <div class="bg-emerald-950 border-b border-emerald-700 px-5 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">♠️</span>
-                    <div>
-                        <h2 class="text-emerald-300 font-bold tracking-wider text-sm sm:text-base uppercase" data-i18n="bj_header">STÓŁ VIP BLACKJACK // ASYSTENT GRACZA</h2>
-                        <p id="bj-relic-status" class="text-[11px] text-emerald-400/80">Cel: Bądź bliżej 21 niż Krupier, nie przekraczając 21!</p>
-                    </div>
+                    <h2 class="text-emerald-300 font-bold tracking-wider text-sm sm:text-base uppercase" data-i18n="bj_header">VIP BLACKJACK</h2>
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="window.game.toggleBjHelp()" class="text-xs font-bold px-2.5 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 text-amber-300 border border-emerald-600" data-i18n="bj_how_btn">
-                        ? JAK GRAĆ
+                        ? ZASADY
                     </button>
                     <button id="bj-leave-btn" onclick="window.game.closeModals()" class="text-emerald-300 hover:text-white font-bold text-xs sm:text-sm px-3 py-1.5 rounded bg-emerald-900/70 border border-emerald-600" data-i18n="btn_leave_esc">
                         ODEJDŹ [ESC]
@@ -667,21 +713,17 @@
 
                     <!-- Action Buttons with Plain-English Subtitles -->
                     <div class="flex flex-wrap items-center justify-center gap-2">
-                        <button id="bj-btn-deal" onclick="window.game.startBlackjackHand()" class="btn-gritty bg-amber-500 hover:bg-amber-400 border-amber-700 text-zinc-950 font-extrabold px-5 py-2 rounded-xl text-xs sm:text-sm flex flex-col items-center">
+                        <button id="bj-btn-deal" onclick="window.game.startBlackjackHand()" class="btn-gritty bg-amber-500 hover:bg-amber-400 border-amber-700 text-zinc-950 font-extrabold px-5 py-2.5 rounded-xl text-xs sm:text-sm">
                             <span data-i18n="bj_btn_deal">ROZDAJ</span>
-                            <span class="text-[10px] font-bold opacity-80" data-i18n="bj_sub_deal">Nowa runda</span>
                         </button>
-                        <button id="bj-btn-hit" onclick="window.game.bjHit()" disabled class="btn-gritty bg-emerald-500 hover:bg-emerald-400 border-emerald-700 text-zinc-950 font-extrabold px-4 py-2 rounded-xl text-xs sm:text-sm flex flex-col items-center">
+                        <button id="bj-btn-hit" onclick="window.game.bjHit()" disabled class="btn-gritty bg-emerald-500 hover:bg-emerald-400 border-emerald-700 text-zinc-950 font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm">
                             <span data-i18n="bj_btn_hit">DOBIERZ</span>
-                            <span class="text-[10px] font-bold opacity-80" data-i18n="bj_sub_hit">+1 Karta</span>
                         </button>
-                        <button id="bj-btn-stand" onclick="window.game.bjStand()" disabled class="btn-gritty bg-zinc-200 hover:bg-white border-zinc-400 text-zinc-950 font-extrabold px-4 py-2 rounded-xl text-xs sm:text-sm flex flex-col items-center">
+                        <button id="bj-btn-stand" onclick="window.game.bjStand()" disabled class="btn-gritty bg-zinc-200 hover:bg-white border-zinc-400 text-zinc-950 font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm">
                             <span data-i18n="bj_btn_stand">PAS</span>
-                            <span class="text-[10px] font-bold opacity-75" data-i18n="bj_sub_stand">Zatrzymaj wynik</span>
                         </button>
-                        <button id="bj-btn-double" onclick="window.game.bjDouble()" disabled class="btn-gritty bg-purple-500 hover:bg-purple-400 border-purple-700 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex flex-col items-center">
+                        <button id="bj-btn-double" onclick="window.game.bjDouble()" disabled class="btn-gritty bg-purple-500 hover:bg-purple-400 border-purple-700 text-white font-extrabold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm">
                             <span data-i18n="bj_btn_double">2x PODWÓJ</span>
-                            <span class="text-[10px] font-bold opacity-80" data-i18n="bj_sub_double">2x Stawka i 1 Karta</span>
                         </button>
                     </div>
                 </div>
@@ -1894,55 +1936,203 @@
                 this.ctx = null;
                 this.muted = false;
 
-                // Custom .MP3 Music Player State
+                // Multi-Track Persistent Audio Decks (Remembers playback position per zone, except Main Menu which resets!)
                 this.musicEnabled = CUSTOM_MUSIC_CONFIG.enabled;
                 this.musicVolume = CUSTOM_MUSIC_CONFIG.defaultVolume;
                 this.currentTrackKey = null;
-                this.currentTrackSrc = null;
                 this.customBlobUrl = null;
-                this.bgmAudio = new Audio();
-                this.bgmAudio.loop = true;
-                this.bgmAudio.volume = this.musicVolume;
+                this.audioDecks = {};
+                this.fadeInterval = null;
 
-                // Prevent unhandled error noise if the user hasn't placed local .mp3 files yet
-                this.bgmAudio.addEventListener('error', () => {
-                    const labelEl = document.getElementById('music-current-track-label');
-                    if (labelEl && !this.customBlobUrl) {
-                        labelEl.textContent = `Brak pliku: ${this.currentTrackSrc || ''} (Dodaj plik .mp3 lub wgraj poniżej)`;
+                // Procedural Rain Sound Nodes (Active on Blackwater Street)
+                this.rainNode = null;
+                this.rainGain = null;
+                this.isStreetRainActive = false;
+
+                Object.keys(CUSTOM_MUSIC_CONFIG.tracks).forEach(key => {
+                    const audio = new Audio();
+                    audio.loop = true;
+                    audio.preload = 'auto';
+                    audio.volume = this.musicVolume;
+                    audio.src = CUSTOM_MUSIC_CONFIG.tracks[key];
+                    audio.addEventListener('error', () => {
+                        const labelEl = document.getElementById('music-current-track-label');
+                        if (labelEl && !this.customBlobUrl && this.currentTrackKey === key) {
+                            labelEl.textContent = `Brak pliku: ${CUSTOM_MUSIC_CONFIG.tracks[key]}`;
+                        }
+                    });
+                    this.audioDecks[key] = audio;
+                });
+
+                // Aggressive Autofocus & Audio Auto-Unlock on any interaction, hover, or focus
+                const unlockAudio = () => {
+                    this.init();
+                    this.updateRainSound(this.isStreetRainActive);
+                    if (this.musicEnabled && this.currentTrackKey) {
+                        const activeDeck = this.getDeck(this.currentTrackKey);
+                        if (activeDeck && activeDeck.paused) {
+                            activeDeck.play().catch(() => {});
+                        }
                     }
+                };
+                ['pointerdown', 'pointermove', 'keydown', 'focus', 'mouseenter'].forEach(evt => {
+                    window.addEventListener(evt, unlockAudio, { passive: true });
                 });
             }
 
-            playMusicForState(trackKey) {
+            getDeck(trackKey) {
+                if (this.customBlobUrl) {
+                    if (!this.audioDecks._custom) {
+                        const a = new Audio(this.customBlobUrl);
+                        a.loop = true;
+                        a.volume = this.musicVolume;
+                        this.audioDecks._custom = a;
+                    }
+                    return this.audioDecks._custom;
+                }
+                return this.audioDecks[trackKey] || this.audioDecks.menu;
+            }
+
+            /**
+             * Smoothly crossfades between zone music decks (and always resets 'menu' track to 0:00)
+             */
+            playMusicForState(trackKey, forceRestart = false) {
+                const prevKey = this.currentTrackKey;
                 this.currentTrackKey = trackKey;
-                if (!this.musicEnabled) {
-                    this.bgmAudio.pause();
-                    return;
-                }
 
-                // If user uploaded a custom MP3 in Settings, play that override
-                const targetSrc = this.customBlobUrl || CUSTOM_MUSIC_CONFIG.tracks[trackKey];
-                if (!targetSrc) return;
-
-                if (this.currentTrackSrc !== targetSrc) {
-                    this.currentTrackSrc = targetSrc;
-                    this.bgmAudio.src = targetSrc;
-                    this.bgmAudio.volume = this.musicVolume;
-                }
+                // Always reset Main Menu music to 0:00 when entering Main Menu
+                const shouldRestart = forceRestart || trackKey === 'menu';
 
                 const labelEl = document.getElementById('music-current-track-label');
                 if (labelEl && !this.customBlobUrl) {
-                    labelEl.textContent = `Ścieżka [${trackKey.toUpperCase()}]: ${targetSrc}`;
+                    labelEl.textContent = `🎵 [${trackKey.toUpperCase()}]: ${CUSTOM_MUSIC_CONFIG.tracks[trackKey]}`;
                 }
 
-                this.bgmAudio.play().catch(() => {
-                    // Autoplay blocked until first click or file not found yet
-                });
+                if (!this.musicEnabled) {
+                    Object.values(this.audioDecks).forEach(d => { if (d && !d.paused) d.pause(); });
+                    return;
+                }
+
+                const targetDeck = this.getDeck(trackKey);
+                if (!targetDeck) return;
+
+                if (this.customBlobUrl) {
+                    targetDeck.volume = this.musicVolume;
+                    if (targetDeck.paused) targetDeck.play().catch(() => {});
+                    return;
+                }
+
+                if (shouldRestart) {
+                    try { targetDeck.currentTime = 0; } catch (e) {}
+                }
+
+                // If same track is already playing, ensure target volume
+                if (prevKey === trackKey && !targetDeck.paused) {
+                    targetDeck.volume = this.musicVolume;
+                    return;
+                }
+
+                if (this.fadeInterval) {
+                    clearInterval(this.fadeInterval);
+                    this.fadeInterval = null;
+                }
+
+                // Start incoming track at low volume and smoothly crossfade over 450ms
+                targetDeck.volume = 0.02;
+                targetDeck.play().catch(() => {});
+
+                const stepMs = 30;
+                const totalSteps = 15;
+                let step = 0;
+
+                this.fadeInterval = setInterval(() => {
+                    step++;
+                    const t = Math.min(1, step / totalSteps);
+
+                    // Fade in active track
+                    targetDeck.volume = Math.max(0, Math.min(1, this.musicVolume * t));
+
+                    // Fade out all other zone tracks without losing their currentTime
+                    Object.keys(this.audioDecks).forEach(k => {
+                        if (k !== trackKey) {
+                            const d = this.audioDecks[k];
+                            if (d && !d.paused) {
+                                d.volume = Math.max(0, this.musicVolume * (1 - t));
+                                if (t >= 1) {
+                                    d.pause();
+                                }
+                            }
+                        }
+                    });
+
+                    if (t >= 1) {
+                        clearInterval(this.fadeInterval);
+                        this.fadeInterval = null;
+                    }
+                }, stepMs);
+            }
+
+            /**
+             * Gentle Procedural Rain Ambience for Blackwater Street
+             */
+            initRainLoop() {
+                if (this.rainNode || !this.ctx) return;
+                try {
+                    const bufferSize = this.ctx.sampleRate * 2;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    let lastOut = 0.0;
+                    for (let i = 0; i < bufferSize; i++) {
+                        const white = Math.random() * 2 - 1;
+                        // Pink-ish soft rain noise filter
+                        data[i] = (lastOut + (0.04 * white)) / 1.04;
+                        lastOut = data[i];
+                        data[i] *= 1.8;
+                    }
+
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    noise.loop = true;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 1150;
+                    filter.Q.value = 0.65;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.value = 0.0001;
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    noise.start(0);
+
+                    this.rainNode = noise;
+                    this.rainGain = gain;
+                } catch (e) {}
+            }
+
+            updateRainSound(active) {
+                this.isStreetRainActive = active;
+                if (this.muted) active = false;
+                if (active) this.init();
+                if (!this.ctx) return;
+                this.initRainLoop();
+                if (!this.rainGain) return;
+
+                try {
+                    const now = this.ctx.currentTime;
+                    const targetGain = active ? 0.045 : 0.0001;
+                    this.rainGain.gain.cancelScheduledValues(now);
+                    this.rainGain.gain.setTargetAtTime(targetGain, now, 0.25);
+                } catch (e) {}
             }
 
             setMusicVolume(val0to1) {
                 this.musicVolume = Math.max(0, Math.min(1, val0to1));
-                this.bgmAudio.volume = this.musicVolume;
+                Object.values(this.audioDecks).forEach(deck => {
+                    if (deck) deck.volume = this.musicVolume;
+                });
             }
 
             toggleMusic() {
@@ -1950,7 +2140,9 @@
                 if (this.musicEnabled) {
                     this.playMusicForState(this.currentTrackKey || 'menu');
                 } else {
-                    this.bgmAudio.pause();
+                    Object.values(this.audioDecks).forEach(deck => {
+                        if (deck) deck.pause();
+                    });
                 }
             }
 
@@ -1958,12 +2150,19 @@
                 if (this.customBlobUrl) {
                     URL.revokeObjectURL(this.customBlobUrl);
                 }
+                Object.values(this.audioDecks).forEach(deck => {
+                    if (deck) deck.pause();
+                });
                 this.customBlobUrl = url;
-                this.currentTrackSrc = null;
+                const customAudio = new Audio(url);
+                customAudio.loop = true;
+                customAudio.volume = this.musicVolume;
+                this.audioDecks._custom = customAudio;
                 this.musicEnabled = true;
+
                 const labelEl = document.getElementById('music-current-track-label');
                 if (labelEl) {
-                    labelEl.textContent = `🎵 Gra teraz: ${fileName}`;
+                    labelEl.textContent = `🎵 ${fileName}`;
                 }
                 this.playMusicForState(this.currentTrackKey || 'menu');
             }
@@ -1975,10 +2174,6 @@
                 }
                 if (this.ctx && this.ctx.state === 'suspended') {
                     this.ctx.resume();
-                }
-                // Also resume MP3 music on user interaction if enabled
-                if (this.musicEnabled && this.bgmAudio.paused && this.currentTrackSrc) {
-                    this.bgmAudio.play().catch(() => {});
                 }
             }
 
@@ -2005,6 +2200,15 @@
                 } catch (e) {
                     // Ignore audio context restrictions
                 }
+            }
+
+            // Crisp UI Sound Effects
+            uiHover() { this.playTone(660, 'sine', 0.022, 0.025, 820); }
+            uiClick() { this.playTone(480, 'triangle', 0.045, 0.065, 920); }
+            uiBack() { this.playTone(360, 'triangle', 0.05, 0.06, 210); }
+            introBoom() {
+                this.playTone(65, 'sawtooth', 1.8, 0.09, 42);
+                setTimeout(() => this.playTone(130.8, 'triangle', 1.6, 0.07, 196), 150);
             }
 
             step() { this.playTone(95 + Math.random() * 25, 'triangle', 0.04, 0.04); }
@@ -2436,8 +2640,14 @@
 
                 this.keys = {};
                 this.mainMenuOpen = true;
+                this.introPlaying = true;
                 this.activeModal = null;
                 this.hoveredInteractable = null;
+
+                // 3D Buckshot-Roulette Style Falling Cash Stacks on Main Menu Sides
+                this.menuCashCanvas = document.getElementById('menuCashCanvas');
+                this.menuCashCtx = this.menuCashCanvas ? this.menuCashCanvas.getContext('2d') : null;
+                this.menuCashBills = Array.from({ length: 34 }, (_, idx) => this.spawnMenuCashBill(idx, true));
 
                 // Rain particles for street ambiance
                 this.rain = Array.from({ length: 65 }, () => ({
@@ -2488,278 +2698,321 @@
                 this.assignNightlyModifier();
                 this.assignDailyChallenge();
                 this.bindInputs();
+                this.bindGlobalUISounds();
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
 
                 this.applyTranslations();
                 this.syncSettingsUI();
                 this.updateHUD();
-                this.sfx.playMusicForState('menu');
+
+                // Immediate Autofocus on Game Window & Canvas so Audio & Controls work right away
+                this.enforceGameFocus();
+
+                // Launch unskippable ZSAGAMES Intro -> Main Menu Sequence
+                this.playIntroSequence();
 
                 this.lastFrameTime = performance.now();
                 requestAnimationFrame((ts) => this.loop(ts));
             }
 
+            enforceGameFocus() {
+                const focusGame = () => {
+                    try {
+                        window.focus();
+                        if (this.canvas && document.activeElement !== this.canvas && !this.activeModal) {
+                            this.canvas.focus({ preventScroll: true });
+                        }
+                        this.sfx.init();
+                    } catch (e) {}
+                };
+                focusGame();
+                setTimeout(focusGame, 80);
+                setTimeout(focusGame, 350);
+                window.addEventListener('load', focusGame);
+            }
+
+            /**
+             * Smooth visual fade-out / fade-in curtain + audio crossfade when switching rooms
+             */
+            transitionToZone(targetZone, targetX, targetY) {
+                if (this.isTransitioningZone) return;
+                this.isTransitioningZone = true;
+                this.keys = {};
+                this.player.vx = 0;
+                this.player.vy = 0;
+
+                this.sfx.door();
+                const curtain = document.getElementById('zone-transition-curtain');
+                if (curtain) {
+                    curtain.style.opacity = '1';
+                }
+
+                setTimeout(() => {
+                    this.zone = targetZone;
+                    this.player.x = targetX;
+                    this.player.y = targetY;
+                    this.footsteps = [];
+                    this.player.trail = [];
+                    this.syncZoneMusic();
+                    this.updateHUD();
+
+                    setTimeout(() => {
+                        if (curtain) curtain.style.opacity = '0';
+                        this.isTransitioningZone = false;
+                    }, 90);
+                }, 220);
+            }
+
             /**
              * ============================================================================
-             * LOCALIZATION ENGINE (PL, EN, UK, RU)
+             * UNSKIPPABLE "ZSAGAMES" INTRO & 3D BUCKSHOT FALLING CASH MENU
              * ============================================================================
              */
-            t(key, vars = {}) {
-                const pack = I18N[this.lang] || I18N.pl;
-                let str = pack[key] !== undefined ? pack[key] : (I18N.pl[key] || key);
-                Object.keys(vars).forEach(k => {
-                    str = str.replace(`{${k}}`, vars[k]);
-                });
-                return str;
-            }
+            playIntroSequence() {
+                this.introPlaying = true;
+                this.mainMenuOpen = true;
+                this.keys = {};
 
-            getLocalized(obj) {
-                if (!obj) return '';
-                if (typeof obj === 'string') return obj;
-                return obj[this.lang] || obj.pl || obj.en || '';
-            }
+                // Stop street rain sound and start Main Menu music from 0:00 immediately during the intro
+                this.sfx.updateRainSound(false);
+                this.sfx.playMusicForState('menu', true);
+                this.sfx.introBoom();
 
-            setLanguage(langCode) {
-                if (!I18N[langCode]) return;
-                this.lang = langCode;
-                this.sfx.tick();
-                this.applyTranslations();
-                this.updateHUD();
-                this.updateAtmUI();
-                if (this.activeModal === 'modal-blackjack') {
-                    this.updateBjCoach();
+                const introOverlay = document.getElementById('intro-overlay');
+                const logoBox = document.getElementById('intro-logo-box');
+                const menuOverlay = document.getElementById('main-menu-overlay');
+
+                if (this.introTimers) {
+                    this.introTimers.forEach(id => clearTimeout(id));
+                }
+                this.introTimers = [];
+
+                if (introOverlay && logoBox && menuOverlay) {
+                    // Reset states: pure black screen, hidden menu
+                    introOverlay.classList.remove('hidden');
+                    introOverlay.style.display = 'flex';
+                    logoBox.classList.remove('intro-visible');
+
+                    menuOverlay.classList.remove('hidden', 'menu-visible');
+                    menuOverlay.style.display = 'flex';
+
+                    // t = 50ms: Start 1-second Fade-In of "ZSAGAMES"
+                    this.introTimers.push(setTimeout(() => {
+                        logoBox.classList.add('intro-visible');
+                    }, 100));
+
+                    // Hold for 2 seconds after 1s fade-in -> at t = 3050ms start 1-second Fade-Out
+                    this.introTimers.push(setTimeout(() => {
+                        logoBox.classList.remove('intro-visible');
+                    }, 4050));
+
+                    // At t = 4150ms (black screen after 1s fade-out): Hide intro overlay & Fade-In Main Menu over 1s
+                    this.introTimers.push(setTimeout(() => {
+                        introOverlay.style.display = 'none';
+                        introOverlay.classList.add('hidden');
+                        menuOverlay.classList.add('menu-visible');
+                    }, 6150));
+
+                    // At t = 5150ms: Intro complete, allow interaction
+                    this.introTimers.push(setTimeout(() => {
+                        this.introPlaying = false;
+                    }, 9150));
+                } else {
+                    this.introPlaying = false;
                 }
             }
 
-            cycleLanguage() {
-                const order = ['pl', 'en', 'uk', 'ru'];
-                const idx = order.indexOf(this.lang);
-                const next = order[(idx + 1) % order.length];
-                this.setLanguage(next);
-            }
-
-            applyTranslations() {
-                document.querySelectorAll('[data-i18n]').forEach(el => {
-                    const key = el.getAttribute('data-i18n');
-                    el.textContent = this.t(key);
-                });
-
-                const flags = { pl: '🇵🇱 PL', en: '🇬🇧 EN', uk: '🇺🇦 UA', ru: '🇷🇺 RU' };
-                const hudBtn = document.getElementById('btn-hud-lang');
-                if (hudBtn) hudBtn.textContent = flags[this.lang] || '🇵🇱 PL';
-
-                ['pl', 'en', 'uk', 'ru'].forEach(code => {
-                    const mBtn = document.getElementById(`lang-btn-menu-${code}`);
-                    const sBtn = document.getElementById(`lang-btn-set-${code}`);
-                    const activeClass = 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-amber-500 text-zinc-950 transition';
-                    const idleClass = 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition';
-                    if (mBtn) mBtn.className = (code === this.lang) ? activeClass : idleClass;
-                    if (sBtn) sBtn.className = (code === this.lang) ? activeClass : idleClass;
-                });
-
-                this.syncSettingsUI();
+            spawnMenuCashBill(index = 0, randomY = false) {
+                const side = index % 2 === 0 ? 'left' : 'right';
+                const depth = 0.55 + Math.random() * 0.75;
+                return {
+                    side,
+                    xFrac: side === 'left'
+                        ? 0.05 + Math.random() * 0.19
+                        : 0.76 + Math.random() * 0.19,
+                    y: randomY ? Math.random() * window.innerHeight : -100 - Math.random() * 180,
+                    z: depth,
+                    vy: (105 + Math.random() * 115) * depth,
+                    // Full 360-degree 3D orientation angles & angular velocities (rad/s)
+                    rx: Math.random() * Math.PI * 2,
+                    ry: Math.random() * Math.PI * 2,
+                    rz: Math.random() * Math.PI * 2,
+                    vrx: (1.6 + Math.random() * 2.4) * (Math.random() < 0.5 ? 1 : -1),
+                    vry: (1.8 + Math.random() * 2.8) * (Math.random() < 0.5 ? 1 : -1),
+                    vrz: (0.8 + Math.random() * 1.6) * (Math.random() < 0.5 ? 1 : -1),
+                    thickness: 12 + Math.floor(Math.random() * 10)
+                };
             }
 
             /**
-             * ============================================================================
-             * TOP-DOWN WORLD ZONES & INTERACTABLES
-             * ============================================================================
+             * Renders true 360-degree 3D tumbling stacks of $100 bills on the left & right sides of the Main Menu
              */
-            initZones() {
-                this.zones = {
-                    // ZONE 0: THE SAFEHOUSE APARTMENT
-                    0: {
-                        getName: () => this.t('zone_0'),
-                        bounds: { x: 150, y: 100, w: 700, h: 400 },
-                        obstacles: [
-                            // Bed (Top-Left)
-                            { x: 185, y: 140, w: 120, h: 155, label: 'BED', color: '#7f1d1d' },
-                            // Syndicate CRT Terminal Desk (Top-Right)
-                            { x: 640, y: 135, w: 170, h: 90, label: 'CRT', color: '#064e3b' },
-                            // Tinkerer's Relic Shrine (Bottom-Left)
-                            { x: 185, y: 375, w: 165, h: 90, label: 'SHRINE', color: '#78350f' }
-                        ],
-                        interactables: [
-                            {
-                                id: 'bed',
-                                x: 245,
-                                y: 217,
-                                box: { x: 185, y: 140, w: 120, h: 155 },
-                                edgeDist: 46,
-                                getPrompt: () => {
-                                    if (this.phase === 'PREP') return this.t('prompt_bed_prep');
-                                    if (this.cash >= this.quota) return this.t('prompt_bed_sleep');
-                                    return this.t('prompt_bed_locked');
-                                },
-                                action: () => {
-                                    if (this.phase === 'PREP') {
-                                        this.startNightShift();
-                                    } else if (this.cash >= this.quota) {
-                                        this.completeDaySummary();
-                                    } else {
-                                        this.sfx.lose();
-                                        this.showToast(this.t('prompt_bed_locked'), 'red');
-                                    }
-                                }
-                            },
-                            {
-                                id: 'terminal',
-                                x: 725,
-                                y: 180,
-                                box: { x: 640, y: 135, w: 170, h: 90 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_terminal'),
-                                action: () => this.openTerminalModal()
-                            },
-                            {
-                                id: 'relics',
-                                x: 267,
-                                y: 420,
-                                box: { x: 185, y: 375, w: 165, h: 90 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_relics', { tokens: this.tokens }),
-                                action: () => this.openRelicModal()
-                            },
-                            {
-                                id: 'safehouse_door',
-                                x: 500,
-                                y: 495,
-                                box: { x: 445, y: 486, w: 110, h: 18 },
-                                edgeDist: 46,
-                                getPrompt: () => this.phase === 'PREP' ? this.t('prompt_door_prep') : this.t('prompt_door_exit'),
-                                action: () => this.exitSafehouseToStreet()
-                            }
-                        ]
-                    },
+            updateAndRenderMenuCash(dt) {
+                if (!this.mainMenuOpen || !this.menuCashCtx || !this.menuCashCanvas) return;
+                const ctx = this.menuCashCtx;
+                const w = this.menuCashCanvas.width;
+                const h = this.menuCashCanvas.height;
 
-                    // ZONE 1: BLACKWATER STREET (COMMUTE)
-                    1: {
-                        getName: () => this.t('zone_1'),
-                        bounds: { x: 50, y: 130, w: 900, h: 360 },
-                        obstacles: [
-                            { x: 310, y: 145, w: 120, h: 65, label: 'DUMPSTER', color: '#27272a' },
-                            { x: 560, y: 405, w: 165, h: 70, label: 'CAR', color: '#3f3f46' }
-                        ],
-                        interactables: [
-                            {
-                                id: 'street_to_home',
-                                x: 56,
-                                y: 320,
-                                box: { x: 46, y: 275, w: 16, h: 90 },
-                                edgeDist: 48,
-                                getPrompt: () => this.t('prompt_enter_home'),
-                                action: () => {
-                                    this.sfx.door();
-                                    this.zone = 0;
-                                    this.player.x = 500;
-                                    this.player.y = 440;
-                                    this.syncZoneMusic();
-                                    this.updateHUD();
-                                }
-                            },
-                            {
-                                id: 'street_to_casino',
-                                x: 944,
-                                y: 320,
-                                box: { x: 938, y: 260, w: 16, h: 120 },
-                                edgeDist: 52,
-                                getPrompt: () => this.t('prompt_enter_casino'),
-                                action: () => {
-                                    this.sfx.door();
-                                    this.zone = 2;
-                                    this.player.x = 125;
-                                    this.player.y = 310;
-                                    this.syncZoneMusic();
-                                    this.showToast(`${this.t('zone_2')} // ${this.getLocalized(this.currentModifier.name).toUpperCase()}`, 'amber');
-                                    this.updateHUD();
-                                }
-                            }
-                        ]
-                    },
+                ctx.clearRect(0, 0, w, h);
 
-                    // ZONE 2: THE VELVET PIT CASINO FLOOR (5 Interactive Stations)
-                    2: {
-                        getName: () => this.t('zone_2'),
-                        bounds: { x: 65, y: 95, w: 870, h: 435 },
-                        obstacles: [
-                            { x: 185, y: 135, w: 180, h: 110, label: 'BLACKJACK', color: '#065f46' },
-                            { x: 635, y: 135, w: 190, h: 110, label: 'ROULETTE', color: '#7f1d1d' },
-                            { x: 425, y: 265, w: 155, h: 95, label: 'CYBER DICE', color: '#164e63' },
-                            { x: 195, y: 385, w: 165, h: 85, label: 'BLOOD SLOTS', color: '#78350f' },
-                            { x: 655, y: 385, w: 145, h: 80, label: 'USURY ATM', color: '#450a0a' }
-                        ],
-                        interactables: [
-                            {
-                                id: 'casino_to_street',
-                                x: 71,
-                                y: 310,
-                                box: { x: 61, y: 265, w: 16, h: 90 },
-                                edgeDist: 48,
-                                getPrompt: () => this.t('prompt_door_exit'),
-                                action: () => {
-                                    this.sfx.door();
-                                    this.zone = 1;
-                                    this.player.x = 875;
-                                    this.player.y = 320;
-                                    this.syncZoneMusic();
-                                    this.updateHUD();
-                                }
-                            },
-                            {
-                                id: 'table_blackjack',
-                                x: 275,
-                                y: 190,
-                                box: { x: 185, y: 135, w: 180, h: 110 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_Play_bj'),
-                                action: () => this.openBlackjackModal()
-                            },
-                            {
-                                id: 'table_roulette',
-                                x: 730,
-                                y: 190,
-                                box: { x: 635, y: 135, w: 190, h: 110 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_play_roul'),
-                                action: () => this.openRouletteModal()
-                            },
-                            {
-                                id: 'table_dice',
-                                x: 502,
-                                y: 312,
-                                box: { x: 425, y: 265, w: 155, h: 95 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_play_dice'),
-                                action: () => this.openDiceModal()
-                            },
-                            {
-                                id: 'table_slots',
-                                x: 277,
-                                y: 427,
-                                box: { x: 195, y: 385, w: 165, h: 85 },
-                                edgeDist: 46,
-                                getPrompt: () => this.t('prompt_play_slots'),
-                                action: () => this.openSlotsModal()
-                            },
-                            {
-                                id: 'kiosk_atm',
-                                x: 727,
-                                y: 425,
-                                box: { x: 655, y: 385, w: 145, h: 80 },
-                                edgeDist: 46,
-                                getPrompt: () => this.bloodPumpedThisNight ? this.t('prompt_atm_used') : this.t('prompt_atm_ready'),
-                                action: () => this.openAtmModal()
-                            }
-                        ]
-                    }
+                // Dramatic side spotlights for the falling 3D money columns
+                if (!this.settings.lowEndMode) {
+                    const leftGlow = ctx.createRadialGradient(w * 0.14, h * 0.5, 20, w * 0.14, h * 0.5, w * 0.28);
+                    leftGlow.addColorStop(0, 'rgba(16, 185, 129, 0.16)');
+                    leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    ctx.fillStyle = leftGlow;
+                    ctx.fillRect(0, 0, w * 0.4, h);
+
+                    const rightGlow = ctx.createRadialGradient(w * 0.86, h * 0.5, 20, w * 0.86, h * 0.5, w * 0.28);
+                    rightGlow.addColorStop(0, 'rgba(245, 158, 11, 0.16)');
+                    rightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    ctx.fillStyle = rightGlow;
+                    ctx.fillRect(w * 0.6, 0, w * 0.4, h);
+                }
+
+                const fov = 320;
+                const rot3D = (vx, vy, vz, rx, ry, rz) => {
+                    // Rotate around X
+                    const cy1 = vy * Math.cos(rx) - vz * Math.sin(rx);
+                    const cz1 = vy * Math.sin(rx) + vz * Math.cos(rx);
+                    // Rotate around Y
+                    const cx2 = vx * Math.cos(ry) + cz1 * Math.sin(ry);
+                    const cz2 = -vx * Math.sin(ry) + cz1 * Math.cos(ry);
+                    // Rotate around Z
+                    const cx3 = cx2 * Math.cos(rz) - cy1 * Math.sin(rz);
+                    const cy3 = cx2 * Math.sin(rz) + cy1 * Math.cos(rz);
+                    const s = fov / Math.max(60, fov + cz2);
+                    return { x: cx3 * s, y: cy3 * s, z: cz2 };
                 };
+
+                for (let i = 0; i < this.menuCashBills.length; i++) {
+                    const b = this.menuCashBills[i];
+                    b.y += b.vy * dt;
+                    b.rx = (b.rx + b.vrx * dt) % (Math.PI * 2);
+                    b.ry = (b.ry + b.vry * dt) % (Math.PI * 2);
+                    b.rz = (b.rz + b.vrz * dt) % (Math.PI * 2);
+
+                    if (b.y > h + 120) {
+                        this.menuCashBills[i] = this.spawnMenuCashBill(i, false);
+                        continue;
+                    }
+
+                    const bx = b.xFrac * w + Math.sin(this.animTime * 1.4 + i) * 12;
+                    const by = b.y;
+                    const hw = 42 * b.z;
+                    const hh = 21 * b.z;
+                    const hd = (b.thickness * 0.5) * b.z;
+
+                    // 8 Corners of the 3D Cash Wad Brick
+                    const localVerts = [
+                        [-hw, -hh, -hd], [hw, -hh, -hd], [hw, hh, -hd], [-hw, hh, -hd], // Front face (z = -hd)
+                        [-hw, -hh,  hd], [hw, -hh,  hd], [hw, hh,  hd], [-hw, hh,  hd]  // Back face  (z = +hd)
+                    ];
+                    const pts = localVerts.map(v => rot3D(v[0], v[1], v[2], b.rx, b.ry, b.rz));
+
+                    // 6 Faces of the 3D Cash Brick
+                    const faces = [
+                        { idx: [0, 1, 2, 3], type: 'front', color: '#10b981', stroke: '#a7f3d0' },
+                        { idx: [5, 4, 7, 6], type: 'back',  color: '#047857', stroke: '#6ee7b7' },
+                        { idx: [4, 5, 1, 0], type: 'sideLong', color: '#064e3b', stroke: '#022c22' },
+                        { idx: [3, 2, 6, 7], type: 'sideLong', color: '#064e3b', stroke: '#022c22' },
+                        { idx: [4, 0, 3, 7], type: 'sideShort', color: '#065f46', stroke: '#022c22' },
+                        { idx: [1, 5, 6, 2], type: 'sideShort', color: '#065f46', stroke: '#022c22' }
+                    ];
+
+                    // Sort faces back-to-front (Painter's Algorithm)
+                    faces.forEach(f => {
+                        f.avgZ = (pts[f.idx[0]].z + pts[f.idx[1]].z + pts[f.idx[2]].z + pts[f.idx[3]].z) * 0.25;
+                    });
+                    faces.sort((aFace, bFace) => bFace.avgZ - aFace.avgZ);
+
+                    ctx.save();
+                    ctx.translate(bx, by);
+
+                    for (const f of faces) {
+                        const p0 = pts[f.idx[0]];
+                        const p1 = pts[f.idx[1]];
+                        const p2 = pts[f.idx[2]];
+                        const p3 = pts[f.idx[3]];
+
+                        ctx.beginPath();
+                        ctx.moveTo(p0.x, p0.y);
+                        ctx.lineTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.lineTo(p3.x, p3.y);
+                        ctx.closePath();
+
+                        ctx.fillStyle = f.color;
+                        ctx.fill();
+                        ctx.strokeStyle = f.stroke;
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        // Draw Golden Currency Strap Band across Front, Back, and Long Sides
+                        if (f.type === 'front' || f.type === 'back' || f.type === 'sideLong') {
+                            const lerpPt = (pa, pb, t) => ({
+                                x: pa.x + (pb.x - pa.x) * t,
+                                y: pa.y + (pb.y - pa.y) * t
+                            });
+                            const b0 = lerpPt(p0, p1, 0.4);
+                            const b1 = lerpPt(p0, p1, 0.6);
+                            const b2 = lerpPt(p3, p2, 0.6);
+                            const b3 = lerpPt(p3, p2, 0.4);
+
+                            ctx.beginPath();
+                            ctx.moveTo(b0.x, b0.y);
+                            ctx.lineTo(b1.x, b1.y);
+                            ctx.lineTo(b2.x, b2.y);
+                            ctx.lineTo(b3.x, b3.y);
+                            ctx.closePath();
+                            ctx.fillStyle = f.type === 'sideLong' ? '#b45309' : '#fbbf24';
+                            ctx.fill();
+
+                            // Inner emblem dot on front/back faces
+                            if (f.type === 'front' || f.type === 'back') {
+                                const cx = (p0.x + p1.x + p2.x + p3.x) * 0.25;
+                                const cy = (p0.y + p1.y + p2.y + p3.y) * 0.25;
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 4 * b.z, 0, Math.PI * 2);
+                                ctx.fillStyle = '#064e3b';
+                                ctx.fill();
+                            }
+                        }
+                    }
+
+                    ctx.restore();
+                }
+            }
+
+            bindGlobalUISounds() {
+                document.addEventListener('mouseover', (e) => {
+                    if (this.introPlaying) return;
+                    const btn = e.target.closest('button, label');
+                    if (btn && !btn.disabled && this._lastHoveredBtn !== btn) {
+                        this._lastHoveredBtn = btn;
+                        this.sfx.uiHover();
+                    }
+                });
+                document.addEventListener('pointerdown', (e) => {
+                    if (this.introPlaying) return;
+                    const btn = e.target.closest('button, label');
+                    if (btn && !btn.disabled) {
+                        this.sfx.uiClick();
+                    }
+                });
             }
 
             bindInputs() {
                 window.addEventListener('keydown', (e) => {
                     const k = e.key.toLowerCase();
                     this.keys[k] = true;
+
+                    // Block all skipping or shortcuts while ZSAGAMES Intro is playing
+                    if (this.introPlaying) {
+                        e.preventDefault();
+                        return;
+                    }
 
                     if (this.mainMenuOpen && !this.activeModal) {
                         if (k === 'enter' || k === 'e') {
@@ -2775,6 +3028,7 @@
                     } else if (k === 'escape') {
                         e.preventDefault();
                         if (this.activeModal) {
+                            this.sfx.uiBack();
                             this.closeModals();
                         } else if (!this.mainMenuOpen) {
                             this.openPauseModal();
@@ -2805,36 +3059,47 @@
                 bindTouch('touch-right', 'd');
             }
 
-            openMainMenu() {
+            openMainMenu(withIntro = false) {
                 this.mainMenuOpen = true;
                 this.keys = {};
+                this.sfx.updateRainSound(false);
+                if (withIntro) {
+                    this.playIntroSequence();
+                    return;
+                }
                 const overlay = document.getElementById('main-menu-overlay');
                 if (overlay) {
                     overlay.classList.remove('hidden');
+                    overlay.classList.add('menu-visible');
                     overlay.style.display = 'flex';
                 }
-                this.sfx.playMusicForState('menu');
+                // Always reset Main Menu music to 0:00
+                this.sfx.playMusicForState('menu', true);
             }
 
             closeMainMenu() {
+                if (this.introPlaying) return;
                 this.mainMenuOpen = false;
                 this.keys = {};
                 const overlay = document.getElementById('main-menu-overlay');
                 if (overlay) {
+                    overlay.classList.remove('menu-visible');
                     overlay.classList.add('hidden');
                     overlay.style.display = 'none';
                 }
                 this.sfx.door();
                 this.syncZoneMusic();
+                this.enforceGameFocus();
             }
 
             returnToMainMenuFromPause() {
                 this.closeModals(true);
-                this.openMainMenu();
+                // Re-run unskippable ZSAGAMES Intro + Main Menu sequence when returning from Pause Menu
+                this.openMainMenu(true);
             }
 
             openPauseModal() {
-                if (this.mainMenuOpen) return;
+                if (this.mainMenuOpen || this.introPlaying) return;
                 this.sfx.tick();
                 const statusEl = document.getElementById('pause-status-line');
                 if (statusEl) {
@@ -2845,12 +3110,16 @@
 
             syncZoneMusic() {
                 if (this.mainMenuOpen) {
-                    this.sfx.playMusicForState('menu');
+                    this.sfx.updateRainSound(false);
+                    this.sfx.playMusicForState('menu', true);
                 } else if (this.zone === 0) {
+                    this.sfx.updateRainSound(false);
                     this.sfx.playMusicForState('safehouse');
                 } else if (this.zone === 1) {
+                    this.sfx.updateRainSound(this.settings.weather && !this.settings.lowEndMode);
                     this.sfx.playMusicForState('street');
                 } else if (this.zone === 2) {
+                    this.sfx.updateRainSound(false);
                     this.sfx.playMusicForState('casino');
                 }
             }
@@ -2902,11 +3171,13 @@
                 } else {
                     this.settings[key] = !this.settings[key];
                 }
+                this.sfx.updateRainSound(!this.mainMenuOpen && this.zone === 1 && this.settings.weather && !this.settings.lowEndMode);
                 this.syncSettingsUI();
             }
 
             toggleMute() {
                 this.sfx.muted = !this.sfx.muted;
+                this.sfx.updateRainSound(!this.mainMenuOpen && this.zone === 1 && this.settings.weather && !this.settings.lowEndMode);
                 this.syncSettingsUI();
             }
 
@@ -2962,6 +3233,10 @@
             resize() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
+                if (this.menuCashCanvas) {
+                    this.menuCashCanvas.width = window.innerWidth;
+                    this.menuCashCanvas.height = window.innerHeight;
+                }
             }
 
             initRouletteGrid() {
@@ -3003,37 +3278,279 @@
                 };
             }
 
-            checkChallenge(type, value = 1) {
-                if (!this.currentChallenge || this.currentChallenge.completed) return;
-                const ch = this.currentChallenge;
-
-                if (ch.id === 'bj_wins_2' && type === 'bj_win') ch.progress += 1;
-                if (ch.id === 'bj_low_win' && type === 'bj_low_win') ch.progress += 1;
-                if (ch.id === 'roul_win_1' && type === 'roul_win') ch.progress += 1;
-                if (ch.id === 'dice_win_2' && type === 'dice_win') ch.progress += 1;
-                if (ch.id === 'slots_win_2' && type === 'slots_win') ch.progress += 1;
-                if (ch.id === 'big_payout' && type === 'payout' && value >= 400) ch.progress = 1;
-
-                if (ch.progress >= ch.target && !ch.completed) {
-                    ch.completed = true;
-                    this.tokens += ch.reward;
-                    this.sfx.jackpot();
-                    this.showToast(`★ ${this.t('completed_word')} (+${ch.reward} 🪙)`, 'amber');
+            t(key, params = {}) {
+                const dict = I18N[this.lang] || I18N.pl;
+                let text = dict[key] || I18N.pl[key] || key;
+                for (const k in params) {
+                    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
                 }
+                return text;
+            }
+
+            getLocalized(obj) {
+                if (!obj) return '';
+                return obj[this.lang] || obj['pl'] || obj['en'] || '';
+            }
+
+            setLanguage(langCode) {
+                if (!I18N[langCode]) return;
+                this.lang = langCode;
+                this.sfx.tick();
+                this.applyTranslations();
+                this.syncSettingsUI();
                 this.updateHUD();
             }
 
-            showToast(msg, color = 'amber') {
+            cycleLanguage() {
+                const langs = ['pl', 'en', 'uk', 'ru'];
+                const nextLang = langs[(langs.indexOf(this.lang) + 1) % langs.length];
+                this.setLanguage(nextLang);
+            }
+
+            applyTranslations() {
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    const translated = this.t(key);
+                    if (translated) {
+                        el.textContent = translated;
+                    }
+                });
+
+                const plBtnMenu = document.getElementById('lang-btn-menu-pl');
+                const enBtnMenu = document.getElementById('lang-btn-menu-en');
+                const ukBtnMenu = document.getElementById('lang-btn-menu-uk');
+                const ruBtnMenu = document.getElementById('lang-btn-menu-ru');
+                if (plBtnMenu) {
+                    plBtnMenu.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${this.lang === 'pl' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                    enBtnMenu.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${this.lang === 'en' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                    ukBtnMenu.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${this.lang === 'uk' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                    ruBtnMenu.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${this.lang === 'ru' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                }
+
+                const plBtnSet = document.getElementById('lang-btn-set-pl');
+                const enBtnSet = document.getElementById('lang-btn-set-en');
+                const ukBtnSet = document.getElementById('lang-btn-set-uk');
+                const ruBtnSet = document.getElementById('lang-btn-set-ru');
+                if (plBtnSet) {
+                    plBtnSet.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold ${this.lang === 'pl' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300'}`;
+                    enBtnSet.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold ${this.lang === 'en' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300'}`;
+                    ukBtnSet.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold ${this.lang === 'uk' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300'}`;
+                    ruBtnSet.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold ${this.lang === 'ru' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-800 text-zinc-300'}`;
+                }
+
+                const langBtnHud = document.getElementById('btn-hud-lang');
+                if (langBtnHud) {
+                    const map = { pl: '🇵🇱 PL', en: '🇬🇧 EN', uk: '🇺🇦 UA', ru: '🇷🇺 RU' };
+                    langBtnHud.textContent = map[this.lang] || '🇵🇱 PL';
+                }
+            }
+
+            initZones() {
+                this.zones = [
+                    {
+                        getName: () => this.t('zone_0'),
+                        bounds: { x: 120, y: 110, w: 760, h: 410 },
+                        obstacles: [
+                            { x: 185, y: 140, w: 120, h: 155 }, // Bed
+                            { x: 640, y: 135, w: 170, h: 90 },  // CRT Terminal Desk
+                            { x: 185, y: 375, w: 165, h: 90 }   // Relic Shrine
+                        ],
+                        interactables: [
+                            {
+                                box: { x: 185, y: 140, w: 120, h: 155 },
+                                edgeDist: 52,
+                                getPrompt: () => {
+                                    if (this.phase === 'PREP') return this.t('prompt_bed_prep');
+                                    return this.cash >= this.quota ? this.t('prompt_bed_sleep') : this.t('prompt_bed_locked');
+                                },
+                                action: () => {
+                                    if (this.phase === 'PREP') {
+                                        this.exitSafehouseToStreet();
+                                    } else if (this.cash >= this.quota) {
+                                        this.completeDaySummary();
+                                    } else {
+                                        this.sfx.lose();
+                                        this.showToast('Wymagana Kwota nie została jeszcze zebrana w Kasynie!', 'red');
+                                    }
+                                }
+                            },
+                            {
+                                box: { x: 640, y: 135, w: 170, h: 90 },
+                                edgeDist: 52,
+                                getPrompt: () => this.t('prompt_terminal'),
+                                action: () => this.openTerminalModal()
+                            },
+                            {
+                                box: { x: 185, y: 375, w: 165, h: 90 },
+                                edgeDist: 52,
+                                getPrompt: () => this.t('prompt_relics', { tokens: this.tokens }),
+                                action: () => this.openRelicModal()
+                            },
+                            {
+                                box: { x: 440, y: 482, w: 120, h: 28 },
+                                edgeDist: 48,
+                                getPrompt: () => this.phase === 'PREP' ? this.t('prompt_door_prep') : this.t('prompt_door_exit'),
+                                action: () => this.exitSafehouseToStreet()
+                            }
+                        ]
+                    },
+                    {
+                        getName: () => this.t('zone_1'),
+                        bounds: { x: 60, y: 110, w: 880, h: 410 },
+                        obstacles: [
+                            { x: 310, y: 145, w: 120, h: 65 },  // Dumpster
+                            { x: 560, y: 405, w: 165, h: 70 }   // Wrecked Car
+                        ],
+                        interactables: [
+                            {
+                                box: { x: 48, y: 275, w: 20, h: 90 },
+                                edgeDist: 56,
+                                getPrompt: () => this.t('prompt_enter_home'),
+                                action: () => {
+                                    this.transitionToZone(0, 485, 455);
+                                }
+                            },
+                            {
+                                box: { x: 935, y: 260, w: 20, h: 120 },
+                                edgeDist: 56,
+                                getPrompt: () => this.t('prompt_enter_casino'),
+                                action: () => {
+                                    if (this.phase === 'PREP') {
+                                        this.startNightShift();
+                                    }
+                                    this.transitionToZone(2, 115, 310);
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        getName: () => this.t('zone_2'),
+                        bounds: { x: 60, y: 110, w: 880, h: 410 },
+                        obstacles: [
+                            { x: 185, y: 135, w: 180, h: 110 }, // Blackjack Table
+                            { x: 635, y: 135, w: 190, h: 110 }, // Roulette Table
+                            { x: 425, y: 265, w: 155, h: 95 },  // Cyber Dice Table
+                            { x: 195, y: 385, w: 165, h: 85 },  // Blood Slots
+                            { x: 655, y: 385, w: 145, h: 80 }   // Usury Blood ATM
+                        ],
+                        interactables: [
+                            {
+                                box: { x: 63, y: 265, w: 16, h: 90 },
+                                edgeDist: 56,
+                                getPrompt: () => this.t('prompt_door_exit'),
+                                action: () => {
+                                    this.transitionToZone(1, 910, 320);
+                                }
+                            },
+                            {
+                                box: { x: 185, y: 135, w: 180, h: 110 },
+                                edgeDist: 54,
+                                getPrompt: () => this.t('prompt_Play_bj'),
+                                action: () => this.openBlackjackModal()
+                            },
+                            {
+                                box: { x: 635, y: 135, w: 190, h: 110 },
+                                edgeDist: 54,
+                                getPrompt: () => this.t('prompt_play_roul'),
+                                action: () => this.openRouletteModal()
+                            },
+                            {
+                                box: { x: 425, y: 265, w: 155, h: 95 },
+                                edgeDist: 54,
+                                getPrompt: () => this.t('prompt_play_dice'),
+                                action: () => this.openDiceModal()
+                            },
+                            {
+                                box: { x: 195, y: 385, w: 165, h: 85 },
+                                edgeDist: 54,
+                                getPrompt: () => this.t('prompt_play_slots'),
+                                action: () => this.openSlotsModal()
+                            },
+                            {
+                                box: { x: 655, y: 385, w: 145, h: 80 },
+                                edgeDist: 54,
+                                getPrompt: () => this.bloodPumpedThisNight ? this.t('prompt_atm_used') : this.t('prompt_atm_ready'),
+                                action: () => this.openAtmModal()
+                            }
+                        ]
+                    }
+                ];
+            }
+
+            getDistanceToInteractableEdge(item) {
+                if (item.box) {
+                    const closestX = Math.max(item.box.x, Math.min(this.player.x, item.box.x + item.box.w));
+                    const closestY = Math.max(item.box.y, Math.min(this.player.y, item.box.y + item.box.h));
+                    return Math.hypot(this.player.x - closestX, this.player.y - closestY);
+                }
+                return Infinity;
+            }
+
+            getNearestInteractable() {
+                const z = this.zones[this.zone];
+                if (!z || !z.interactables) return null;
+                let best = null;
+                let bestDist = Infinity;
+
+                for (const item of z.interactables) {
+                    const d = this.getDistanceToInteractableEdge(item);
+                    const maxEdgeDist = item.edgeDist || 52;
+                    if (d <= maxEdgeDist && d < bestDist) {
+                        best = item;
+                        bestDist = d;
+                    }
+                }
+                return best;
+            }
+
+            triggerContextInteraction() {
+                if (this.activeModal || this.mainMenuOpen || this.introPlaying) return;
+                const target = this.getNearestInteractable();
+                if (target && target.action) {
+                    target.action();
+                }
+            }
+
+            exitSafehouseToStreet() {
+                if (this.phase === 'PREP') {
+                    this.startNightShift();
+                }
+                this.transitionToZone(1, 95, 320);
+            }
+
+            startNightShift() {
+                this.phase = 'SHIFT';
+                const extraRelic = this.relics.has('adrenaline_shot') ? 45 : 0;
+                const extraMod = this.currentModifier.extraTime || 0;
+                this.maxTime = Math.max(120, 360 + extraRelic + extraMod);
+                this.timeLeft = this.maxTime;
+                this.sfx.alarm();
+                this.showToast(`NOCNA ZMIANA ROZPOCZĘTA! Zdobądź $${this.quota.toLocaleString()} przed 00:00!`, 'amber');
+                this.updateHUD();
+            }
+
+            toggleClockSpeed() {
+                this.clockMultiplier = this.clockMultiplier === 1 ? 5 : 1;
+                const btn = document.getElementById('btn-clock-speed');
+                if (btn) {
+                    btn.textContent = `${this.clockMultiplier}x ⏱️`;
+                    btn.className = this.clockMultiplier === 5
+                        ? 'btn-gritty bg-amber-500 text-zinc-950 border-amber-700 text-xs font-extrabold px-2 py-1.5 rounded-lg'
+                        : 'btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2 py-1.5 rounded-lg';
+                }
+                this.sfx.tick();
+            }
+
+            showToast(msg, tone = 'amber') {
                 const container = document.getElementById('toast-container');
                 if (!container) return;
                 const el = document.createElement('div');
-                const palette = {
+                const colors = {
                     amber: 'bg-amber-950/95 border-amber-500 text-amber-200',
                     emerald: 'bg-emerald-950/95 border-emerald-500 text-emerald-200',
-                    red: 'bg-red-950/95 border-red-500 text-red-200',
-                    cyan: 'bg-cyan-950/95 border-cyan-400 text-cyan-200'
+                    red: 'bg-red-950/95 border-red-500 text-red-200'
                 };
-                el.className = `px-4 py-2 rounded-xl border-2 font-extrabold text-xs sm:text-sm shadow-2xl transition-all duration-300 ${palette[color] || palette.amber}`;
+                el.className = `${colors[tone] || colors.amber} border-2 px-4 py-2 rounded-xl shadow-2xl text-xs sm:text-sm font-extrabold tracking-wide text-center transition-all duration-300`;
                 el.textContent = msg;
                 container.appendChild(el);
                 setTimeout(() => {
@@ -3043,218 +3560,43 @@
                 }, 2600);
             }
 
-            toggleClockSpeed() {
-                const speeds = [1, 2, 5];
-                const nextIdx = (speeds.indexOf(this.clockMultiplier) + 1) % speeds.length;
-                this.clockMultiplier = speeds[nextIdx];
-                const btn = document.getElementById('btn-clock-speed');
-                if (btn) btn.textContent = `${this.clockMultiplier}x ⏱️`;
-                this.sfx.tick();
-            }
-
-            /**
-             * ============================================================================
-             * DAY / SHIFT CYCLE & PROGRESSION
-             * ============================================================================
-             */
-            startNightShift() {
-                if (this.phase === 'SHIFT') return;
-                this.phase = 'SHIFT';
-                this.bloodPumpedThisNight = false;
-                this.maxTime = 360 + (this.relics.has('adrenaline_shot') ? 45 : 0) + (this.currentModifier.extraTime || 0);
-                this.timeLeft = this.maxTime;
-                this.sfx.door();
-                this.showToast(`★ ${this.getLocalized(this.currentModifier.name).toUpperCase()}`, 'emerald');
-                this.updateHUD();
-            }
-
-            exitSafehouseToStreet() {
-                if (this.phase === 'PREP') {
-                    this.startNightShift();
-                }
-                this.sfx.door();
-                this.zone = 1;
-                this.player.x = 120;
-                this.player.y = 320;
-                this.syncZoneMusic();
-                this.updateHUD();
-            }
-
-            completeDaySummary() {
-                this.sfx.jackpot();
-                const surplus = Math.max(0, this.cash - this.quota);
-                const bonusTokens = 1 + (surplus >= 500 ? 1 : 0);
-                this.tokens += bonusTokens;
-
-                document.getElementById('summary-title').textContent = `${this.t('hud_cycle')} ${this.day} — ${this.t('completed_word')}`;
-                document.getElementById('summary-details').innerHTML = `
-                    <div class="flex justify-between py-1 border-b border-zinc-800">
-                        <span class="text-zinc-400">${this.t('hud_cash_label')}</span>
-                        <span class="font-extrabold text-emerald-400">$${this.cash.toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between py-1 border-b border-zinc-800">
-                        <span class="text-zinc-400">${this.t('hud_quota_label')}</span>
-                        <span class="font-extrabold text-amber-400">$${this.quota.toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between py-1">
-                        <span class="text-zinc-400">+ 🪙 ${this.t('hud_tokens_label')}:</span>
-                        <span class="font-extrabold text-amber-300">+${bonusTokens} 🪙</span>
-                    </div>
-                `;
-                this.openModal('modal-day-complete');
-            }
-
-            advanceToNextDay(ev) {
-                if (ev) {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                }
-                if (document.activeElement && typeof document.activeElement.blur === 'function') {
-                    document.activeElement.blur();
-                }
-
-                this.day += 1;
-                this.phase = 'PREP';
-                this.zone = 0;
-
-                // Spawn on open floor beside the bed
-                this.player.x = 355;
-                this.player.y = 235;
-                this.player.vx = 0;
-                this.player.vy = 0;
-                this.player.trail = [];
-                this.footsteps = [];
-                this.keys = {};
-                this.bloodPumpedThisNight = false;
-
-                // Retain 25% of surplus above old quota + base starting bankroll
-                const surplusKeep = Math.max(0, Math.floor((this.cash - this.quota) * 0.25));
-                const baseStart = 500 + (this.day - 1) * 200 + (this.relics.has('trust_fund') ? 350 : 0);
-                this.cash = baseStart + surplusKeep;
-                this.quota = Math.round((1000 * Math.pow(1.65, this.day - 1)) / 50) * 50;
-
-                this.assignNightlyModifier();
-                this.maxTime = 360 + (this.relics.has('adrenaline_shot') ? 45 : 0) + (this.currentModifier.extraTime || 0);
-                this.timeLeft = this.maxTime;
-
-                this.assignDailyChallenge();
-                this.closeModals(true);
-                this.sfx.door();
-                this.syncZoneMusic();
-                this.showToast(`☀ ${this.t('day_word')} ${this.day} — ${this.getLocalized(this.currentModifier.name).toUpperCase()}`, 'amber');
-                this.updateHUD();
-            }
-
-            triggerGameOver(reason) {
-                this.sfx.lose();
-                document.getElementById('gameover-reason').textContent = reason;
-                document.getElementById('gameover-stats').innerHTML = `
-                    <div class="flex justify-between py-1 border-b border-zinc-800">
-                        <span class="text-zinc-400">${this.t('hud_cycle')}:</span>
-                        <span class="font-bold text-white">${this.t('day_word')} ${this.day}</span>
-                    </div>
-                    <div class="flex justify-between py-1 border-b border-zinc-800">
-                        <span class="text-zinc-400">${this.t('hud_cash_label')}</span>
-                        <span class="font-bold text-red-400">$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between py-1">
-                        <span class="text-zinc-400">${this.t('hud_tokens_label')}:</span>
-                        <span class="font-bold text-amber-300">${this.tokens} 🪙</span>
-                    </div>
-                `;
-                this.openModal('modal-gameover');
-            }
-
-            restartRun() {
-                this.day = 1;
-                this.phase = 'PREP';
-                this.cash = 500;
-                this.quota = 1000;
-                this.tokens = 1;
-                this.relics.clear();
-                this.bloodPumpedThisNight = false;
-                this.zone = 0;
-                this.player.x = 355;
-                this.player.y = 235;
-                this.player.vx = 0;
-                this.player.vy = 0;
-                this.player.trail = [];
-                this.footsteps = [];
-                this.keys = {};
-                this.assignNightlyModifier();
-                this.maxTime = 360;
-                this.timeLeft = 360;
-                this.assignDailyChallenge();
-                this.closeModals(true);
-                this.sfx.door();
-                this.syncZoneMusic();
-                this.updateHUD();
-            }
-
-            /**
-             * ============================================================================
-             * MODAL SYSTEM & SAFEHOUSE STATIONS
-             * ============================================================================
-             */
             openModal(id) {
-                this.activeModal = id;
-                this.keys = {};
                 const backdrop = document.getElementById('modal-backdrop');
-                if (backdrop) {
-                    backdrop.classList.remove('hidden');
-                    backdrop.style.display = 'flex';
+                if (!backdrop) return;
+                backdrop.classList.remove('hidden');
+                backdrop.style.display = 'flex';
+                const allModals = backdrop.querySelectorAll(':scope > div');
+                allModals.forEach(m => m.classList.add('hidden'));
+                const target = document.getElementById(id);
+                if (target) {
+                    target.classList.remove('hidden');
+                    this.activeModal = id;
                 }
-
-                const modals = [
-                    'modal-pause', 'modal-terminal', 'modal-relics', 'modal-blackjack',
-                    'modal-roulette', 'modal-slots', 'modal-atm', 'modal-dice',
-                    'modal-day-complete', 'modal-gameover', 'modal-guide', 'modal-settings'
-                ];
-                modals.forEach(m => {
-                    const el = document.getElementById(m);
-                    if (!el) return;
-                    if (m === id) {
-                        el.classList.remove('hidden');
-                        el.style.display = 'block';
-                    } else {
-                        el.classList.add('hidden');
-                        el.style.display = 'none';
-                    }
-                });
+                this.keys = {};
             }
 
             closeModals(force = false) {
-                if (!force) {
-                    if (this.activeModal === 'modal-gameover' || this.activeModal === 'modal-day-complete') return;
-                    if (this.activeModal === 'modal-blackjack' && this.bj.inProgress) {
-                        this.showToast('Dokończ najpierw rozdanie w Blackjacku!', 'red');
-                        return;
-                    }
-                    if (this.activeModal === 'modal-roulette' && this.roul.spinning) return;
-                    if (this.activeModal === 'modal-slots' && this.slots.spinning) return;
-                    if (this.activeModal === 'modal-dice' && this.dice.rolling) return;
+                if (!force && (this.activeModal === 'modal-gameover' || this.activeModal === 'modal-day-complete')) {
+                    return;
                 }
-
-                this.activeModal = null;
+                if (!force && this.activeModal === 'modal-blackjack' && this.bj.inProgress) {
+                    this.showToast('Dokończ obecne rozdanie przed odejściem od stołu!', 'red');
+                    return;
+                }
+                if (!force && this.activeModal === 'modal-roulette' && this.roul.spinning) {
+                    return;
+                }
                 const backdrop = document.getElementById('modal-backdrop');
                 if (backdrop) {
                     backdrop.classList.add('hidden');
                     backdrop.style.display = 'none';
+                    backdrop.querySelectorAll(':scope > div').forEach(m => m.classList.add('hidden'));
                 }
-
-                const modals = [
-                    'modal-pause', 'modal-terminal', 'modal-relics', 'modal-blackjack',
-                    'modal-roulette', 'modal-slots', 'modal-atm', 'modal-dice',
-                    'modal-day-complete', 'modal-gameover', 'modal-guide', 'modal-settings'
-                ];
-                modals.forEach(m => {
-                    const el = document.getElementById(m);
-                    if (el) {
-                        el.classList.add('hidden');
-                        el.style.display = 'none';
-                    }
-                });
-
+                this.activeModal = null;
+                this.keys = {};
+                if (document.activeElement && document.activeElement.blur) {
+                    document.activeElement.blur();
+                }
                 this.updateHUD();
             }
 
@@ -3269,12 +3611,11 @@
                 document.getElementById('term-phase').textContent = this.phase === 'PREP' ? this.t('hud_prep') : this.t('hud_shift');
                 document.getElementById('term-quota').textContent = `$${this.quota.toLocaleString()}`;
                 document.getElementById('term-cash').textContent = `$${this.cash.toLocaleString()}`;
-
                 const diff = Math.max(0, this.quota - this.cash);
                 const defEl = document.getElementById('term-deficit');
                 if (diff === 0) {
                     defEl.textContent = this.t('term_quota_met');
-                    defEl.className = 'text-xs text-emerald-400 font-bold mt-0.5';
+                    defEl.className = 'text-xs text-emerald-400 mt-0.5 font-bold';
                 } else {
                     defEl.textContent = this.t('term_needed', { diff: diff.toLocaleString() });
                     defEl.className = 'text-xs text-red-400 mt-0.5';
@@ -3289,84 +3630,105 @@
                         ? this.t('completed_word')
                         : `${this.currentChallenge.progress} / ${this.currentChallenge.target}`;
                 }
-
                 this.openModal('modal-terminal');
             }
 
             openRelicModal() {
                 this.sfx.tick();
-                document.getElementById('shop-tokens').textContent = this.tokens;
-                const grid = document.getElementById('relic-grid');
-                grid.innerHTML = '';
-
-                RELIC_CATALOG.forEach(rel => {
-                    const owned = this.relics.has(rel.id);
-                    const canAfford = this.tokens >= rel.cost;
-                    const card = document.createElement('div');
-                    card.className = `p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-                        owned ? 'bg-amber-950/30 border-amber-500/60' : 'bg-zinc-900/90 border-zinc-800'
-                    }`;
-                    card.innerHTML = `
-                        <div class="flex items-start gap-3">
-                            <div class="text-2xl bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">${rel.icon}</div>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h3 class="font-extrabold text-sm text-white">${this.getLocalized(rel.name)}</h3>
-                                    ${owned ? `<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">${this.t('relic_equipped')}</span>` : ''}
-                                </div>
-                                <p class="text-xs text-zinc-400 mt-1 leading-relaxed">${this.getLocalized(rel.desc)}</p>
-                            </div>
-                        </div>
-                        <button ${owned || !canAfford ? 'disabled' : ''} class="btn-gritty w-full py-2 rounded-lg font-extrabold text-xs uppercase ${
-                            owned
-                                ? 'bg-zinc-800 border-zinc-950 text-zinc-500'
-                                : (canAfford ? 'bg-amber-500 hover:bg-amber-400 border-amber-700 text-zinc-950' : 'bg-zinc-800 border-zinc-950 text-zinc-500')
-                        }">
-                            ${owned ? this.t('relic_owned') : `${this.t('relic_unlock')} (${rel.cost} 🪙)`}
-                        </button>
-                    `;
-                    if (!owned && canAfford) {
-                        card.querySelector('button').onclick = () => this.buyRelic(rel);
-                    }
-                    grid.appendChild(card);
-                });
-
+                this.renderRelicShop();
                 this.openModal('modal-relics');
             }
 
-            buyRelic(rel) {
-                if (this.relics.has(rel.id) || this.tokens < rel.cost) return;
-                this.tokens -= rel.cost;
-                this.relics.add(rel.id);
-                if (rel.id === 'trust_fund') {
-                    this.cash += 350;
-                }
-                if (rel.id === 'adrenaline_shot') {
-                    this.maxTime += 45;
+            renderRelicShop() {
+                document.getElementById('shop-tokens').textContent = this.tokens;
+                const grid = document.getElementById('relic-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                RELIC_CATALOG.forEach(r => {
+                    const owned = this.relics.has(r.id);
+                    const canAfford = this.tokens >= r.cost;
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-xl border ${owned ? 'bg-emerald-950/30 border-emerald-500/60' : 'bg-zinc-900/90 border-zinc-800'} flex flex-col justify-between gap-3`;
+                    card.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <div class="text-2xl bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">${r.icon}</div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-extrabold text-sm text-white">${this.getLocalized(r.name)}</h3>
+                                    ${owned ? `<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">${this.t('relic_equipped')}</span>` : ''}
+                                </div>
+                                <p class="text-xs text-zinc-400 mt-1 leading-relaxed">${this.getLocalized(r.desc)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+                            <span class="text-xs font-extrabold text-amber-400">🪙 ${r.cost}</span>
+                            <button ${owned || !canAfford ? 'disabled' : ''} class="btn-gritty px-4 py-1.5 rounded-lg text-xs font-extrabold ${owned ? 'bg-emerald-800 text-emerald-200 border-emerald-950' : (canAfford ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 border-amber-700' : 'bg-zinc-800 text-zinc-500 border-zinc-950')}">
+                                ${owned ? this.t('relic_owned') : `${this.t('relic_unlock')} (${r.cost} 🪙)`}
+                            </button>
+                        </div>
+                    `;
+                    if (!owned && canAfford) {
+                        card.querySelector('button').onclick = () => this.buyRelic(r);
+                    }
+                    grid.appendChild(card);
+                });
+            }
+
+            buyRelic(relic) {
+                if (this.relics.has(relic.id) || this.tokens < relic.cost) return;
+                this.tokens -= relic.cost;
+                this.relics.add(relic.id);
+                if (relic.id === 'adrenaline_shot' && this.phase === 'SHIFT') {
                     this.timeLeft += 45;
+                    this.maxTime += 45;
                 }
                 this.sfx.win();
-                this.showToast(`🕯️ ${this.getLocalized(rel.name)}!`, 'amber');
-                this.openRelicModal();
+                this.showToast(`Odblokowano Relikt: ${this.getLocalized(relic.name)}!`, 'emerald');
+                this.renderRelicShop();
                 this.updateHUD();
             }
 
             /**
              * ============================================================================
-             * MINIGAME 1: VIP BLACKJACK (WITH LIVE BEGINNER COACH)
+             * MINIGAME 1: VIP BLACKJACK (WITH BEGINNER COACH & 0-21 METER)
              * ============================================================================
              */
             openBlackjackModal() {
                 this.sfx.card();
+                this.bj.inProgress = false;
+                this.bj.playerHand = [];
+                this.bj.dealerHand = [];
                 this.bj.bet = Math.min(Math.max(50, this.bj.bet), Math.max(50, this.cash));
-                this.updateBjUI();
-                this.updateBjCoach();
+                document.getElementById('bj-Banner').textContent = 'POSTAW ZAKŁAD I ROZDAJ KARTY';
+                this.renderBlackjackUI();
                 this.openModal('modal-blackjack');
             }
 
             toggleBjHelp() {
                 const drawer = document.getElementById('bj-help-drawer');
                 if (drawer) drawer.classList.toggle('hidden');
+            }
+
+            adjustBjBet(delta) {
+                if (this.bj.inProgress) return;
+                this.bj.bet = Math.max(50, Math.min(this.cash, this.bj.bet + delta));
+                this.sfx.chip();
+                this.renderBlackjackUI();
+            }
+
+            setBjBetHalf() {
+                if (this.bj.inProgress) return;
+                this.bj.bet = Math.max(50, Math.floor(this.cash / 2 / 50) * 50 || 50);
+                this.sfx.chip();
+                this.renderBlackjackUI();
+            }
+
+            setBjBetMax() {
+                if (this.bj.inProgress) return;
+                this.bj.bet = Math.max(50, this.cash);
+                this.sfx.chip();
+                this.renderBlackjackUI();
             }
 
             createDeck() {
@@ -3388,61 +3750,25 @@
                 return deck;
             }
 
-            getHandValue(hand) {
-                let sum = 0;
+            calcHandValue(hand) {
+                let total = 0;
                 let aces = 0;
                 for (const c of hand) {
-                    sum += c.val;
+                    total += c.val;
                     if (c.rank === 'A') aces++;
                 }
-                while (sum > 21 && aces > 0) {
-                    sum -= 10;
+                while (total > 21 && aces > 0) {
+                    total -= 10;
                     aces--;
                 }
-                return sum;
-            }
-
-            adjustBjBet(delta) {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, Math.min(this.cash, this.bj.bet + delta));
-                this.sfx.chip();
-                this.updateBjUI();
-            }
-
-            setBjBetHalf() {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, Math.floor(this.cash / 2 / 50) * 50);
-                this.sfx.chip();
-                this.updateBjUI();
-            }
-
-            setBjBetMax() {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, this.cash);
-                this.sfx.chip();
-                this.updateBjUI();
-            }
-            renderCardHTML(card, hidden = false, delayMs = 0) {
-                const styleAttr = delayMs > 0 ? `style="animation-delay: ${delayMs}ms"` : '';
-                if (hidden) {
-                    return `<div class="playing-card hidden-card flex items-center justify-center" ${styleAttr}><span class="text-amber-400 text-2xl">♠</span></div>`;
-                }
-                const isRed = card.suit === '♥' || card.suit === '♦';
-                const color = isRed ? 'text-red-600' : 'text-zinc-900';
-                return `
-                    <div class="playing-card ${color}" ${styleAttr}>
-                        <div class="text-xs leading-none">${card.rank}${card.suit}</div>
-                        <div class="text-2xl self-center">${card.suit}</div>
-                        <div class="text-xs leading-none self-end rotate-180">${card.rank}${card.suit}</div>
-                    </div>
-                `;
+                return total;
             }
 
             startBlackjackHand() {
                 if (this.bj.inProgress) return;
                 if (this.cash < 50) {
                     this.sfx.lose();
-                    this.showToast('Brak gotówki! Użyj Bankomatu Krwi.', 'red');
+                    this.showToast('Za mało gotówki! Użyj Bankomatu Krwi!', 'red');
                     return;
                 }
                 this.bj.bet = Math.min(this.bj.bet, this.cash);
@@ -3453,38 +3779,34 @@
                 this.bj.inProgress = true;
                 this.bj.peeked = this.relics.has('xray_monocle') && Math.random() < 0.45;
                 this.sfx.card();
+                this.updateHUD();
+                this.renderBlackjackUI();
 
-                const pVal = this.getHandValue(this.bj.playerHand);
+                const pVal = this.calcHandValue(this.bj.playerHand);
                 if (pVal === 21) {
                     this.bjStand();
-                    return;
                 }
-                this.updateBjUI();
-                this.updateBjCoach();
-                this.updateHUD();
             }
 
             bjHit() {
                 if (!this.bj.inProgress) return;
-                let card = this.bj.deck.pop();
+                const card = this.bj.deck.pop();
                 this.bj.playerHand.push(card);
                 this.sfx.card();
 
-                let pVal = this.getHandValue(this.bj.playerHand);
+                let pVal = this.calcHandValue(this.bj.playerHand);
                 if (pVal > 21 && this.relics.has('sleight_gloves') && Math.random() < 0.35) {
                     card.rank = 'A';
                     card.val = 11;
-                    pVal = this.getHandValue(this.bj.playerHand);
-                    this.showToast('🧤 Rękawice Szulera uratowały rękę (As)!', 'amber');
+                    pVal = this.calcHandValue(this.bj.playerHand);
+                    this.showToast('🧤 Rękawice Szulera zamieniły kartę na Asa!', 'emerald');
                 }
 
+                this.renderBlackjackUI();
                 if (pVal > 21) {
-                    this.endBlackjackHand('BUST');
+                    this.finishBlackjackHand('BUST');
                 } else if (pVal === 21) {
                     this.bjStand();
-                } else {
-                    this.updateBjUI();
-                    this.updateBjCoach();
                 }
             }
 
@@ -3493,12 +3815,19 @@
                 this.cash -= this.bj.bet;
                 this.bj.bet *= 2;
                 this.sfx.chip();
+                this.updateHUD();
 
-                let card = this.bj.deck.pop();
+                const card = this.bj.deck.pop();
                 this.bj.playerHand.push(card);
-                let pVal = this.getHandValue(this.bj.playerHand);
+                let pVal = this.calcHandValue(this.bj.playerHand);
+                if (pVal > 21 && this.relics.has('sleight_gloves') && Math.random() < 0.35) {
+                    card.rank = 'A';
+                    card.val = 11;
+                    pVal = this.calcHandValue(this.bj.playerHand);
+                }
+                this.renderBlackjackUI();
                 if (pVal > 21) {
-                    this.endBlackjackHand('BUST');
+                    this.finishBlackjackHand('BUST');
                 } else {
                     this.bjStand();
                 }
@@ -3507,172 +3836,185 @@
             bjStand() {
                 if (!this.bj.inProgress) return;
                 const standThreshold = this.currentModifier.dealerStand || 17;
-                while (this.getHandValue(this.bj.dealerHand) < standThreshold) {
+                while (this.calcHandValue(this.bj.dealerHand) < standThreshold) {
                     this.bj.dealerHand.push(this.bj.deck.pop());
                 }
-
-                const pVal = this.getHandValue(this.bj.playerHand);
-                const dVal = this.getHandValue(this.bj.dealerHand);
+                const pVal = this.calcHandValue(this.bj.playerHand);
+                const dVal = this.calcHandValue(this.bj.dealerHand);
 
                 if (dVal > 21 || pVal > dVal) {
-                    this.endBlackjackHand('WIN');
+                    const isNatural = pVal === 21 && this.bj.playerHand.length === 2;
+                    this.finishBlackjackHand(isNatural ? 'BLACKJACK' : 'WIN');
                 } else if (pVal === dVal) {
-                    this.endBlackjackHand('PUSH');
+                    this.finishBlackjackHand('PUSH');
                 } else {
-                    this.endBlackjackHand('LOSE');
+                    this.finishBlackjackHand('LOSE');
                 }
             }
 
-            endBlackjackHand(outcome) {
+            finishBlackjackHand(outcome) {
                 this.bj.inProgress = false;
-                const pVal = this.getHandValue(this.bj.playerHand);
-                const dVal = this.getHandValue(this.bj.dealerHand);
                 const banner = document.getElementById('bj-Banner');
+                const pVal = this.calcHandValue(this.bj.playerHand);
+                const dVal = this.calcHandValue(this.bj.dealerHand);
 
-                if (outcome === 'WIN') {
-                    const isNatural = pVal === 21 && this.bj.playerHand.length === 2;
-                    let mult = isNatural ? 2.5 : 2.0;
-                    if (this.relics.has('golden_cufflinks')) mult *= 1.2;
-                    mult *= (this.currentModifier.payoutMult || 1.0);
-
-                    const payout = Math.round(this.bj.bet * mult);
-                    this.cash += payout;
+                if (outcome === 'BLACKJACK' || outcome === 'WIN') {
+                    const baseMult = outcome === 'BLACKJACK' ? 2.5 : 2.0;
+                    const payout = this.recordWinPayout(this.bj.bet, baseMult);
+                    const netProfit = payout - this.bj.bet;
                     this.sfx.win();
-                    banner.textContent = `★ WYGRANA +$${payout.toLocaleString()}! (${pVal} vs ${dVal})`;
-                    banner.className = 'text-center py-2 px-4 rounded-xl bg-emerald-950 border border-emerald-500 font-extrabold text-sm sm:text-base text-emerald-300';
+                    banner.textContent = `${outcome === 'BLACKJACK' ? '★ BLACKJACK!' : 'WYGRANA!'} +$${ payout.toLocaleString() } (${pVal} vs ${dVal})`;
+                    banner.className = 'text-center py-2 px-4 rounded-xl bg-emerald-950/90 border border-emerald-500 font-extrabold text-sm sm:text-base text-emerald-300';
 
-                    this.checkChallenge('bj_win');
-                    if (pVal <= 17) this.checkChallenge('bj_low_win');
-                    this.checkChallenge('payout', payout - this.bj.bet);
+                    this.advanceChallenge('bj_wins_2', 1);
+                    if (pVal <= 17) this.advanceChallenge('bj_low_win', 1);
+                    if (netProfit >= 400) this.advanceChallenge('big_payout', 1);
                 } else if (outcome === 'PUSH') {
                     this.cash += this.bj.bet;
-                    this.sfx.tick();
-                    banner.textContent = `REMIS (ZWROT STAWKI $${this.bj.bet}) — ${pVal} vs ${dVal}`;
-                    banner.className = 'text-center py-2 px-4 rounded-xl bg-zinc-800 border border-zinc-600 font-extrabold text-sm sm:text-base text-zinc-200';
+                    this.sfx.chip();
+                    banner.textContent = `REMIS (ZWROT STAWKI $${this.bj.bet}) (${pVal} vs ${dVal})`;
+                    banner.className = 'text-center py-2 px-4 rounded-xl bg-zinc-900 border border-zinc-600 font-extrabold text-sm sm:text-base text-zinc-200';
                 } else {
                     this.sfx.lose();
                     banner.textContent = outcome === 'BUST'
-                        ? `💀 FURA! PRZEKROCZONO 21 (${pVal}) — STRATA -$${this.bj.bet}`
-                        : `PRZEGRANA (${pVal} vs ${dVal}) — STRATA -$${this.bj.bet}`;
-                    banner.className = 'text-center py-2 px-4 rounded-xl bg-red-950 border border-red-600 font-extrabold text-sm sm:text-base text-red-300';
+                        ? `FURA! PRZEKROCZONO 21 (${pVal}) — PRZEGRANA -$${this.bj.bet}`
+                        : `KRUPIER WYGRYWA (${dVal} vs ${pVal}) — PRZEGRANA -$${this.bj.bet}`;
+                    banner.className = 'text-center py-2 px-4 rounded-xl bg-red-950/90 border border-red-600 font-extrabold text-sm sm:text-base text-red-300';
                 }
 
-                this.updateBjUI(true);
-                this.updateBjCoach();
                 this.updateHUD();
+                this.renderBlackjackUI();
             }
 
-            updateBjCoach() {
-                const textEl = document.getElementById('bj-coach-text');
-                const oddsEl = document.getElementById('bj-coach-odds');
-                const meterFill = document.getElementById('bj-meter-fill');
-                const zoneLabel = document.getElementById('bj-hand-zone-label');
-                if (!textEl || !oddsEl || !meterFill || !zoneLabel) return;
-
-                if (this.bj.playerHand.length === 0) {
-                    textEl.textContent = this.t('bj_coach_idle');
-                    oddsEl.textContent = this.t('bj_safe_odds', { pct: 100 });
-                    meterFill.style.width = '0%';
-                    zoneLabel.textContent = this.t('bj_zone_ready');
-                    return;
-                }
-
-                const pVal = this.getHandValue(this.bj.playerHand);
-                const pctWidth = Math.min(100, Math.round((pVal / 21) * 100));
-                meterFill.style.width = `${pctWidth}%`;
-
-                if (pVal > 21) {
-                    meterFill.className = 'h-full bg-red-600 rounded-full transition-all duration-300';
-                    zoneLabel.textContent = this.t('bj_zone_bust');
-                } else if (pVal === 21) {
-                    meterFill.className = 'h-full bg-amber-400 rounded-full transition-all duration-300';
-                    zoneLabel.textContent = this.t('bj_zone_21');
-                } else if (pVal >= 17) {
-                    meterFill.className = 'h-full bg-emerald-400 rounded-full transition-all duration-300';
-                    zoneLabel.textContent = this.t('bj_zone_strong');
-                } else {
-                    meterFill.className = 'h-full bg-sky-400 rounded-full transition-all duration-300';
-                    zoneLabel.textContent = this.t('bj_zone_safe');
-                }
-
-                // Calculate safe draw percentage from remaining deck
-                const maxSafeCard = 21 - pVal;
-                let safeCount = 0;
-                for (const c of this.bj.deck) {
-                    const cVal = c.rank === 'A' ? 1 : c.val;
-                    if (cVal <= maxSafeCard) safeCount++;
-                }
-                const safePct = this.bj.deck.length > 0 ? Math.round((safeCount / this.bj.deck.length) * 100) : 100;
-                oddsEl.textContent = this.t('bj_safe_odds', { pct: safePct });
-
-                if (!this.bj.inProgress) {
-                    textEl.textContent = this.t('bj_coach_idle');
-                    return;
-                }
-
-                const upCard = this.bj.dealerHand[0];
-                if (pVal === 10 || pVal === 11) {
-                    textEl.textContent = this.t('bj_coach_double', { val: pVal });
-                } else if (pVal <= 11) {
-                    textEl.textContent = this.t('bj_coach_hit_safe', { val: pVal });
-                } else if (pVal >= 17) {
-                    textEl.textContent = this.t('bj_coach_stand_high', { val: pVal, risk: 100 - safePct });
-                } else if (upCard && upCard.val >= 2 && upCard.val <= 6) {
-                    textEl.textContent = this.t('bj_coach_dealer_weak', { rank: upCard.rank });
-                } else {
-                    textEl.textContent = this.t('bj_coach_hit_risk', { val: pVal, rank: upCard ? upCard.rank : '?', pct: safePct });
-                }
-            }
-
-            updateBjUI(revealDealer = false) {
+            renderBlackjackUI() {
                 document.getElementById('bj-current-bet').textContent = `$${this.bj.bet}`;
-                const pCardsEl = document.getElementById('bj-player-cards');
-                const dCardsEl = document.getElementById('bj-dealer-cards');
+                const pContainer = document.getElementById('bj-player-cards');
+                const dContainer = document.getElementById('bj-dealer-cards');
+                pContainer.innerHTML = '';
+                dContainer.innerHTML = '';
 
-                pCardsEl.innerHTML = this.bj.playerHand.map((c, idx) => this.renderCardHTML(c, false, idx * 70)).join('');
-                dCardsEl.innerHTML = this.bj.dealerHand.map((c, idx) => {
-                    const hide = idx === 1 && !revealDealer && this.bj.inProgress && !this.bj.peeked;
-                    return this.renderCardHTML(c, hide, idx * 80);
-                }).join('');
+                const renderCardEl = (c, hidden = false) => {
+                    const div = document.createElement('div');
+                    if (hidden) {
+                        div.className = 'playing-card hidden-card items-center justify-center';
+                        div.innerHTML = `<span class="text-amber-400 text-2xl font-extrabold">?</span>`;
+                        return div;
+                    }
+                    const isRed = c.suit === '♥' || c.suit === '♦';
+                    const col = isRed ? 'text-red-600' : 'text-zinc-900';
+                    div.className = `playing-card ${col}`;
+                    div.innerHTML = `
+                        <div class="text-xs leading-none">${c.rank}${c.suit}</div>
+                        <div class="text-2xl self-center">${c.suit}</div>
+                        <div class="text-xs leading-none self-end rotate-180">${c.rank}${c.suit}</div>
+                    `;
+                    return div;
+                };
 
-                const pVal = this.getHandValue(this.bj.playerHand);
+                this.bj.playerHand.forEach(c => pContainer.appendChild(renderCardEl(c, false)));
+                this.bj.dealerHand.forEach((c, idx) => {
+                    const hideHole = this.bj.inProgress && idx === 1 && !this.bj.peeked;
+                    dContainer.appendChild(renderCardEl(c, hideHole));
+                });
+
+                const pVal = this.calcHandValue(this.bj.playerHand);
+                const dVal = this.calcHandValue(this.bj.dealerHand);
+
                 document.getElementById('bj-player-score').textContent = `${pVal} / 21`;
-
-                if (this.bj.dealerHand.length === 0) {
-                    document.getElementById('bj-dealer-score').textContent = '?';
-                } else if (!revealDealer && this.bj.inProgress && !this.bj.peeked) {
+                if (this.bj.inProgress && !this.bj.peeked && this.bj.dealerHand.length > 0) {
                     document.getElementById('bj-dealer-score').textContent = `${this.bj.dealerHand[0].val} + ?`;
                 } else {
-                    document.getElementById('bj-dealer-score').textContent = `${this.getHandValue(this.bj.dealerHand)}`;
+                    document.getElementById('bj-dealer-score').textContent = this.bj.dealerHand.length ? `${dVal}` : '?';
+                }
+
+                // Update 0-21 Visual Meter
+                const fill = document.getElementById('bj-meter-fill');
+                const zoneLbl = document.getElementById('bj-hand-zone-label');
+                const pct = Math.min(100, Math.round((pVal / 21) * 100));
+                fill.style.width = `${pct}%`;
+
+                if (pVal === 0) {
+                    fill.className = 'h-full bg-zinc-600 rounded-full transition-all duration-300';
+                    zoneLbl.textContent = this.t('bj_zone_ready');
+                } else if (pVal > 21) {
+                    fill.className = 'h-full bg-red-600 rounded-full transition-all duration-300';
+                    zoneLbl.textContent = this.t('bj_zone_bust');
+                } else if (pVal === 21) {
+                    fill.className = 'h-full bg-amber-400 rounded-full transition-all duration-300';
+                    zoneLbl.textContent = this.t('bj_zone_21');
+                } else if (pVal >= 17) {
+                    fill.className = 'h-full bg-emerald-400 rounded-full transition-all duration-300';
+                    zoneLbl.textContent = this.t('bj_zone_strong');
+                } else {
+                    fill.className = 'h-full bg-sky-400 rounded-full transition-all duration-300';
+                    zoneLbl.textContent = this.t('bj_zone_safe');
                 }
 
                 document.getElementById('bj-btn-deal').disabled = this.bj.inProgress;
                 document.getElementById('bj-btn-hit').disabled = !this.bj.inProgress;
                 document.getElementById('bj-btn-stand').disabled = !this.bj.inProgress;
-                document.getElementById('bj-btn-double').disabled = !this.bj.inProgress || this.bj.playerHand.length !== 2 || this.cash < this.bj.bet;
+                document.getElementById('bj-btn-double').disabled = !(this.bj.inProgress && this.bj.playerHand.length === 2 && this.cash >= this.bj.bet);
+
+                this.updateBlackjackCoach(pVal);
+            }
+
+            updateBlackjackCoach(pVal) {
+                const coachText = document.getElementById('bj-coach-text');
+                const coachOdds = document.getElementById('bj-coach-odds');
+                if (!coachText || !coachOdds) return;
+
+                if (!this.bj.inProgress || pVal === 0) {
+                    coachText.textContent = this.t('bj_coach_idle');
+                    coachOdds.textContent = this.t('bj_safe_odds', { pct: 100 });
+                    return;
+                }
+
+                const maxSafeCard = 21 - pVal;
+                let safeRanks = 0;
+                for (let v = 1; v <= 10; v++) {
+                    const count = v === 10 ? 4 : 1;
+                    if (v <= maxSafeCard) safeRanks += count;
+                }
+                const safePct = Math.min(100, Math.max(0, Math.round((safeRanks / 13) * 100)));
+                coachOdds.textContent = this.t('bj_safe_odds', { pct: safePct });
+
+                const upCard = this.bj.dealerHand[0];
+                if (pVal === 10 || pVal === 11) {
+                    coachText.textContent = this.t('bj_coach_double', { val: pVal });
+                } else if (pVal <= 11) {
+                    coachText.textContent = this.t('bj_coach_hit_safe', { val: pVal });
+                } else if (pVal >= 17) {
+                    coachText.textContent = this.t('bj_coach_stand_high', { val: pVal, risk: 100 - safePct });
+                } else if (upCard && upCard.val >= 2 && upCard.val <= 6) {
+                    coachText.textContent = this.t('bj_coach_dealer_weak', { rank: upCard.rank });
+                } else {
+                    coachText.textContent = this.t('bj_coach_hit_risk', { val: pVal, rank: upCard ? upCard.rank : '?', pct: safePct });
+                }
             }
 
             /**
              * ============================================================================
-             * MINIGAME 2: DEVIL'S ROULETTE (WITH ORBITING BALL & GLOWING POCKET)
+             * MINIGAME 2: DEVIL'S WHEEL EUROPEAN ROULETTE
              * ============================================================================
              */
             openRouletteModal() {
                 this.sfx.chip();
-                this.drawRouletteWheel(this.roul.wheelAngle, this.roul.lastNumber, this.roul.ballAngle, this.roul.ballRadius);
                 this.updateRoulBetTags();
+                this.drawRouletteWheel();
                 this.openModal('modal-roulette');
             }
 
             setRoulChip(val) {
+                if (this.roul.spinning) return;
                 this.roul.chip = val;
                 this.sfx.chip();
                 [50, 100, 250, 500].forEach(c => {
-                    const el = document.getElementById(`chip-${c}`);
-                    if (!el) return;
-                    el.className = c === val
-                        ? 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-amber-400 bg-amber-500 text-zinc-950 scale-110 transition-transform'
-                        : 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200 transition-transform';
+                    const btn = document.getElementById(`chip-${c}`);
+                    if (btn) {
+                        btn.className = c === val
+                            ? 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-amber-400 bg-amber-500 text-zinc-950'
+                            : 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200';
+                    }
                 });
             }
 
@@ -3693,7 +4035,7 @@
             clearRoulBets() {
                 if (this.roul.spinning) return;
                 let refund = 0;
-                Object.values(this.roul.bets).forEach(v => refund += v);
+                for (const k in this.roul.bets) refund += this.roul.bets[k];
                 this.cash += refund;
                 this.roul.bets = {};
                 this.sfx.tick();
@@ -3703,118 +4045,85 @@
 
             updateRoulBetTags() {
                 let total = 0;
-                Object.values(this.roul.bets).forEach(v => total += v);
-                const totalEl = document.getElementById('roul-total-bet');
-                if (totalEl) totalEl.textContent = `$${total}`;
+                for (const k in this.roul.bets) total += this.roul.bets[k];
+                const totEl = document.getElementById('roul-total-bet');
+                if (totEl) totEl.textContent = `$${total}`;
 
                 ['RED', 'BLACK', 'ODD', 'EVEN', 'DOZ1', 'DOZ2', 'DOZ3'].forEach(k => {
-                    const el = document.getElementById(`bet-tag-${k}`);
-                    if (el) el.textContent = `$${this.roul.bets[k] || 0}`;
+                    const tag = document.getElementById(`bet-tag-${k}`);
+                    if (tag) tag.textContent = `$${this.roul.bets[k] || 0}`;
                 });
 
                 for (let n = 0; n <= 36; n++) {
-                    const el = document.getElementById(`bet-tag-NUM_${n}`);
-                    if (!el) continue;
-                    const amt = this.roul.bets[`NUM_${n}`] || 0;
-                    if (amt > 0) {
-                        el.textContent = `$${amt}`;
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
+                    const tag = document.getElementById(`bet-tag-NUM_${n}`);
+                    if (tag) {
+                        const amt = this.roul.bets[`NUM_${n}`] || 0;
+                        tag.textContent = `$${amt}`;
+                        tag.classList.toggle('hidden', amt === 0);
                     }
                 }
             }
 
-            drawRouletteWheel(angle = 0, highlightNum = null, ballAngle = null, ballRadius = 78) {
+            drawRouletteWheel() {
                 const c = document.getElementById('rouletteWheelCanvas');
                 if (!c) return;
                 const ctx = c.getContext('2d');
                 const cx = c.width / 2;
                 const cy = c.height / 2;
-                const r = cx - 8;
-
                 ctx.clearRect(0, 0, c.width, c.height);
 
-                // Outer metallic bezel
-                ctx.beginPath();
-                ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#271206';
-                ctx.fill();
-                ctx.strokeStyle = '#f59e0b';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                const totalSlots = 37;
-                const arc = (Math.PI * 2) / totalSlots;
                 const redNums = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+                const slice = (Math.PI * 2) / 37;
 
-                for (let i = 0; i < totalSlots; i++) {
-                    const start = angle + i * arc;
-                    const end = start + arc;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(this.roul.wheelAngle);
+
+                for (let i = 0; i <= 36; i++) {
+                    const a0 = i * slice;
+                    const a1 = a0 + slice;
                     ctx.beginPath();
-                    ctx.moveTo(cx, cy);
-                    ctx.arc(cx, cy, r, start, end);
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, 92, a0, a1);
                     ctx.closePath();
-
-                    if (highlightNum === i) {
-                        ctx.fillStyle = '#fbbf24';
-                    } else if (i === 0) {
-                        ctx.fillStyle = '#059669';
-                    } else if (redNums.has(i)) {
-                        ctx.fillStyle = '#dc2626';
-                    } else {
-                        ctx.fillStyle = '#18181b';
-                    }
+                    ctx.fillStyle = i === 0 ? '#059669' : (redNums.has(i) ? '#dc2626' : '#18181b');
                     ctx.fill();
                     ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = highlightNum === i ? 2 : 0.7;
+                    ctx.lineWidth = 0.8;
                     ctx.stroke();
                 }
 
-                // Inner pocket ring
                 ctx.beginPath();
-                ctx.arc(cx, cy, r * 0.68, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Orbiting Ivory Ball
-                if (ballAngle !== null) {
-                    const bx = cx + Math.cos(ballAngle) * ballRadius;
-                    const by = cy + Math.sin(ballAngle) * ballRadius;
-                    ctx.save();
-                    ctx.shadowColor = '#ffffff';
-                    ctx.shadowBlur = 10;
-                    ctx.beginPath();
-                    ctx.arc(bx, by, 5.5, 0, Math.PI * 2);
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.fill();
-                    ctx.strokeStyle = '#cbd5e1';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
-                // Inner hub
-                ctx.beginPath();
-                ctx.arc(cx, cy, r * 0.46, 0, Math.PI * 2);
+                ctx.arc(0, 0, 44, 0, Math.PI * 2);
                 ctx.fillStyle = '#09090b';
                 ctx.fill();
                 ctx.strokeStyle = '#f59e0b';
                 ctx.lineWidth = 3;
                 ctx.stroke();
+                ctx.restore();
 
-                ctx.fillStyle = '#fbbf24';
-                ctx.font = '800 22px "JetBrains Mono", monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(highlightNum !== null ? `#${highlightNum}` : '0–36', cx, cy);
+                // Roulette Ball
+                const bx = cx + Math.cos(this.roul.ballAngle) * this.roul.ballRadius;
+                const by = cy + Math.sin(this.roul.ballAngle) * this.roul.ballRadius;
+                ctx.beginPath();
+                ctx.arc(bx, by, 5.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+
+                // Center Winning Number Display
+                if (this.roul.lastNumber !== null) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = '800 20px "JetBrains Mono", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`${this.roul.lastNumber}`, cx, cy);
+                }
             }
 
             spinRoulette() {
                 if (this.roul.spinning) return;
                 let totalBet = 0;
-                Object.values(this.roul.bets).forEach(v => totalBet += v);
+                for (const k in this.roul.bets) totalBet += this.roul.bets[k];
                 if (totalBet <= 0) {
                     this.showToast('Postaw najpierw przynajmniej jeden żeton!', 'amber');
                     return;
@@ -3823,86 +4132,61 @@
                 this.roul.spinning = true;
                 document.getElementById('roul-spin-btn').disabled = true;
                 const winningNum = Math.floor(Math.random() * 37);
+                const redNums = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
                 const startTime = performance.now();
-                const duration = 1850;
-                const totalSlots = 37;
-                const arc = (Math.PI * 2) / totalSlots;
-                let lastTickStep = 0;
+                const duration = 1750;
 
                 const animateSpin = (now) => {
                     const t = Math.min(1, (now - startTime) / duration);
                     const ease = 1 - Math.pow(1 - t, 3);
-                    this.roul.wheelAngle += (1 - ease) * 0.36 + 0.015;
-
-                    // Ball spins opposite direction and spirals inward into the winning slot
-                    const targetPocketAngle = this.roul.wheelAngle + (winningNum + 0.5) * arc;
-                    const orbitSpins = (1 - ease) * Math.PI * 10;
-                    this.roul.ballAngle = targetPocketAngle - orbitSpins;
-                    this.roul.ballRadius = 86 - ease * 24 + (t > 0.75 ? Math.abs(Math.sin(t * 35)) * (1 - t) * 18 : 0);
-
-                    const tickStep = Math.floor(ease * 22);
-                    if (tickStep > lastTickStep) {
-                        lastTickStep = tickStep;
-                        this.sfx.tick();
-                    }
-
-                    this.drawRouletteWheel(
-                        this.roul.wheelAngle,
-                        t > 0.88 ? winningNum : null,
-                        this.roul.ballAngle,
-                        this.roul.ballRadius
-                    );
+                    this.roul.wheelAngle += (1 - ease) * 0.28 + 0.01;
+                    this.roul.ballAngle -= (1 - ease) * 0.42;
+                    this.roul.ballRadius = 82 - ease * 18;
+                    this.drawRouletteWheel();
 
                     if (t < 1) {
                         requestAnimationFrame(animateSpin);
                     } else {
+                        this.roul.spinning = false;
                         this.roul.lastNumber = winningNum;
-                        this.resolveRouletteSpin(winningNum);
+                        document.getElementById('roul-spin-btn').disabled = false;
+                        this.drawRouletteWheel();
+
+                        let rawWin = 0;
+                        const isRed = redNums.has(winningNum);
+                        const isBlack = winningNum !== 0 && !isRed;
+
+                        for (const [k, amt] of Object.entries(this.roul.bets)) {
+                            if (k === 'RED' && isRed) rawWin += amt * 2;
+                            else if (k === 'BLACK' && isBlack) rawWin += amt * 2;
+                            else if (k === 'ODD' && winningNum !== 0 && winningNum % 2 === 1) rawWin += amt * 2;
+                            else if (k === 'EVEN' && winningNum !== 0 && winningNum % 2 === 0) rawWin += amt * 2;
+                            else if (k === 'DOZ1' && winningNum >= 1 && winningNum <= 12) rawWin += amt * 3;
+                            else if (k === 'DOZ2' && winningNum >= 13 && winningNum <= 24) rawWin += amt * 3;
+                            else if (k === 'DOZ3' && winningNum >= 25 && winningNum <= 36) rawWin += amt * 3;
+                            else if (k === `NUM_${winningNum}`) rawWin += amt * 36;
+                        }
+
+                        const banner = document.getElementById('roul-result-banner');
+                        const colName = winningNum === 0 ? 'ZIELONE 0' : (isRed ? `CZERWONE ${winningNum}` : `CZARNE ${winningNum}`);
+
+                        if (rawWin > 0) {
+                            const finalPayout = this.recordWinPayout(rawWin, 1.0);
+                            this.sfx.win();
+                            banner.textContent = `WYPADŁO ${colName}! WYGRANA +$${finalPayout.toLocaleString()}`;
+                            this.advanceChallenge('roul_win_1', 1);
+                            if (finalPayout - totalBet >= 400) this.advanceChallenge('big_payout', 1);
+                        } else {
+                            this.sfx.lose();
+                            banner.textContent = `WYPADŁO ${colName} — BRAK TRAFIENIA`;
+                        }
+
+                        this.roul.bets = {};
+                        this.updateRoulBetTags();
+                        this.updateHUD();
                     }
                 };
                 requestAnimationFrame(animateSpin);
-            }
-
-            resolveRouletteSpin(num) {
-                this.roul.spinning = false;
-                document.getElementById('roul-spin-btn').disabled = false;
-                const redNums = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-                const isRed = redNums.has(num);
-                const isBlack = num !== 0 && !isRed;
-
-                let rawWin = 0;
-                const b = this.roul.bets;
-
-                if (b.RED && isRed) rawWin += b.RED * 2;
-                if (b.BLACK && isBlack) rawWin += b.BLACK * 2;
-                if (b.ODD && num !== 0 && num % 2 === 1) rawWin += b.ODD * 2;
-                if (b.EVEN && num !== 0 && num % 2 === 0) rawWin += b.EVEN * 2;
-                if (b.DOZ1 && num >= 1 && num <= 12) rawWin += b.DOZ1 * 3;
-                if (b.DOZ2 && num >= 13 && num <= 24) rawWin += b.DOZ2 * 3;
-                if (b.DOZ3 && num >= 25 && num <= 36) rawWin += b.DOZ3 * 3;
-                if (b[`NUM_${num}`]) rawWin += b[`NUM_${num}`] * 36;
-
-                let bonusMult = this.relics.has('golden_cufflinks') ? 1.2 : 1.0;
-                bonusMult *= (this.currentModifier.payoutMult || 1.0);
-                const finalWin = Math.round(rawWin * bonusMult);
-
-                const banner = document.getElementById('roul-result-banner');
-                const colorLabel = num === 0 ? 'GREEN 0' : (isRed ? 'RED' : 'BLACK');
-
-                if (finalWin > 0) {
-                    this.cash += finalWin;
-                    this.sfx.win();
-                    banner.textContent = `★ WYPADŁO #${num} (${colorLabel}) — WYGRANA +$${finalWin.toLocaleString()}!`;
-                    this.checkChallenge('roul_win');
-                    this.checkChallenge('payout', finalWin);
-                } else {
-                    this.sfx.lose();
-                    banner.textContent = `WYPADŁO #${num} (${colorLabel}) — BRAK TRAFIENIA`;
-                }
-
-                this.roul.bets = {};
-                this.updateRoulBetTags();
-                this.updateHUD();
             }
 
             /**
@@ -3919,12 +4203,13 @@
                 if (this.slots.spinning) return;
                 this.slots.bet = val;
                 this.sfx.chip();
-                [50, 100, 250, 500].forEach(v => {
-                    const btn = document.getElementById(`slot-bet-${v}`);
-                    if (!btn) return;
-                    btn.className = v === val
-                        ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-amber-500 text-zinc-950'
-                        : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
+                [50, 100, 250, 500].forEach(b => {
+                    const btn = document.getElementById(`slot-bet-${b}`);
+                    if (btn) {
+                        btn.className = b === val
+                            ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-amber-500 text-zinc-950'
+                            : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
+                    }
                 });
             }
 
@@ -3937,176 +4222,57 @@
                 }
                 this.cash -= this.slots.bet;
                 this.slots.spinning = true;
-                document.getElementById('slot-spin-btn').disabled = true;
                 this.updateHUD();
 
-                const reels = [
-                    document.getElementById('slot-reel-0'),
-                    document.getElementById('slot-reel-1'),
-                    document.getElementById('slot-reel-2')
-                ];
-
+                const reels = [0, 1, 2].map(i => document.getElementById(`slot-reel-${i}`));
                 reels.forEach(r => {
                     r.classList.remove('slot-reel-landed');
                     r.classList.add('slot-reel-spinning');
                 });
 
-                let ticks = 0;
-                const interval = setInterval(() => {
-                    ticks++;
-                    this.sfx.tick();
+                const pickWeighted = () => {
+                    const pool = ['🍒', '🍒', '🍒', '🔔', '🔔', '💎', '💎', '7️⃣', '💀', '💀'];
+                    return pool[Math.floor(Math.random() * pool.length)];
+                };
+
+                const results = [pickWeighted(), pickWeighted(), pickWeighted()];
+                setTimeout(() => {
                     reels.forEach((r, idx) => {
-                        // Staggered stop for each reel
-                        if (ticks < 8 + idx * 3) {
-                            r.textContent = this.slots.symbols[Math.floor(Math.random() * this.slots.symbols.length)];
-                        }
+                        r.classList.remove('slot-reel-spinning');
+                        r.classList.add('slot-reel-landed');
+                        r.textContent = results[idx];
                     });
+                    this.slots.spinning = false;
 
-                    if (ticks >= 14) {
-                        clearInterval(interval);
-                        reels.forEach(r => r.classList.remove('slot-reel-spinning'));
-                        this.resolveSlots();
+                    const [a, b, c] = results;
+                    let mult = 0;
+                    if (a === b && b === c) {
+                        if (a === '7️⃣') mult = 15;
+                        else if (a === '💎') mult = 8;
+                        else if (a === '🔔') mult = 5;
+                        else if (a === '🍒') mult = 3.5;
+                    } else if ((a === b && a !== '💀') || (b === c && b !== '💀') || (a === c && a !== '💀')) {
+                        mult = 1.8;
                     }
-                }, 70);
-            }
 
-            resolveSlots() {
-                this.slots.spinning = false;
-                document.getElementById('slot-spin-btn').disabled = false;
-                const pool = ['🍒', '🍒', '🍒', '🔔', '🔔', '💎', '💎', '7️⃣', '💀', '💀'];
-                const r0 = pool[Math.floor(Math.random() * pool.length)];
-                const r1 = pool[Math.floor(Math.random() * pool.length)];
-                const r2 = pool[Math.floor(Math.random() * pool.length)];
-
-                const reels = [
-                    document.getElementById('slot-reel-0'),
-                    document.getElementById('slot-reel-1'),
-                    document.getElementById('slot-reel-2')
-                ];
-                reels[0].textContent = r0;
-                reels[1].textContent = r1;
-                reels[2].textContent = r2;
-                reels.forEach(r => {
-                    r.classList.remove('slot-reel-landed');
-                    void r.offsetWidth;
-                    r.classList.add('slot-reel-landed');
-                });
-
-                let mult = 0;
-                if (r0 === r1 && r1 === r2) {
-                    if (r0 === '7️⃣') mult = 15;
-                    else if (r0 === '💎') mult = 8;
-                    else if (r0 === '🔔') mult = 5;
-                    else if (r0 === '🍒') mult = 3.5;
-                } else if (
-                    (r0 === r1 && r0 !== '💀') ||
-                    (r1 === r2 && r1 !== '💀') ||
-                    (r0 === r2 && r0 !== '💀')
-                ) {
-                    mult = 1.8;
-                }
-
-                const statusEl = document.getElementById('slot-status');
-                if (mult > 0) {
-                    let bonus = this.relics.has('golden_cufflinks') ? 1.2 : 1.0;
-                    bonus *= (this.currentModifier.payoutMult || 1.0);
-                    const winAmt = Math.round(this.slots.bet * mult * bonus);
-                    this.cash += winAmt;
-                    this.sfx.win();
-                    statusEl.textContent = `★ WYGRANA +$${winAmt.toLocaleString()}! (${mult}x)`;
-                    this.checkChallenge('slots_win');
-                    this.checkChallenge('payout', winAmt - this.slots.bet);
-                } else {
-                    this.sfx.lose();
-                    statusEl.textContent = `BRAK UKŁADU (-$${this.slots.bet})`;
-                }
-                this.updateHUD();
+                    const st = document.getElementById('slot-status');
+                    if (mult > 0) {
+                        const payout = this.recordWinPayout(this.slots.bet, mult);
+                        if (mult >= 8) this.sfx.jackpot(); else this.sfx.win();
+                        st.textContent = `WYGRANA! +$${payout.toLocaleString()} (${mult}x)`;
+                        this.advanceChallenge('slots_win_2', 1);
+                        if (payout - this.slots.bet >= 400) this.advanceChallenge('big_payout', 1);
+                    } else {
+                        this.sfx.lose();
+                        st.textContent = 'BRAK UKŁADU — SPRÓBUJ PONOWNIE';
+                    }
+                    this.updateHUD();
+                }, 480);
             }
 
             /**
              * ============================================================================
-             * MINIGAME 4: USURY BLOOD ATM (1 PUMP PER NIGHT)
-             * ============================================================================
-             */
-            openAtmModal() {
-                this.sfx.tick();
-                this.updateAtmUI();
-                this.openModal('modal-atm');
-            }
-
-            updateAtmUI() {
-                const baseLoan = 250 + (this.day - 1) * 150;
-                const loanAmt = Math.round(baseLoan * (this.currentModifier.bloodBonus || 1.0));
-                const tokenAmt = 350 + (this.day - 1) * 200;
-                const bloodCost = this.currentModifier.bloodCost || 60;
-
-                const tokenAmtEl = document.getElementById('atm-token-amount');
-                if (tokenAmtEl) tokenAmtEl.textContent = tokenAmt;
-
-                const costLabelEl = document.getElementById('atm-cost-label');
-                if (costLabelEl) costLabelEl.textContent = this.t('atm_cost_dyn', { cost: bloodCost });
-
-                const btn = document.getElementById('btn-blood-loan');
-                const badge = document.getElementById('atm-usage-badge');
-                if (!btn || !badge) return;
-
-                if (this.bloodPumpedThisNight) {
-                    btn.disabled = true;
-                    btn.textContent = this.t('atm_btn_depleted');
-                    btn.className = 'btn-gritty bg-zinc-800 border-zinc-950 text-zinc-500 font-extrabold px-4 py-2.5 rounded-lg text-xs shrink-0 cursor-not-allowed';
-                    badge.textContent = this.t('atm_badge_used');
-                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-700';
-                } else {
-                    btn.disabled = false;
-                    btn.textContent = this.t('atm_btn_pump', { amt: loanAmt });
-                    btn.className = 'btn-gritty bg-red-600 hover:bg-red-500 border-red-900 text-white font-extrabold px-4 py-2.5 rounded-lg text-xs shrink-0 cursor-pointer';
-                    badge.textContent = this.t('atm_badge_avail');
-                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-700';
-                }
-            }
-
-            takeBloodLoan() {
-                if (this.bloodPumpedThisNight) {
-                    this.sfx.lose();
-                    return;
-                }
-                const bloodCost = this.currentModifier.bloodCost || 60;
-                if (this.timeLeft <= bloodCost + 5) {
-                    this.sfx.lose();
-                    this.showToast('Za mało czasu na zegarze zmiany!', 'red');
-                    return;
-                }
-
-                const baseLoan = 250 + (this.day - 1) * 150;
-                const loanAmt = Math.round(baseLoan * (this.currentModifier.bloodBonus || 1.0));
-
-                this.bloodPumpedThisNight = true;
-                this.timeLeft -= bloodCost;
-                this.cash += loanAmt;
-                this.sfx.blood();
-                this.showToast(`🩸 +$${loanAmt} (-${bloodCost}s)`, 'red');
-                this.updateAtmUI();
-                this.updateHUD();
-            }
-
-            pawnTokenForCash() {
-                if (this.tokens <= 0) {
-                    this.sfx.lose();
-                    this.showToast('Brak 🪙 Żetonów do sprzedaży!', 'red');
-                    return;
-                }
-                const tokenAmt = 350 + (this.day - 1) * 200;
-                this.tokens -= 1;
-                this.cash += tokenAmt;
-                this.sfx.win();
-                this.showToast(`🪙 Sprzedano 1 Żeton za +$${tokenAmt}!`, 'amber');
-                this.updateAtmUI();
-                this.updateHUD();
-            }
-
-            /**
-             * ============================================================================
-             * MINIGAME 5: OVER / UNDER 7 CYBER DICE
+             * MINIGAME 4: OVER / UNDER 7 CYBER DICE
              * ============================================================================
              */
             openDiceModal() {
@@ -4118,12 +4284,13 @@
                 if (this.dice.rolling) return;
                 this.dice.bet = val;
                 this.sfx.chip();
-                [50, 100, 250, 500].forEach(v => {
-                    const btn = document.getElementById(`dice-bet-${v}`);
-                    if (!btn) return;
-                    btn.className = v === val
-                        ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-cyan-400 text-zinc-950'
-                        : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
+                [50, 100, 250, 500].forEach(b => {
+                    const btn = document.getElementById(`dice-bet-${b}`);
+                    if (btn) {
+                        btn.className = b === val
+                            ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-cyan-400 text-zinc-950'
+                            : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
+                    }
                 });
             }
 
@@ -4134,102 +4301,216 @@
                     this.showToast('Brak gotówki na ten rzut!', 'red');
                     return;
                 }
-
                 this.cash -= this.dice.bet;
                 this.dice.rolling = true;
                 this.updateHUD();
 
-                const faces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-                const box1 = document.getElementById('dice-box-1');
-                const box2 = document.getElementById('dice-box-2');
-                box1.classList.add('dice-rolling');
-                box2.classList.add('dice-rolling');
-                let ticks = 0;
+                const b1 = document.getElementById('dice-box-1');
+                const b2 = document.getElementById('dice-box-2');
+                b1.classList.add('dice-rolling');
+                b2.classList.add('dice-rolling');
 
-                const timer = setInterval(() => {
-                    ticks++;
-                    this.sfx.tick();
-                    box1.textContent = faces[Math.floor(Math.random() * 6)];
-                    box2.textContent = faces[Math.floor(Math.random() * 6)];
-
-                    if (ticks >= 11) {
-                        clearInterval(timer);
-                        box1.classList.remove('dice-rolling');
-                        box2.classList.remove('dice-rolling');
-                        this.resolveCyberDice(choice);
-                    }
-                }, 65);
-            }
-
-            resolveCyberDice(choice) {
-                this.dice.rolling = false;
                 const faces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
                 const d1 = 1 + Math.floor(Math.random() * 6);
                 const d2 = 1 + Math.floor(Math.random() * 6);
                 const sum = d1 + d2;
 
-                document.getElementById('dice-box-1').textContent = faces[d1 - 1];
-                document.getElementById('dice-box-2').textContent = faces[d2 - 1];
-                document.getElementById('dice-sum-badge').textContent = `${d1} + ${d2} = ${sum}`;
+                setTimeout(() => {
+                    b1.classList.remove('dice-rolling');
+                    b2.classList.remove('dice-rolling');
+                    b1.textContent = faces[d1 - 1];
+                    b2.textContent = faces[d2 - 1];
+                    document.getElementById('dice-sum-badge').textContent = `SUMA KOŚCI: ${sum}`;
+                    this.dice.rolling = false;
 
-                let mult = 0;
-                if (choice === 'UNDER' && sum < 7) mult = 2.2;
-                if (choice === 'SEVEN' && sum === 7) mult = 4.5;
-                if (choice === 'OVER' && sum > 7) mult = 2.2;
+                    let mult = 0;
+                    if (choice === 'UNDER' && sum < 7) mult = 2.2;
+                    else if (choice === 'SEVEN' && sum === 7) mult = 4.5;
+                    else if (choice === 'OVER' && sum > 7) mult = 2.2;
 
-                const statusEl = document.getElementById('dice-status');
-                if (mult > 0) {
-                    let bonus = this.relics.has('golden_cufflinks') ? 1.2 : 1.0;
-                    bonus *= (this.currentModifier.payoutMult || 1.0);
-                    const winAmt = Math.round(this.dice.bet * mult * bonus);
-                    this.cash += winAmt;
-                    this.sfx.win();
-                    statusEl.textContent = `★ SUMA ${sum} — WYGRANA +$${winAmt.toLocaleString()}!`;
-                    this.checkChallenge('dice_win');
-                    this.checkChallenge('payout', winAmt - this.dice.bet);
+                    const st = document.getElementById('dice-status');
+                    if (mult > 0) {
+                        const payout = this.recordWinPayout(this.dice.bet, mult);
+                        this.sfx.win();
+                        st.textContent = `TRAFIONE (${sum})! WYGRANA +$${payout.toLocaleString()}`;
+                        this.advanceChallenge('dice_win_2', 1);
+                        if (payout - this.dice.bet >= 400) this.advanceChallenge('big_payout', 1);
+                    } else {
+                        this.sfx.lose();
+                        st.textContent = `WYPADŁO ${sum} — PRZEGRANA -$${this.dice.bet}`;
+                    }
+                    this.updateHUD();
+                }, 420);
+            }
+
+            /**
+             * ============================================================================
+             * USURY BLOOD ATM (ONE-TIME PER NIGHT CYCLE)
+             * ============================================================================
+             */
+            openAtmModal() {
+                this.sfx.tick();
+                this.refreshAtmModalUI();
+                this.openModal('modal-atm');
+            }
+
+            refreshAtmModalUI() {
+                const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0));
+                const timeCost = this.currentModifier.bloodCost || 60;
+                const badge = document.getElementById('atm-usage-badge');
+                const costLbl = document.getElementById('atm-cost-label');
+                const loanBtn = document.getElementById('btn-blood-loan');
+                const pawnBtn = document.getElementById('btn-pawn-token');
+
+                if (costLbl) costLbl.textContent = this.t('atm_cost_dyn', { cost: timeCost });
+                if (this.bloodPumpedThisNight) {
+                    if (badge) badge.textContent = this.t('atm_badge_used');
+                    if (loanBtn) {
+                        loanBtn.disabled = true;
+                        loanBtn.textContent = this.t('atm_btn_depleted');
+                    }
                 } else {
-                    this.sfx.lose();
-                    statusEl.textContent = `SUMA ${sum} — PRZEGRANA (-$${this.dice.bet})`;
+                    if (badge) badge.textContent = this.t('atm_badge_avail');
+                    if (loanBtn) {
+                        loanBtn.disabled = false;
+                        loanBtn.textContent = this.t('atm_btn_pump', { amt: baseLoan });
+                    }
                 }
+                if (pawnBtn) {
+                    pawnBtn.disabled = this.tokens <= 0;
+                }
+            }
+
+            takeBloodLoan() {
+                if (this.bloodPumpedThisNight) return;
+                const timeCost = this.currentModifier.bloodCost || 60;
+                if (this.timeLeft <= timeCost + 5) {
+                    this.sfx.lose();
+                    this.showToast('Za mało czasu na zegarze na ekstrakcję krwi!', 'red');
+                    return;
+                }
+                const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0));
+                this.bloodPumpedThisNight = true;
+                this.timeLeft -= timeCost;
+                this.cash += baseLoan;
+                this.sfx.blood();
+                this.showToast(`🩸 Oddano krew! +$${baseLoan} (-${timeCost}s)`, 'red');
+                this.refreshAtmModalUI();
+                this.updateHUD();
+            }
+
+            pawnTokenForCash() {
+                if (this.tokens <= 0) return;
+                this.tokens -= 1;
+                this.cash += 350;
+                this.sfx.chip();
+                this.showToast('🪙 Sprzedano 1 Żeton za +$350!', 'amber');
+                this.refreshAtmModalUI();
                 this.updateHUD();
             }
 
             /**
              * ============================================================================
-             * EDGE-BASED PROXIMITY, COLLISION & PHYSICS LOOP
+             * PAYOUTS, CHALLENGES & DAY CYCLE PROGRESSION
              * ============================================================================
              */
-            getDistanceToInteractableEdge(px, py, item) {
-                if (item.box) {
-                    const nearestX = Math.max(item.box.x, Math.min(px, item.box.x + item.box.w));
-                    const nearestY = Math.max(item.box.y, Math.min(py, item.box.y + item.box.h));
-                    return Math.hypot(px - nearestX, py - nearestY);
-                }
-                return Math.hypot(px - item.x, py - item.y);
+            recordWinPayout(baseBetOrWin, multiplier = 1.0) {
+                const relicBonus = this.relics.has('golden_cufflinks') ? 1.2 : 1.0;
+                const modBonus = this.currentModifier.payoutMult || 1.0;
+                const total = Math.round(baseBetOrWin * multiplier * relicBonus * modBonus);
+                this.cash += total;
+                return total;
             }
 
-            getNearestInteractable() {
-                const z = this.zones[this.zone];
-                let best = null;
-                let bestDist = Infinity;
-
-                for (const item of z.interactables) {
-                    const d = this.getDistanceToInteractableEdge(this.player.x, this.player.y, item);
-                    const maxDist = item.edgeDist || 48;
-                    if (d <= maxDist && d < bestDist) {
-                        best = item;
-                        bestDist = d;
-                    }
+            advanceChallenge(id, amount = 1) {
+                if (!this.currentChallenge || this.currentChallenge.completed || this.currentChallenge.id !== id) return;
+                this.currentChallenge.progress = Math.min(this.currentChallenge.target, this.currentChallenge.progress + amount);
+                if (this.currentChallenge.progress >= this.currentChallenge.target) {
+                    this.currentChallenge.completed = true;
+                    this.tokens += this.currentChallenge.reward;
+                    this.sfx.jackpot();
+                    this.showToast(`★ KONTRAKT UKOŃCZONY! +${this.currentChallenge.reward} 🪙`, 'emerald');
                 }
-                return best;
             }
 
-            triggerContextInteraction() {
-                if (this.activeModal || this.mainMenuOpen) return;
-                const target = this.getNearestInteractable();
-                if (target && target.action) {
-                    target.action();
-                }
+            completeDaySummary() {
+                this.sfx.jackpot();
+                const surplus = Math.max(0, this.cash - this.quota);
+                const bonusTokens = 1 + (surplus >= 500 ? 1 : 0);
+                this.tokens += bonusTokens;
+
+                document.getElementById('summary-title').textContent = `${this.t('hud_cycle')} ${this.day} — ${this.t('completed_word')}`;
+                document.getElementById('summary-details').innerHTML = `
+                    <div class="flex justify-between"><span>Zebrana Gotówka:</span><strong class="text-emerald-400">$${this.cash.toLocaleString()}</strong></div>
+                    <div class="flex justify-between"><span>Wymagana Kwota:</span><strong class="text-amber-400">$${this.quota.toLocaleString()}</strong></div>
+                    <div class="flex justify-between"><span>Nagroda za przetrwanie:</span><strong class="text-amber-300">+${bonusTokens} 🪙</strong></div>
+                `;
+                this.openModal('modal-day-complete');
+            }
+
+            advanceToNextDay(ev) {
+                if (ev) ev.preventDefault();
+                this.day += 1;
+                this.phase = 'PREP';
+                this.zone = 0;
+                this.bloodPumpedThisNight = false;
+
+                const surplusCarry = Math.min(400, Math.floor(Math.max(0, this.cash - this.quota) * 0.25));
+                const relicFund = this.relics.has('trust_fund') ? 350 : 0;
+                this.cash = 500 + (this.day - 1) * 150 + surplusCarry + relicFund;
+                this.quota = Math.round(1000 * Math.pow(1.45, this.day - 1) / 50) * 50;
+
+                this.assignNightlyModifier();
+                this.assignDailyChallenge();
+
+                const extraRelic = this.relics.has('adrenaline_shot') ? 45 : 0;
+                const extraMod = this.currentModifier.extraTime || 0;
+                this.maxTime = Math.max(120, 360 + extraRelic + extraMod);
+                this.timeLeft = this.maxTime;
+
+                this.player.x = 355;
+                this.player.y = 235;
+                this.player.vx = 0;
+                this.player.vy = 0;
+
+                this.closeModals(true);
+                this.syncZoneMusic();
+                this.updateHUD();
+                this.sfx.win();
+                this.showToast(`☀ ${this.t('day_word')} ${this.day} — Nowa Kwota: $${this.quota.toLocaleString()}`, 'emerald');
+            }
+
+            triggerGameOver(reason) {
+                this.sfx.lose();
+                document.getElementById('gameover-reason').textContent = reason;
+                document.getElementById('gameover-stats').innerHTML = `
+                    <div class="flex justify-between"><span>Przetrwane Dni:</span><strong class="text-white">${this.day - 1}</strong></div>
+                    <div class="flex justify-between"><span>Ostatnia Gotówka:</span><strong class="text-red-400">$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}</strong></div>
+                `;
+                this.openModal('modal-gameover');
+            }
+
+            restartRun() {
+                this.day = 1;
+                this.phase = 'PREP';
+                this.zone = 0;
+                this.cash = 500;
+                this.quota = 1000;
+                this.tokens = 1;
+                this.relics.clear();
+                this.bloodPumpedThisNight = false;
+                this.maxTime = 360;
+                this.timeLeft = 360;
+                this.player.x = 355;
+                this.player.y = 235;
+                this.player.vx = 0;
+                this.player.vy = 0;
+                this.assignNightlyModifier();
+                this.assignDailyChallenge();
+                this.closeModals(true);
+                this.syncZoneMusic();
+                this.updateHUD();
+                this.sfx.door();
             }
 
             checkCollision(nx, ny) {
@@ -5061,7 +5342,6 @@
                 ctx.arc(436, 192, 12, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-                this.drawPropBadge(ctx, 370, 132, this.t('canvas_dumpster'), '#cbd5e1', '#1e293b');
 
                 // --- 2. WRECKED CYBERPUNK CAR (560, 405, 165, 70) ---
                 const hazardBlink = Math.sin(this.animTime * 6) > 0;
@@ -5107,7 +5387,6 @@
                 ctx.fillRect(720, 412, 5, 12);
                 ctx.fillRect(720, 456, 5, 12);
                 ctx.restore();
-                this.drawPropBadge(ctx, 642, 392, this.t('canvas_car'), '#94a3b8', '#1e293b');
 
                 // --- 3. WEST SAFEHOUSE ENTRANCE ---
                 this.drawNeonGlow(ctx, 65, 320, 110, '#10b981', 0.3);
@@ -5327,7 +5606,7 @@
                 ctx.fillRect(253, 182, 12, 17);
                 ctx.fillRect(268, 184, 12, 17);
                 ctx.restore();
-                this.drawPropBadge(ctx, 275, 118, this.t('canvas_bj_title'), '#6ee7b7', '#022c22', this.t('canvas_bj_sub', { stand: standVal }));
+                this.drawPropBadge(ctx, 275, 118, '♠ VIP BLACKJACK', '#6ee7b7', '#022c22');
 
                 // --- STATION 2: DEVIL'S ROULETTE TABLE (635, 135, 190, 110) ---
                 this.drawNeonGlow(ctx, 730, 190, 150, '#ef4444', 0.26);
@@ -5385,7 +5664,7 @@
                     }
                 }
                 ctx.restore();
-                this.drawPropBadge(ctx, 730, 118, this.t('canvas_roul_title'), '#fca5a5', '#450a0a', this.t('canvas_roul_sub'));
+                this.drawPropBadge(ctx, 730, 118, '🎡 RULETKA', '#fca5a5', '#450a0a');
 
                 // --- STATION 3: CYBER DICE PIT (425, 265, 155, 95) ---
                 this.drawNeonGlow(ctx, 502, 312, 130, '#06b6d4', 0.28);
@@ -5416,7 +5695,7 @@
                 ctx.arc(520, 318, 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-                this.drawPropBadge(ctx, 502, 248, this.t('canvas_dice_title'), '#67e8f9', '#083344', '2.2x / 4.5x');
+                this.drawPropBadge(ctx, 502, 248, '🎲 CYBER KOŚCI', '#67e8f9', '#083344');
 
                 // --- STATION 4: "THE ARTERY" BLOOD SLOTS (195, 385, 165, 85) ---
                 this.drawNeonGlow(ctx, 277, 427, 135, '#f59e0b', 0.25);
@@ -5449,7 +5728,7 @@
                     ctx.fill();
                 });
                 ctx.restore();
-                this.drawPropBadge(ctx, 277, 368, this.t('canvas_slots_title'), '#fde68a', '#451a03');
+                this.drawPropBadge(ctx, 277, 368, '🎰 AUTOMATY', '#fde68a', '#451a03');
 
                 // --- STATION 5: USURY BLOOD ATM (655, 385, 145, 80) ---
                 const atmActive = !this.bloodPumpedThisNight;
@@ -5486,8 +5765,7 @@
                 ctx.restore();
 
                 const atmTitle = this.bloodPumpedThisNight ? this.t('canvas_atm_used') : this.t('canvas_atm_ready');
-                const atmSub = this.bloodPumpedThisNight ? this.t('canvas_atm_sub_used') : this.t('canvas_atm_sub_ready');
-                this.drawPropBadge(ctx, 727, 368, atmTitle, atmActive ? '#fca5a5' : '#a1a1aa', '#3b0707', atmSub);
+                this.drawPropBadge(ctx, 727, 368, atmTitle, atmActive ? '#fca5a5' : '#a1a1aa', '#3b0707');
 
                 // --- 6. RENDER CASINO STAFF, CROUPIERS, GUARDS, WAITER & GAMBLER NPCs ---
                 this.casinoNpcs.forEach((npc, idx) => {
@@ -5821,6 +6099,11 @@
                         const fpsEl = document.getElementById('hud-fps');
                         if (fpsEl) fpsEl.textContent = `${this.currentFps} FPS`;
                     }
+                }
+
+                if (this.mainMenuOpen) {
+                    this.animTime += dt;
+                    this.updateAndRenderMenuCash(dt);
                 }
 
                 this.update(dt);
