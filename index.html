@@ -285,6 +285,40 @@
             transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* Spinning $ Emblem on Loading Screen */
+        @keyframes spinDollar3D {
+            0% {
+                transform: perspective(400px) rotateY(0deg) scale(1);
+                filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.75));
+            }
+            50% {
+                transform: perspective(400px) rotateY(180deg) scale(1.08);
+                filter: drop-shadow(0 0 22px rgba(245, 158, 11, 0.9));
+            }
+            100% {
+                transform: perspective(400px) rotateY(360deg) scale(1);
+                filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.75));
+            }
+        }
+
+        @keyframes spinRingSlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .dollar-spinner {
+            animation: spinDollar3D 1.6s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            display: inline-block;
+        }
+
+        .ring-spinner {
+            animation: spinRingSlow 3.2s infinite linear;
+        }
+
+        #loading-screen-overlay {
+            transition: opacity 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
         canvas {
             display: block;
             width: 100%;
@@ -333,8 +367,47 @@
         </div>
     </div>
 
-    <!-- MAIN MENU OVERLAY (Cyberpunk Syndicate UI + Full 3D Falling Cash Canvas on Sides) -->
-    <div id="main-menu-overlay" class="fixed inset-0 z-50 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-hidden">
+    <!-- PRE-LOAD / SESSION INITIALIZATION LOADING SCREEN OVERLAY -->
+    <div id="loading-screen-overlay" class="hidden fixed inset-0 z-[150] bg-[#030407] flex flex-col justify-between p-6 sm:p-10 select-none opacity-0">
+        <!-- Top Left Syndicate Telemetry -->
+        <div class="space-y-1 text-left">
+            <div class="text-[10px] font-extrabold tracking-[0.3em] text-cyan-400/80 uppercase">
+                SYNDICATE_OS // PRE-LOAD ENGINE
+            </div>
+            <div id="loading-step-text" class="text-xs sm:text-sm font-bold text-zinc-400">
+                Inicjalizacja sesji i buforów...
+            </div>
+        </div>
+
+        <!-- Bottom Bar: Progress Info & Bottom-Right Spinning $ Icon -->
+        <div class="flex items-end justify-between w-full">
+            <div class="space-y-1.5 max-w-xs w-full">
+                <div class="flex justify-between text-[10px] font-extrabold tracking-widest text-zinc-400 uppercase">
+                    <span id="loading-sub-status">KOMPILACJA TEKSTUR 2D</span>
+                    <span id="loading-pct-text" class="text-emerald-400">0%</span>
+                </div>
+                <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                    <div id="loading-bar-fill" class="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-400 transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Bottom-Right Spinning $ Indicator -->
+            <div class="flex items-center gap-3.5">
+                <div class="text-right hidden sm:block">
+                    <div class="text-[10px] font-extrabold tracking-[0.25em] text-amber-400 uppercase">WCZYTYWANIE</div>
+                    <div class="text-[11px] font-bold text-zinc-500">OPTYMALIZACJA PAMIĘCI</div>
+                </div>
+                <div class="relative w-16 h-16 flex items-center justify-center">
+                    <div class="ring-spinner absolute inset-0 rounded-full border-2 border-dashed border-emerald-500/60"></div>
+                    <div class="absolute inset-1.5 rounded-full bg-zinc-950 border border-amber-500/40 shadow-[0_0_25px_rgba(16,185,129,0.25)]"></div>
+                    <span class="dollar-spinner relative z-10 text-3xl sm:text-4xl font-extrabold text-emerald-400 font-display select-none">$</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY (100% Opaque Solid Background so the game behind is NEVER visible) -->
+    <div id="main-menu-overlay" class="fixed inset-0 z-50 bg-[#040508] flex flex-col items-center justify-center p-4 overflow-hidden">
         <!-- 3D Falling Cash Stacks Canvas Background -->
         <canvas id="menuCashCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
 
@@ -390,8 +463,8 @@
         </div>
     </div>
 
-    <!-- TOP HUD BAR (Streamlined & Decluttered) -->
-    <header class="fixed top-0 left-0 right-0 z-30 pointer-events-none p-2 sm:p-3 flex flex-col gap-1.5">
+    <!-- TOP HUD BAR (Streamlined & Decluttered - Hidden while in Main Menu) -->
+    <header id="main-hud-header" class="hidden fixed top-0 left-0 right-0 z-30 pointer-events-none p-2 sm:p-3 flex flex-col gap-1.5">
         <div class="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-2 bg-zinc-950/90 border border-zinc-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-2xl pointer-events-auto">
             
             <!-- Left: Day, Shift Clock & Active Modifier Pill -->
@@ -698,20 +771,23 @@
                     <div id="bj-player-cards" class="flex items-center justify-center gap-2.5 min-h-[112px] flex-wrap pt-1"></div>
                 </div>
 
-                <!-- Controls: Betting & Beginner-Labeled Actions -->
+                <!-- Controls: Betting ($0 Default + Custom Input + $50 / +$150) & Actions -->
                 <div class="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col lg:flex-row items-center justify-between gap-3">
                     <!-- Bet Selector -->
                     <div id="bj-bet-controls" class="flex flex-wrap items-center justify-center gap-1.5">
-                        <span class="text-xs text-zinc-400 font-bold uppercase mr-1" data-i18n="wager_label">STAWKA:</span>
-                        <span id="bj-current-bet" class="text-base font-extrabold text-amber-400 bg-zinc-950 px-3 py-1 rounded border border-amber-500/40">$100</span>
-                        <button onclick="window.game.adjustBjBet(-50)" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-xs font-bold px-2 py-1.5 rounded">-$50</button>
-                        <button onclick="window.game.adjustBjBet(50)" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-xs font-bold px-2 py-1.5 rounded">+$50</button>
-                        <button onclick="window.game.adjustBjBet(250)" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-xs font-bold px-2 py-1.5 rounded">+$250</button>
-                        <button onclick="window.game.setBjBetHalf()" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-xs font-bold px-2 py-1.5 rounded">1/2</button>
-                        <button onclick="window.game.setBjBetMax()" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
+                        <span id="bj-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950/90 text-red-300 border border-red-700/60">MIN: $50</span>
+                        <div class="flex items-center bg-zinc-950 border border-amber-500/50 rounded-lg px-2 py-1">
+                            <span class="text-amber-400 font-extrabold text-xs mr-1">$</span>
+                            <input id="bj-bet-input" type="number" min="0" step="10" value="0" oninput="window.game.onCustomBetInput('bj', this.value)" class="w-20 bg-transparent text-amber-300 font-extrabold text-sm focus:outline-none">
+                        </div>
+                        <button onclick="window.game.modifyGameBet('bj', 'clear')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-300 text-xs font-bold px-2 py-1.5 rounded">$0</button>
+                        <button onclick="window.game.modifyGameBet('bj', 'min')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-cyan-300 text-xs font-bold px-2 py-1.5 rounded">MIN</button>
+                        <button onclick="window.game.modifyGameBet('bj', 50)" class="btn-gritty bg-emerald-900/80 hover:bg-emerald-800 border-emerald-950 text-emerald-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$50</button>
+                        <button onclick="window.game.modifyGameBet('bj', 150)" class="btn-gritty bg-amber-900/80 hover:bg-amber-800 border-amber-950 text-amber-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$150</button>
+                        <button onclick="window.game.modifyGameBet('bj', 'max')" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
                     </div>
 
-                    <!-- Action Buttons with Plain-English Subtitles -->
+                    <!-- Action Buttons -->
                     <div class="flex flex-wrap items-center justify-center gap-2">
                         <button id="bj-btn-deal" onclick="window.game.startBlackjackHand()" class="btn-gritty bg-amber-500 hover:bg-amber-400 border-amber-700 text-zinc-950 font-extrabold px-5 py-2.5 rounded-xl text-xs sm:text-sm">
                             <span data-i18n="bj_btn_deal">ROZDAJ</span>
@@ -737,7 +813,7 @@
                     <span class="text-xl">🎡</span>
                     <div>
                         <h2 class="text-red-200 font-bold tracking-wider text-sm sm:text-base uppercase" data-i18n="roul_header">DIABELSKIE KOŁO // EUROPEJSKA RULETKA</h2>
-                        <p class="text-[11px] text-red-300/80" data-i18n="roul_sub">Jedno Zero (0–36) • Kolory/Parzystość 2x • Tuziny 3x • Dokładny Numer 36x</p>
+                        <p id="roul-variant-sub" class="text-[11px] text-red-300/80" data-i18n="roul_sub">Jedno Zero (0–36) • Kolory/Parzystość 2x • Tuziny 3x • Dokładny Numer 36x</p>
                     </div>
                 </div>
                 <button onclick="window.game.closeModals()" class="text-red-200 hover:text-white font-bold text-xs sm:text-sm px-3 py-1.5 rounded bg-red-900 border border-red-700" data-i18n="btn_leave_esc">
@@ -750,24 +826,28 @@
                 <div class="lg:col-span-5 flex flex-col items-center justify-center bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4">
                     <canvas id="rouletteWheelCanvas" width="210" height="210" class="w-[190px] h-[190px] sm:w-[210px] sm:h-[210px]"></canvas>
                     <div id="roul-result-banner" class="mt-3 text-center font-extrabold text-sm text-amber-300 bg-zinc-950 px-4 py-1.5 rounded-lg border border-zinc-800 w-full" data-i18n="roul_select_prompt">
-                        WYBIERZ ŻETON I POSTAW ZAKŁADY
+                        WPISZ WARTOŚĆ ŻETONU I KLIKNIJ POLE (SUMA STARTUJE OD $0)
                     </div>
                 </div>
 
                 <!-- Right Column: Interactive Betting Mat -->
                 <div class="lg:col-span-7 space-y-3.5">
-                    <!-- Chip Selector & Clear -->
+                    <!-- Chip Value Input & +$50 / +$150 Selector -->
                     <div class="flex flex-wrap items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 p-3 rounded-xl">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-bold text-zinc-400 mr-1" data-i18n="roul_chip_label">ŻETON:</span>
-                            <button onclick="window.game.setRoulChip(50)" id="chip-50" class="roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-amber-400 bg-amber-500 text-zinc-950">$50</button>
-                            <button onclick="window.game.setRoulChip(100)" id="chip-100" class="roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200">$100</button>
-                            <button onclick="window.game.setRoulChip(250)" id="chip-250" class="roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200">$250</button>
-                            <button onclick="window.game.setRoulChip(500)" id="chip-500" class="roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200">$500</button>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span id="roul-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950 text-red-300 border border-red-700/60">MIN: $50</span>
+                            <span class="text-xs font-bold text-zinc-400" data-i18n="roul_chip_label">ŻETON:</span>
+                            <div class="flex items-center bg-zinc-950 border border-amber-500/50 rounded-lg px-2 py-0.5">
+                                <span class="text-amber-400 font-extrabold text-xs mr-1">$</span>
+                                <input id="roul-chip-input" type="number" min="10" step="10" value="50" oninput="window.game.setRoulChip(this.value)" class="w-16 bg-transparent text-amber-300 font-extrabold text-xs focus:outline-none">
+                            </div>
+                            <button onclick="window.game.setRoulChip(50)" id="chip-50" class="roul-chip-btn px-2.5 py-1 rounded-lg text-xs font-extrabold border border-amber-400 bg-amber-500 text-zinc-950">$50</button>
+                            <button onclick="window.game.setRoulChip(150)" id="chip-150" class="roul-chip-btn px-2.5 py-1 rounded-lg text-xs font-extrabold border border-zinc-700 bg-zinc-800 text-zinc-200">$150</button>
+                            <button onclick="window.game.setRoulChip(500)" id="chip-500" class="roul-chip-btn px-2.5 py-1 rounded-lg text-xs font-extrabold border border-zinc-700 bg-zinc-800 text-zinc-200">$500</button>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-zinc-400"><span data-i18n="roul_total_bet">SUMA:</span> <strong id="roul-total-bet" class="text-amber-400">$0</strong></span>
-                            <button onclick="window.game.clearRoulBets()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1 rounded border border-zinc-700 font-bold" data-i18n="roul_clear">WYCZYŚĆ</button>
+                            <button onclick="window.game.clearRoulBets()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1 rounded border border-zinc-700 font-bold" data-i18n="roul_clear">WYCZYŚĆ ($0)</button>
                         </div>
                     </div>
 
@@ -831,7 +911,7 @@
                     <span class="text-xl">🎰</span>
                     <div>
                         <h2 class="text-amber-300 font-bold tracking-wider text-sm sm:text-base uppercase" data-i18n="slots_header">"TĘTNICA" // KRWAWE AUTOMATY</h2>
-                        <p class="text-[11px] text-amber-200/70" data-i18n="slots_sub">Szybki obrót • Wysoka zmienność • 777 Płaci 15x</p>
+                        <p id="slots-variant-sub" class="text-[11px] text-amber-200/70" data-i18n="slots_sub">Szybki obrót • Wysoka zmienność • 777 Płaci 15x</p>
                     </div>
                 </div>
                 <button onclick="window.game.closeModals()" class="text-amber-200 hover:text-white font-bold text-xs px-3 py-1.5 rounded bg-amber-900/80 border border-amber-700" data-i18n="btn_leave_esc">
@@ -848,7 +928,7 @@
                         <div id="slot-reel-2" class="h-24 sm:h-28 bg-zinc-950 border-2 border-zinc-800 rounded-xl flex items-center justify-center text-4xl sm:text-5xl shadow-inner">7️⃣</div>
                     </div>
                     <div id="slot-status" class="mt-4 text-center font-extrabold text-sm sm:text-base text-amber-300" data-i18n="slots_pull_prompt">
-                        POCIĄGNIJ DŹWIGNIĘ, ABY ZAKRĘCIĆ
+                        USTAW STAWKĘ (OD $0) I ZAKRĘĆ BĘBNAMI
                     </div>
                 </div>
 
@@ -862,16 +942,21 @@
                     <div><strong class="text-zinc-500">💀 💀 💀</strong> : 0x</div>
                 </div>
 
-                <!-- Bet & Spin Controls -->
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-zinc-900 p-3.5 rounded-xl border border-zinc-800">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-bold text-zinc-400" data-i18n="wager_label">STAWKA:</span>
-                        <button onclick="window.game.setSlotBet(50)" id="slot-bet-50" class="px-2.5 py-1 rounded text-xs font-extrabold bg-amber-500 text-zinc-950">$50</button>
-                        <button onclick="window.game.setSlotBet(100)" id="slot-bet-100" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$100</button>
-                        <button onclick="window.game.setSlotBet(250)" id="slot-bet-250" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$250</button>
-                        <button onclick="window.game.setSlotBet(500)" id="slot-bet-500" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$500</button>
+                <!-- Bet ($0 default + Input + $50 / +$150) & Spin Controls -->
+                <div class="flex flex-col gap-3 bg-zinc-900 p-3.5 rounded-xl border border-zinc-800">
+                    <div class="flex flex-wrap items-center justify-between gap-1.5">
+                        <span id="slots-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950 text-red-300 border border-red-700/60">MIN: $50</span>
+                        <div class="flex items-center bg-zinc-950 border border-amber-500/50 rounded-lg px-2 py-1">
+                            <span class="text-amber-400 font-extrabold text-xs mr-1">$</span>
+                            <input id="slots-bet-input" type="number" min="0" step="10" value="0" oninput="window.game.onCustomBetInput('slots', this.value)" class="w-20 bg-transparent text-amber-300 font-extrabold text-sm focus:outline-none">
+                        </div>
+                        <button onclick="window.game.modifyGameBet('slots', 'clear')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-300 text-xs font-bold px-2 py-1.5 rounded">$0</button>
+                        <button onclick="window.game.modifyGameBet('slots', 'min')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-cyan-300 text-xs font-bold px-2 py-1.5 rounded">MIN</button>
+                        <button onclick="window.game.modifyGameBet('slots', 50)" class="btn-gritty bg-emerald-900/80 hover:bg-emerald-800 border-emerald-950 text-emerald-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$50</button>
+                        <button onclick="window.game.modifyGameBet('slots', 150)" class="btn-gritty bg-amber-900/80 hover:bg-amber-800 border-amber-950 text-amber-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$150</button>
+                        <button onclick="window.game.modifyGameBet('slots', 'max')" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
                     </div>
-                    <button id="slot-spin-btn" onclick="window.game.spinSlots()" class="btn-gritty w-full sm:w-auto bg-red-600 hover:bg-red-500 border-red-900 text-white font-extrabold px-6 py-2.5 rounded-xl text-sm uppercase tracking-wider" data-i18n="slots_spin_btn">
+                    <button id="slot-spin-btn" onclick="window.game.spinSlots()" class="btn-gritty w-full bg-red-600 hover:bg-red-500 border-red-900 text-white font-extrabold px-6 py-3 rounded-xl text-sm uppercase tracking-wider" data-i18n="slots_spin_btn">
                         🎰 ZAKRĘĆ BĘBNAMI
                     </button>
                 </div>
@@ -944,19 +1029,22 @@
                         SUMA KOŚCI: 7
                     </div>
                     <div id="dice-status" class="mt-2 text-center font-extrabold text-sm sm:text-base text-amber-300" data-i18n="dice_prompt">
-                        WYBIERZ STAWKĘ I KLIKNIJ POLE, ABY RZUCIĆ
+                        WPISZ STAWKĘ (OD $0) I KLIKNIJ POLE, ABY RZUCIĆ
                     </div>
                 </div>
 
-                <!-- Wager Selector -->
-                <div class="flex items-center justify-between bg-zinc-900 px-4 py-2.5 rounded-xl border border-zinc-800">
-                    <span class="text-xs font-bold text-zinc-400 uppercase" data-i18n="wager_label">STAWKA:</span>
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="window.game.setDiceBet(50)" id="dice-bet-50" class="px-2.5 py-1 rounded text-xs font-extrabold bg-cyan-400 text-zinc-950">$50</button>
-                        <button onclick="window.game.setDiceBet(100)" id="dice-bet-100" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$100</button>
-                        <button onclick="window.game.setDiceBet(250)" id="dice-bet-250" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$250</button>
-                        <button onclick="window.game.setDiceBet(500)" id="dice-bet-500" class="px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300">$500</button>
+                <!-- Wager Selector ($0 Default + Input + $50 / +$150) -->
+                <div class="flex flex-wrap items-center justify-between gap-1.5 bg-zinc-900 px-3.5 py-2.5 rounded-xl border border-zinc-800">
+                    <span id="dice-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950 text-red-300 border border-red-700/60">MIN: $50</span>
+                    <div class="flex items-center bg-zinc-950 border border-cyan-500/50 rounded-lg px-2 py-1">
+                        <span class="text-cyan-400 font-extrabold text-xs mr-1">$</span>
+                        <input id="dice-bet-input" type="number" min="0" step="10" value="0" oninput="window.game.onCustomBetInput('dice', this.value)" class="w-20 bg-transparent text-cyan-300 font-extrabold text-sm focus:outline-none">
                     </div>
+                    <button onclick="window.game.modifyGameBet('dice', 'clear')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-300 text-xs font-bold px-2 py-1.5 rounded">$0</button>
+                    <button onclick="window.game.modifyGameBet('dice', 'min')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-cyan-300 text-xs font-bold px-2 py-1.5 rounded">MIN</button>
+                    <button onclick="window.game.modifyGameBet('dice', 50)" class="btn-gritty bg-emerald-900/80 hover:bg-emerald-800 border-emerald-950 text-emerald-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$50</button>
+                    <button onclick="window.game.modifyGameBet('dice', 150)" class="btn-gritty bg-amber-900/80 hover:bg-amber-800 border-amber-950 text-amber-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$150</button>
+                    <button onclick="window.game.modifyGameBet('dice', 'max')" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
                 </div>
 
                 <!-- 3 Beginner-Friendly Betting Buttons -->
@@ -980,6 +1068,116 @@
                         <span class="text-[11px] text-purple-200 font-bold">8 – 12</span>
                         <span class="mt-1 px-2 py-0.5 rounded bg-black/40 text-amber-300 text-xs font-extrabold">2.2x</span>
                         <span class="text-[10px] text-zinc-300">41.7%</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6C. NEW HIGH-RISK MINIGAME: SYNDICATE ROCKET CRASH ("RAKIETA // CRASH") -->
+        <div id="modal-crash" class="hidden w-full max-w-2xl bg-zinc-950 border-2 border-fuchsia-500 rounded-2xl shadow-[0_0_65px_rgba(217,70,239,0.35)] overflow-hidden">
+            <div class="bg-fuchsia-950 border-b border-fuchsia-700 px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">🚀</span>
+                    <div>
+                        <h2 class="text-fuchsia-200 font-bold tracking-wider text-sm sm:text-base uppercase">RAKIETA SYNDYKATU // CRASH</h2>
+                        <p id="crash-variant-sub" class="text-[11px] text-fuchsia-300/80">Im wyżej leci rakieta, tym większy mnożnik • Wypłać zanim eksploduje!</p>
+                    </div>
+                </div>
+                <button onclick="window.game.closeModals()" class="text-fuchsia-200 hover:text-white font-bold text-xs px-3 py-1.5 rounded bg-fuchsia-900/80 border border-fuchsia-600">
+                    ODEJDŹ [ESC]
+                </button>
+            </div>
+
+            <div class="p-5 sm:p-6 space-y-4">
+                <!-- Rocket Flight Telemetry Canvas -->
+                <div class="relative bg-zinc-900 border-2 border-fuchsia-500/50 rounded-2xl overflow-hidden h-56 flex items-center justify-center">
+                    <canvas id="crashCanvas" width="560" height="224" class="w-full h-full"></canvas>
+                    <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                        <div id="crash-mult-display" class="text-4xl sm:text-6xl font-extrabold text-white font-display drop-shadow-[0_0_20px_rgba(217,70,239,0.8)]">1.00x</div>
+                        <div id="crash-live-payout" class="text-xs sm:text-sm font-extrabold text-emerald-400 mt-1">DO WYPŁATY: $0</div>
+                    </div>
+                </div>
+
+                <!-- Bet Bar ($0 Default + Custom Input + $50 / +$150) -->
+                <div class="flex flex-wrap items-center justify-between gap-1.5 bg-zinc-900 px-3.5 py-2.5 rounded-xl border border-zinc-800">
+                    <span id="crash-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950 text-red-300 border border-red-700/60">MIN: $50</span>
+                    <div class="flex items-center bg-zinc-950 border border-fuchsia-500/50 rounded-lg px-2 py-1">
+                        <span class="text-fuchsia-400 font-extrabold text-xs mr-1">$</span>
+                        <input id="crash-bet-input" type="number" min="0" step="10" value="0" oninput="window.game.onCustomBetInput('crash', this.value)" class="w-20 bg-transparent text-fuchsia-300 font-extrabold text-sm focus:outline-none">
+                    </div>
+                    <button onclick="window.game.modifyGameBet('crash', 'clear')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-300 text-xs font-bold px-2 py-1.5 rounded">$0</button>
+                    <button onclick="window.game.modifyGameBet('crash', 'min')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-cyan-300 text-xs font-bold px-2 py-1.5 rounded">MIN</button>
+                    <button onclick="window.game.modifyGameBet('crash', 50)" class="btn-gritty bg-emerald-900/80 hover:bg-emerald-800 border-emerald-950 text-emerald-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$50</button>
+                    <button onclick="window.game.modifyGameBet('crash', 150)" class="btn-gritty bg-amber-900/80 hover:bg-amber-800 border-amber-950 text-amber-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$150</button>
+                    <button onclick="window.game.modifyGameBet('crash', 'max')" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
+                </div>
+
+                <!-- Launch & Cashout Buttons -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="crash-launch-btn" onclick="window.game.launchCrashRocket()" class="btn-gritty bg-fuchsia-600 hover:bg-fuchsia-500 border-fuchsia-900 text-white font-extrabold py-3.5 rounded-xl text-sm uppercase tracking-wider">
+                        🚀 WYSTRZEL RAKIETĘ
+                    </button>
+                    <button id="crash-cashout-btn" onclick="window.game.cashoutCrashRocket()" disabled class="btn-gritty bg-emerald-500 hover:bg-emerald-400 border-emerald-800 text-zinc-950 font-extrabold py-3.5 rounded-xl text-sm uppercase tracking-wider">
+                        💰 KATAPULTUJ / WYPŁAĆ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6D. NEW HIGH-RISK MINIGAME: SYNDICATE CYBER MINES ("POLE MINOWE // SAPER") -->
+        <div id="modal-mines" class="hidden w-full max-w-xl bg-zinc-950 border-2 border-lime-500 rounded-2xl shadow-[0_0_65px_rgba(132,204,22,0.3)] overflow-hidden">
+            <div class="bg-lime-950 border-b border-lime-700 px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">💣</span>
+                    <div>
+                        <h2 class="text-lime-300 font-bold tracking-wider text-sm sm:text-base uppercase">SAPER SYNDYKATU // POLE MINOWE</h2>
+                        <p id="mines-variant-sub" class="text-[11px] text-lime-200/80">Siatka 4x4 • Odkrywaj diamenty 💎 i wypłać łup zanim trafisz na bombę!</p>
+                    </div>
+                </div>
+                <button onclick="window.game.closeModals()" class="text-lime-200 hover:text-white font-bold text-xs px-3 py-1.5 rounded bg-lime-900/80 border border-lime-600">
+                    ODEJDŹ [ESC]
+                </button>
+            </div>
+
+            <div class="p-5 sm:p-6 space-y-4">
+                <div class="flex items-center justify-between bg-zinc-900 border border-zinc-800 px-4 py-2.5 rounded-xl">
+                    <div>
+                        <div class="text-[10px] text-zinc-400 uppercase font-bold">AKTUALNY MNOŻNIK</div>
+                        <div id="mines-mult-label" class="text-2xl font-extrabold text-lime-400">1.00x</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-zinc-400 uppercase font-bold">DO WYPŁATY</div>
+                        <div id="mines-payout-label" class="text-2xl font-extrabold text-amber-400">$0</div>
+                    </div>
+                </div>
+
+                <!-- 4x4 Mines Grid -->
+                <div id="mines-grid" class="grid grid-cols-4 gap-2.5 max-w-xs mx-auto"></div>
+
+                <div id="mines-status" class="text-center font-extrabold text-xs sm:text-sm text-amber-300">
+                    WPISZ STAWKĘ (OD $0) I ROZPOCZNIJ SAPERA
+                </div>
+
+                <!-- Bet Bar ($0 Default + Custom Input + $50 / +$150) -->
+                <div class="flex flex-wrap items-center justify-between gap-1.5 bg-zinc-900 px-3.5 py-2.5 rounded-xl border border-zinc-800">
+                    <span id="mines-min-badge" class="text-[10px] font-extrabold px-2 py-1 rounded bg-red-950 text-red-300 border border-red-700/60">MIN: $50</span>
+                    <div class="flex items-center bg-zinc-950 border border-lime-500/50 rounded-lg px-2 py-1">
+                        <span class="text-lime-400 font-extrabold text-xs mr-1">$</span>
+                        <input id="mines-bet-input" type="number" min="0" step="10" value="0" oninput="window.game.onCustomBetInput('mines', this.value)" class="w-20 bg-transparent text-lime-300 font-extrabold text-sm focus:outline-none">
+                    </div>
+                    <button onclick="window.game.modifyGameBet('mines', 'clear')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-300 text-xs font-bold px-2 py-1.5 rounded">$0</button>
+                    <button onclick="window.game.modifyGameBet('mines', 'min')" class="btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-cyan-300 text-xs font-bold px-2 py-1.5 rounded">MIN</button>
+                    <button onclick="window.game.modifyGameBet('mines', 50)" class="btn-gritty bg-emerald-900/80 hover:bg-emerald-800 border-emerald-950 text-emerald-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$50</button>
+                    <button onclick="window.game.modifyGameBet('mines', 150)" class="btn-gritty bg-amber-900/80 hover:bg-amber-800 border-amber-950 text-amber-200 text-xs font-extrabold px-2.5 py-1.5 rounded">+$150</button>
+                    <button onclick="window.game.modifyGameBet('mines', 'max')" class="btn-gritty bg-red-900/80 hover:bg-red-800 border-red-950 text-red-200 text-xs font-bold px-2 py-1.5 rounded">MAX</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="mines-start-btn" onclick="window.game.startCyberMines()" class="btn-gritty bg-lime-500 hover:bg-lime-400 border-lime-800 text-zinc-950 font-extrabold py-3 rounded-xl text-xs sm:text-sm uppercase tracking-wider">
+                        💣 UZBRÓJ POLE
+                    </button>
+                    <button id="mines-cashout-btn" onclick="window.game.cashoutCyberMines()" disabled class="btn-gritty bg-amber-500 hover:bg-amber-400 border-amber-800 text-zinc-950 font-extrabold py-3 rounded-xl text-xs sm:text-sm uppercase tracking-wider">
+                        💰 WYPŁAĆ ŁUP
                     </button>
                 </div>
             </div>
@@ -2588,6 +2786,20 @@
                     trail: []
                 };
 
+                // Overhead Smooth Delayed Follow Camera (Springs smoothly behind the player with a subtle delay)
+                this.camera = {
+                    x: 355,
+                    y: 235,
+                    vx: 0,
+                    vy: 0,
+                    zoom: 1.82
+                };
+
+                // Pre-baked Offscreen Floor Textures for Zero-Lag Room Rendering on Low-End PCs
+                this.cachedZoneFloors = {};
+                this.isLoadingScreen = false;
+                this.renderGameWorld = false;
+
                 this.animTime = 0;
                 this.footsteps = [];
                 this.rainSplashes = [];
@@ -2657,12 +2869,12 @@
                     speed: 350 + Math.random() * 200
                 }));
 
-                // Minigame States
+                // Minigame States (All bets start at $0 by default!)
                 this.bj = {
                     deck: [],
                     playerHand: [],
                     dealerHand: [],
-                    bet: 100,
+                    bet: 0,
                     inProgress: false,
                     peeked: false
                 };
@@ -2678,18 +2890,43 @@
                 };
 
                 this.slots = {
-                    bet: 50,
+                    bet: 0,
                     spinning: false,
                     symbols: ['🍒', '🔔', '💎', '7️⃣', '💀']
                 };
 
                 this.dice = {
-                    bet: 50,
+                    bet: 0,
                     rolling: false,
                     d1: 3,
                     d2: 4
                 };
 
+                this.crash = {
+                    bet: 0,
+                    active: false,
+                    crashed: false,
+                    cashedOut: false,
+                    mult: 1.00,
+                    crashPoint: 1.00,
+                    speed: 1.0,
+                    stars: Array.from({ length: 28 }, () => ({
+                        x: Math.random() * 560,
+                        y: Math.random() * 224,
+                        s: 1 + Math.random() * 2
+                    }))
+                };
+
+                this.mines = {
+                    bet: 0,
+                    active: false,
+                    grid: [],
+                    revealedCount: 0,
+                    mineCount: 3,
+                    mult: 1.00
+                };
+
+                this.activeCasinoSlots = [];
                 this.currentModifier = NIGHTLY_MODIFIERS[0];
                 this.currentChallenge = null;
 
@@ -2697,6 +2934,7 @@
                 this.initRouletteGrid();
                 this.assignNightlyModifier();
                 this.assignDailyChallenge();
+                this.randomizeNightlyCasinoFloor();
                 this.bindInputs();
                 this.bindGlobalUISounds();
                 this.resize();
@@ -2714,6 +2952,204 @@
 
                 this.lastFrameTime = performance.now();
                 requestAnimationFrame((ts) => this.loop(ts));
+            }
+
+            /**
+             * Returns the Nightly Minimum Bet (scales up every night: Night 1 = $50, Night 2 = $100, Night 3 = $150...)
+             */
+            getMinBet() {
+                return this.day * 50;
+            }
+
+            /**
+             * Universal bet input handler & button modifier ($0, MIN, +$50, +$150, MAX)
+             */
+            onCustomBetInput(gameKey, rawVal) {
+                if (this.isGameRoundActive(gameKey)) return;
+                const parsed = Math.max(0, Math.min(this.cash, Math.floor(Number(rawVal) || 0)));
+                this[gameKey].bet = parsed;
+                this.syncBetInputUI(gameKey);
+            }
+
+            modifyGameBet(gameKey, action) {
+                if (this.isGameRoundActive(gameKey)) return;
+                this.sfx.chip();
+                const minBet = this.getMinBet();
+                let current = this[gameKey].bet || 0;
+
+                if (action === 'clear') {
+                    current = 0;
+                } else if (action === 'min') {
+                    current = Math.min(this.cash, minBet);
+                } else if (action === 'max') {
+                    current = this.cash;
+                } else if (typeof action === 'number') {
+                    current = Math.min(this.cash, current + action);
+                }
+
+                this[gameKey].bet = Math.max(0, current);
+                this.syncBetInputUI(gameKey);
+            }
+
+            isGameRoundActive(gameKey) {
+                if (gameKey === 'bj') return this.bj.inProgress;
+                if (gameKey === 'slots') return this.slots.spinning;
+                if (gameKey === 'dice') return this.dice.rolling;
+                if (gameKey === 'crash') return this.crash.active;
+                if (gameKey === 'mines') return this.mines.active;
+                return false;
+            }
+
+            syncBetInputUI(gameKey) {
+                const minBet = this.getMinBet();
+                const inputEl = document.getElementById(`${gameKey}-bet-input`);
+                const badgeEl = document.getElementById(`${gameKey}-min-badge`);
+                if (inputEl && document.activeElement !== inputEl) {
+                    inputEl.value = this[gameKey].bet;
+                } else if (inputEl) {
+                    inputEl.value = this[gameKey].bet;
+                }
+                if (badgeEl) {
+                    badgeEl.textContent = `MIN NOC ${this.day}: $${minBet}`;
+                }
+            }
+
+            validateGameWager(gameKey) {
+                const minBet = this.getMinBet();
+                const bet = this[gameKey].bet || 0;
+                if (bet <= 0) {
+                    this.sfx.lose();
+                    this.showToast(`Wpisz stawkę lub kliknij +$50 / +$150! (Min. w Nocy ${this.day}: $${minBet})`, 'amber');
+                    return false;
+                }
+                if (bet < minBet && this.cash >= minBet) {
+                    this.sfx.lose();
+                    this.showToast(`Minimalny zakład w Nocy ${this.day} wynosi $${minBet}!`, 'red');
+                    return false;
+                }
+                if (bet > this.cash) {
+                    this.sfx.lose();
+                    this.showToast('Nie masz tyle gotówki!', 'red');
+                    return false;
+                }
+                return true;
+            }
+
+            /**
+             * Randomizes the 4 Casino Floor Stations & Game Variants every single night!
+             */
+            randomizeNightlyCasinoFloor() {
+                const allGames = [
+                    {
+                        type: 'crash',
+                        icon: '🚀',
+                        title: '🚀 RAKIETA // CRASH',
+                        color: '#e879f9',
+                        bg: '#4a044e',
+                        variants: ['WARIANT: ORBITA (DO 50x)', 'WARIANT: HIPER-NAPĘD (SZYBKI LOT)', 'WARIANT: KRWAWE PALIWO (+15% MNOŻNIKA)'],
+                        open: () => this.openCrashModal()
+                    },
+                    {
+                        type: 'mines',
+                        icon: '💣',
+                        title: '💣 SAPER SYNDYKATU',
+                        color: '#a3e635',
+                        bg: '#1a2e05',
+                        variants: ['WARIANT: 3 MINY (BEZPIECZNY)', 'WARIANT: 4 MINY (WYSOKIE WYPŁATY)', 'WARIANT: SKARBIEC (5 MIN / 2.5x SZYBCIEJ)'],
+                        open: () => this.openMinesModal()
+                    },
+                    {
+                        type: 'bj',
+                        icon: '♠',
+                        title: '♠ VIP BLACKJACK',
+                        color: '#6ee7b7',
+                        bg: '#022c22',
+                        variants: ['WARIANT: KLASYCZNY VIP', 'WARIANT: KRUPIER PASUJE NA 16+', 'WARIANT: ZŁOTY BLACKJACK (2.7x)'],
+                        open: () => this.openBlackjackModal()
+                    },
+                    {
+                        type: 'roul',
+                        icon: '🎡',
+                        title: '🎡 DIABELSKA RULETKA',
+                        color: '#fca5a5',
+                        bg: '#450a0a',
+                        variants: ['WARIANT: EUROPEJSKI (0-36)', 'WARIANT: GORĄCE NUMERY (40x)', 'WARIANT: KRWAWE KOŁO'],
+                        open: () => this.openRouletteModal()
+                    },
+                    {
+                        type: 'dice',
+                        icon: '🎲',
+                        title: '🎲 CYBER KOŚCI',
+                        color: '#67e8f9',
+                        bg: '#083344',
+                        variants: ['WARIANT: PONIŻEJ / POWYŻEJ 7', 'WARIANT: ZŁOTA SIÓDEMKA (5.0x)', 'WARIANT: SZYBKIE KOŚCI'],
+                        open: () => this.openDiceModal()
+                    },
+                    {
+                        type: 'slots',
+                        icon: '🎰',
+                        title: '🎰 AUTOMATY "TĘTNICA"',
+                        color: '#fde68a',
+                        bg: '#451a03',
+                        variants: ['WARIANT: TĘTNICA TURBO', 'WARIANT: DIAMENTOWA GORĄCZKA (10x)', 'WARIANT: JACKPOT 777 (18x)'],
+                        open: () => this.openSlotsModal()
+                    }
+                ];
+
+                // Shuffle pool randomly each night, always guaranteeing Rocket Crash & Cyber Mines appear frequently!
+                const shuffled = [...allGames];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                // Ensure Rocket Crash is always one of the 4 active tables so the player can always play it!
+                let selected = shuffled.slice(0, 4);
+                if (!selected.some(g => g.type === 'crash')) {
+                    selected[2] = allGames.find(g => g.type === 'crash');
+                }
+
+                // Assign random nightly variant per table
+                const tableBoxes = [
+                    { x: 185, y: 135, w: 180, h: 110 }, // Top-Left Pit
+                    { x: 635, y: 135, w: 190, h: 110 }, // Top-Right Pit
+                    { x: 425, y: 265, w: 155, h: 95 },  // Center Pit
+                    { x: 195, y: 385, w: 165, h: 85 }   // Bottom-Left Pit
+                ];
+
+                this.activeCasinoSlots = selected.map((game, idx) => {
+                    const variantIdx = (this.day + idx + Math.floor(Math.random() * game.variants.length)) % game.variants.length;
+                    return {
+                        ...game,
+                        variantIdx,
+                        variantText: game.variants[variantIdx],
+                        box: tableBoxes[idx]
+                    };
+                });
+
+                // Configure Mines difficulty based on rolled variant
+                const minesSlot = this.activeCasinoSlots.find(s => s.type === 'mines');
+                this.mines.mineCount = minesSlot ? (3 + (minesSlot.variantIdx % 3)) : 3;
+
+                // Configure Crash speed based on rolled variant
+                const crashSlot = this.activeCasinoSlots.find(s => s.type === 'crash');
+                this.crash.speed = crashSlot && crashSlot.variantIdx === 1 ? 1.45 : 1.0;
+
+                // Update Zone 2 Interactables dynamically
+                if (this.zones && this.zones[2]) {
+                    const streetDoor = this.zones[2].interactables[0];
+                    const bloodAtm = this.zones[2].interactables[this.zones[2].interactables.length - 1];
+                    this.zones[2].interactables = [
+                        streetDoor,
+                        ...this.activeCasinoSlots.map(slot => ({
+                            box: slot.box,
+                            edgeDist: 54,
+                            getPrompt: () => `${slot.title} — ${slot.variantText} (MIN: $${this.getMinBet()})`,
+                            action: () => slot.open()
+                        })),
+                        bloodAtm
+                    ];
+                }
             }
 
             enforceGameFocus() {
@@ -2752,6 +3188,8 @@
                     this.zone = targetZone;
                     this.player.x = targetX;
                     this.player.y = targetY;
+                    this.camera.x = targetX;
+                    this.camera.y = targetY;
                     this.footsteps = [];
                     this.player.trail = [];
                     this.syncZoneMusic();
@@ -2800,7 +3238,7 @@
                     // t = 50ms: Start 1-second Fade-In of "ZSAGAMES"
                     this.introTimers.push(setTimeout(() => {
                         logoBox.classList.add('intro-visible');
-                    }, 100));
+                    }, 50));
 
                     // Hold for 2 seconds after 1s fade-in -> at t = 3050ms start 1-second Fade-Out
                     this.introTimers.push(setTimeout(() => {
@@ -2812,12 +3250,12 @@
                         introOverlay.style.display = 'none';
                         introOverlay.classList.add('hidden');
                         menuOverlay.classList.add('menu-visible');
-                    }, 6150));
+                    }, 7150));
 
                     // At t = 5150ms: Intro complete, allow interaction
                     this.introTimers.push(setTimeout(() => {
                         this.introPlaying = false;
-                    }, 9150));
+                    }, 8150));
                 } else {
                     this.introPlaying = false;
                 }
@@ -3061,8 +3499,19 @@
 
             openMainMenu(withIntro = false) {
                 this.mainMenuOpen = true;
+                this.renderGameWorld = false;
                 this.keys = {};
                 this.sfx.updateRainSound(false);
+
+                const hudHeader = document.getElementById('main-hud-header');
+                if (hudHeader) hudHeader.classList.add('hidden');
+
+                // Clear game canvas so nothing is ever drawn behind the menu
+                if (this.ctx && this.canvas) {
+                    this.ctx.fillStyle = '#030407';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+
                 if (withIntro) {
                     this.playIntroSequence();
                     return;
@@ -3077,19 +3526,195 @@
                 this.sfx.playMusicForState('menu', true);
             }
 
-            closeMainMenu() {
-                if (this.introPlaying) return;
-                this.mainMenuOpen = false;
-                this.keys = {};
-                const overlay = document.getElementById('main-menu-overlay');
-                if (overlay) {
-                    overlay.classList.remove('menu-visible');
-                    overlay.classList.add('hidden');
-                    overlay.style.display = 'none';
+            /**
+             * Pre-bakes static floor geometry (wood planks, rugs, asphalt, carpet grids) into
+             * offscreen canvases so the main 60FPS loop blits a single texture instead ofhundreds of strokes.
+             */
+            prebakeZoneFloors() {
+                // 1. Safehouse Floor Cache
+                const c0 = document.createElement('canvas');
+                c0.width = 1000;
+                c0.height = 600;
+                const ctx0 = c0.getContext('2d');
+                const b0 = this.zones[0].bounds;
+
+                ctx0.fillStyle = '#020305';
+                ctx0.fillRect(b0.x - 18, b0.y - 18, b0.w + 36, b0.h + 36);
+                ctx0.fillStyle = '#10121a';
+                ctx0.fillRect(b0.x, b0.y, b0.w, b0.h);
+
+                ctx0.strokeStyle = '#181b26';
+                ctx0.lineWidth = 1.5;
+                for (let y = b0.y; y <= b0.y + b0.h; y += 28) {
+                    ctx0.beginPath();
+                    ctx0.moveTo(b0.x, y);
+                    ctx0.lineTo(b0.x + b0.w, y);
+                    ctx0.stroke();
+                    for (let x = b0.x + ((y * 3) % 90); x < b0.x + b0.w; x += 95) {
+                        ctx0.beginPath();
+                        ctx0.moveTo(x, y);
+                        ctx0.lineTo(x, Math.min(b0.y + b0.h, y + 28));
+                        ctx0.stroke();
+                    }
                 }
-                this.sfx.door();
-                this.syncZoneMusic();
-                this.enforceGameFocus();
+
+                ctx0.strokeStyle = 'rgba(0,0,0,0.65)';
+                ctx0.lineWidth = 16;
+                ctx0.strokeRect(b0.x + 8, b0.y + 8, b0.w - 16, b0.h - 16);
+
+                this.drawRoundedRect(ctx0, 370, 210, 230, 170, 8);
+                ctx0.fillStyle = '#1e131a';
+                ctx0.fill();
+                ctx0.strokeStyle = '#3b1d2e';
+                ctx0.lineWidth = 3;
+                ctx0.stroke();
+                ctx0.strokeStyle = '#4c1d3d';
+                ctx0.lineWidth = 1;
+                ctx0.strokeRect(380, 220, 210, 150);
+
+                this.cachedZoneFloors[0] = c0;
+
+                // 2. Casino Velvet Carpet Grid Cache
+                const c2 = document.createElement('canvas');
+                c2.width = 1000;
+                c2.height = 600;
+                const ctx2 = c2.getContext('2d');
+                const b2 = this.zones[2].bounds;
+
+                ctx2.fillStyle = '#14060b';
+                ctx2.fillRect(b2.x, b2.y, b2.w, b2.h);
+
+                ctx2.strokeStyle = '#280b15';
+                ctx2.lineWidth = 1.5;
+                for (let x = b2.x; x <= b2.x + b2.w; x += 48) {
+                    ctx2.beginPath(); ctx2.moveTo(x, b2.y); ctx2.lineTo(x, b2.y + b2.h); ctx2.stroke();
+                }
+                for (let y = b2.y; y <= b2.y + b2.h; y += 48) {
+                    ctx2.beginPath(); ctx2.moveTo(b2.x, y); ctx2.lineTo(b2.x + b2.w, y); ctx2.stroke();
+                }
+
+                ctx2.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+                ctx2.lineWidth = 3;
+                ctx2.beginPath();
+                ctx2.arc(502, 312, 115, 0, Math.PI * 2);
+                ctx2.stroke();
+
+                ctx2.strokeStyle = '#b45309';
+                ctx2.lineWidth = 8;
+                ctx2.strokeRect(b2.x, b2.y, b2.w, b2.h);
+                ctx2.strokeStyle = '#fbbf24';
+                ctx2.lineWidth = 2;
+                ctx2.strokeRect(b2.x + 4, b2.y + 4, b2.w - 8, b2.h - 8);
+
+                this.cachedZoneFloors[2] = c2;
+            }
+
+            /**
+             * Launches the Loading Screen with the bottom-right spinning $, pre-loads audio,
+             * pre-bakes textures, warms up all 3 zones to prevent stutter, waits 2.5s, and fades into the game.
+             */
+            closeMainMenu() {
+                if (this.introPlaying || this.isLoadingScreen) return;
+                this.isLoadingScreen = true;
+                this.keys = {};
+                this.sfx.uiClick();
+
+                const menuOverlay = document.getElementById('main-menu-overlay');
+                const loadOverlay = document.getElementById('loading-screen-overlay');
+                const stepText = document.getElementById('loading-step-text');
+                const subStatus = document.getElementById('loading-sub-status');
+                const pctText = document.getElementById('loading-pct-text');
+                const barFill = document.getElementById('loading-bar-fill');
+
+                if (menuOverlay) {
+                    menuOverlay.classList.remove('menu-visible');
+                    menuOverlay.classList.add('hidden');
+                    menuOverlay.style.display = 'none';
+                }
+
+                if (loadOverlay) {
+                    loadOverlay.classList.remove('hidden');
+                    loadOverlay.style.display = 'flex';
+                    void loadOverlay.offsetWidth;
+                    loadOverlay.style.opacity = '1';
+                }
+
+                const setProgress = (pct, mainMsg, subMsg) => {
+                    if (pctText) pctText.textContent = `${pct}%`;
+                    if (barFill) barFill.style.width = `${pct}%`;
+                    if (stepText && mainMsg) stepText.textContent = mainMsg;
+                    if (subStatus && subMsg) subStatus.textContent = subMsg;
+                };
+
+                // Stage 1: Audio Engine & .MP3 Pre-load
+                setProgress(20, 'Pre-load ścieżek audio (.MP3) i syntezatora...', 'BUFOROWANIE AUDIO');
+                this.sfx.init();
+                this.sfx.initRainLoop();
+                Object.values(this.sfx.audioDecks).forEach(deck => {
+                    if (deck && deck.preload !== 'auto') {
+                        deck.preload = 'auto';
+                    }
+                });
+
+                // Stage 2: Pre-bake Offscreen Zone Floor Textures
+                setTimeout(() => {
+                    setProgress(50, 'Generowanie tekstur podłóg i oświetlenia (Anti-Stutter)...', 'OPTYMALIZACJA GPU');
+                    this.prebakeZoneFloors();
+                }, 220);
+
+                // Stage 3: Warm up all 3 zones on an offscreen canvas so JIT & fonts never stutter mid-game
+                setTimeout(() => {
+                    setProgress(80, 'Wstępne renderowanie stref: Kryjówka, Ulica, Kasyno...', 'WARM-UP SILNIKA 2D');
+                    const savedZone = this.zone;
+                    const warmCanvas = document.createElement('canvas');
+                    warmCanvas.width = 400;
+                    warmCanvas.height = 240;
+                    const warmCtx = warmCanvas.getContext('2d');
+                    [0, 1, 2].forEach(zIdx => {
+                        this.zone = zIdx;
+                        if (zIdx === 0) this.drawSafehouse(warmCtx);
+                        else if (zIdx === 1) this.drawStreet(warmCtx);
+                        else if (zIdx === 2) this.drawCasino(warmCtx);
+                    });
+                    this.zone = savedZone;
+
+                    // Sync session camera & player state
+                    this.camera.x = this.player.x;
+                    this.camera.y = this.player.y;
+                    this.camera.vx = 0;
+                    this.camera.vy = 0;
+                }, 480);
+
+                // Stage 4: 100% Preload Complete -> Hold for ~2.3s delay as requested, then smooth fade out into game
+                setTimeout(() => {
+                    setProgress(100, 'Wszystkie zasoby gotowe. Uruchamianie sesji...', 'GOTOWE // 100%');
+                    this.mainMenuOpen = false;
+                    this.renderGameWorld = true;
+
+                    const hudHeader = document.getElementById('main-hud-header');
+                    if (hudHeader) hudHeader.classList.remove('hidden');
+
+                    // Start rendering the game underneath while the loading screen holds and fades out
+                    this.updateHUD();
+                }, 750);
+
+                // After 2.5 seconds of holding the spinning $ loading screen, smoothly fade out into the game
+                setTimeout(() => {
+                    this.sfx.door();
+                    this.syncZoneMusic();
+                    if (loadOverlay) {
+                        loadOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            loadOverlay.style.display = 'none';
+                            loadOverlay.classList.add('hidden');
+                            this.isLoadingScreen = false;
+                            this.enforceGameFocus();
+                        }, 950);
+                    } else {
+                        this.isLoadingScreen = false;
+                        this.enforceGameFocus();
+                    }
+                }, 3100);
             }
 
             returnToMainMenuFromPause() {
@@ -3586,6 +4211,14 @@
                 if (!force && this.activeModal === 'modal-roulette' && this.roul.spinning) {
                     return;
                 }
+                if (!force && this.activeModal === 'modal-crash' && this.crash.active) {
+                    this.showToast('Rakieta jest w locie! Katapultuj się przed odejściem!', 'red');
+                    return;
+                }
+                if (!force && this.activeModal === 'modal-mines' && this.mines.active && this.mines.revealedCount > 0) {
+                    this.showToast('Wypłać łup z pola minowego przed odejściem!', 'amber');
+                    return;
+                }
                 const backdrop = document.getElementById('modal-backdrop');
                 if (backdrop) {
                     backdrop.classList.add('hidden');
@@ -3598,6 +4231,7 @@
                     document.activeElement.blur();
                 }
                 this.updateHUD();
+                this.enforceGameFocus();
             }
 
             openGuideModal() {
@@ -3691,7 +4325,7 @@
 
             /**
              * ============================================================================
-             * MINIGAME 1: VIP BLACKJACK (WITH BEGINNER COACH & 0-21 METER)
+             * MINIGAME 1: VIP BLACKJACK (WITH BEGINNER COACH & $0 DEFAULT BET)
              * ============================================================================
              */
             openBlackjackModal() {
@@ -3699,8 +4333,10 @@
                 this.bj.inProgress = false;
                 this.bj.playerHand = [];
                 this.bj.dealerHand = [];
-                this.bj.bet = Math.min(Math.max(50, this.bj.bet), Math.max(50, this.cash));
-                document.getElementById('bj-Banner').textContent = 'POSTAW ZAKŁAD I ROZDAJ KARTY';
+                // Always start bet at $0 as requested!
+                this.bj.bet = 0;
+                this.syncBetInputUI('bj');
+                document.getElementById('bj-Banner').textContent = `WPISZ STAWKĘ (MIN. $${this.getMinBet()}) I KLIKNIJ ROZDAJ`;
                 this.renderBlackjackUI();
                 this.openModal('modal-blackjack');
             }
@@ -3708,27 +4344,6 @@
             toggleBjHelp() {
                 const drawer = document.getElementById('bj-help-drawer');
                 if (drawer) drawer.classList.toggle('hidden');
-            }
-
-            adjustBjBet(delta) {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, Math.min(this.cash, this.bj.bet + delta));
-                this.sfx.chip();
-                this.renderBlackjackUI();
-            }
-
-            setBjBetHalf() {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, Math.floor(this.cash / 2 / 50) * 50 || 50);
-                this.sfx.chip();
-                this.renderBlackjackUI();
-            }
-
-            setBjBetMax() {
-                if (this.bj.inProgress) return;
-                this.bj.bet = Math.max(50, this.cash);
-                this.sfx.chip();
-                this.renderBlackjackUI();
             }
 
             createDeck() {
@@ -3766,12 +4381,8 @@
 
             startBlackjackHand() {
                 if (this.bj.inProgress) return;
-                if (this.cash < 50) {
-                    this.sfx.lose();
-                    this.showToast('Za mało gotówki! Użyj Bankomatu Krwi!', 'red');
-                    return;
-                }
-                this.bj.bet = Math.min(this.bj.bet, this.cash);
+                if (!this.validateGameWager('bj')) return;
+
                 this.cash -= this.bj.bet;
                 this.bj.deck = this.createDeck();
                 this.bj.playerHand = [this.bj.deck.pop(), this.bj.deck.pop()];
@@ -3887,7 +4498,7 @@
             }
 
             renderBlackjackUI() {
-                document.getElementById('bj-current-bet').textContent = `$${this.bj.bet}`;
+                this.syncBetInputUI('bj');
                 const pContainer = document.getElementById('bj-player-cards');
                 const dContainer = document.getElementById('bj-dealer-cards');
                 pContainer.innerHTML = '';
@@ -3994,26 +4605,42 @@
 
             /**
              * ============================================================================
-             * MINIGAME 2: DEVIL'S WHEEL EUROPEAN ROULETTE
+             * MINIGAME 2: DEVIL'S WHEEL EUROPEAN ROULETTE ($0 START + NIGHTLY MIN BET)
              * ============================================================================
              */
             openRouletteModal() {
                 this.sfx.chip();
+                // Always start table bets at $0 when opening!
+                let refund = 0;
+                for (const k in this.roul.bets) refund += this.roul.bets[k];
+                if (refund > 0) this.cash += refund;
+                this.roul.bets = {};
+
+                const minBadge = document.getElementById('roul-min-badge');
+                if (minBadge) minBadge.textContent = `MIN NOC ${this.day}: $${this.getMinBet()}`;
+
+                const roulSlot = this.activeCasinoSlots.find(s => s.type === 'roul');
+                const subEl = document.getElementById('roul-variant-sub');
+                if (subEl && roulSlot) subEl.textContent = `${roulSlot.variantText} • Minimalna suma zakładów: $${this.getMinBet()}`;
+
                 this.updateRoulBetTags();
                 this.drawRouletteWheel();
+                this.updateHUD();
                 this.openModal('modal-roulette');
             }
 
             setRoulChip(val) {
                 if (this.roul.spinning) return;
-                this.roul.chip = val;
-                this.sfx.chip();
-                [50, 100, 250, 500].forEach(c => {
+                const parsed = Math.max(10, Math.floor(Number(val) || 50));
+                this.roul.chip = parsed;
+                const inp = document.getElementById('roul-chip-input');
+                if (inp && document.activeElement !== inp) inp.value = parsed;
+                [50, 150, 500].forEach(c => {
                     const btn = document.getElementById(`chip-${c}`);
                     if (btn) {
-                        btn.className = c === val
-                            ? 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-amber-400 bg-amber-500 text-zinc-950'
-                            : 'roul-chip-btn px-2.5 py-1 rounded-full text-xs font-extrabold border-2 border-zinc-700 bg-zinc-800 text-zinc-200';
+                        btn.className = c === parsed
+                            ? 'roul-chip-btn px-2.5 py-1 rounded-lg text-xs font-extrabold border border-amber-400 bg-amber-500 text-zinc-950'
+                            : 'roul-chip-btn px-2.5 py-1 rounded-lg text-xs font-extrabold border border-zinc-700 bg-zinc-800 text-zinc-200';
                     }
                 });
             }
@@ -4124,8 +4751,15 @@
                 if (this.roul.spinning) return;
                 let totalBet = 0;
                 for (const k in this.roul.bets) totalBet += this.roul.bets[k];
+                const minBet = this.getMinBet();
                 if (totalBet <= 0) {
-                    this.showToast('Postaw najpierw przynajmniej jeden żeton!', 'amber');
+                    this.sfx.lose();
+                    this.showToast(`Postaw żetony na stole! (Min. w Nocy ${this.day}: $${minBet})`, 'amber');
+                    return;
+                }
+                if (totalBet < minBet && (this.cash + totalBet) >= minBet) {
+                    this.sfx.lose();
+                    this.showToast(`Minimalna suma zakładów w Nocy ${this.day} to $${minBet}! (Obecnie: $${totalBet})`, 'red');
                     return;
                 }
 
@@ -4135,6 +4769,8 @@
                 const redNums = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
                 const startTime = performance.now();
                 const duration = 1750;
+                const roulSlot = this.activeCasinoSlots.find(s => s.type === 'roul');
+                const singleMult = (roulSlot && roulSlot.variantIdx === 1) ? 40 : 36;
 
                 const animateSpin = (now) => {
                     const t = Math.min(1, (now - startTime) / duration);
@@ -4164,7 +4800,7 @@
                             else if (k === 'DOZ1' && winningNum >= 1 && winningNum <= 12) rawWin += amt * 3;
                             else if (k === 'DOZ2' && winningNum >= 13 && winningNum <= 24) rawWin += amt * 3;
                             else if (k === 'DOZ3' && winningNum >= 25 && winningNum <= 36) rawWin += amt * 3;
-                            else if (k === `NUM_${winningNum}`) rawWin += amt * 36;
+                            else if (k === `NUM_${winningNum}`) rawWin += amt * singleMult;
                         }
 
                         const banner = document.getElementById('roul-result-banner');
@@ -4191,35 +4827,23 @@
 
             /**
              * ============================================================================
-             * MINIGAME 3: "THE ARTERY" BLOOD SLOTS
+             * MINIGAME 3: "THE ARTERY" BLOOD SLOTS ($0 DEFAULT BET)
              * ============================================================================
              */
             openSlotsModal() {
                 this.sfx.chip();
+                this.slots.bet = 0;
+                this.syncBetInputUI('slots');
+                const slotCfg = this.activeCasinoSlots.find(s => s.type === 'slots');
+                const subEl = document.getElementById('slots-variant-sub');
+                if (subEl && slotCfg) subEl.textContent = `${slotCfg.variantText} • Minimalny zakład: $${this.getMinBet()}`;
                 this.openModal('modal-slots');
-            }
-
-            setSlotBet(val) {
-                if (this.slots.spinning) return;
-                this.slots.bet = val;
-                this.sfx.chip();
-                [50, 100, 250, 500].forEach(b => {
-                    const btn = document.getElementById(`slot-bet-${b}`);
-                    if (btn) {
-                        btn.className = b === val
-                            ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-amber-500 text-zinc-950'
-                            : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
-                    }
-                });
             }
 
             spinSlots() {
                 if (this.slots.spinning) return;
-                if (this.cash < this.slots.bet) {
-                    this.sfx.lose();
-                    this.showToast('Brak gotówki na ten obrót!', 'red');
-                    return;
-                }
+                if (!this.validateGameWager('slots')) return;
+
                 this.cash -= this.slots.bet;
                 this.slots.spinning = true;
                 this.updateHUD();
@@ -4235,6 +4859,7 @@
                     return pool[Math.floor(Math.random() * pool.length)];
                 };
 
+                const slotCfg = this.activeCasinoSlots.find(s => s.type === 'slots');
                 const results = [pickWeighted(), pickWeighted(), pickWeighted()];
                 setTimeout(() => {
                     reels.forEach((r, idx) => {
@@ -4247,8 +4872,8 @@
                     const [a, b, c] = results;
                     let mult = 0;
                     if (a === b && b === c) {
-                        if (a === '7️⃣') mult = 15;
-                        else if (a === '💎') mult = 8;
+                        if (a === '7️⃣') mult = (slotCfg && slotCfg.variantIdx === 2) ? 18 : 15;
+                        else if (a === '💎') mult = (slotCfg && slotCfg.variantIdx === 1) ? 10 : 8;
                         else if (a === '🔔') mult = 5;
                         else if (a === '🍒') mult = 3.5;
                     } else if ((a === b && a !== '💀') || (b === c && b !== '💀') || (a === c && a !== '💀')) {
@@ -4272,35 +4897,20 @@
 
             /**
              * ============================================================================
-             * MINIGAME 4: OVER / UNDER 7 CYBER DICE
+             * MINIGAME 4: OVER / UNDER 7 CYBER DICE ($0 DEFAULT BET)
              * ============================================================================
              */
             openDiceModal() {
                 this.sfx.chip();
+                this.dice.bet = 0;
+                this.syncBetInputUI('dice');
                 this.openModal('modal-dice');
-            }
-
-            setDiceBet(val) {
-                if (this.dice.rolling) return;
-                this.dice.bet = val;
-                this.sfx.chip();
-                [50, 100, 250, 500].forEach(b => {
-                    const btn = document.getElementById(`dice-bet-${b}`);
-                    if (btn) {
-                        btn.className = b === val
-                            ? 'px-2.5 py-1 rounded text-xs font-extrabold bg-cyan-400 text-zinc-950'
-                            : 'px-2.5 py-1 rounded text-xs font-extrabold bg-zinc-800 text-zinc-300';
-                    }
-                });
             }
 
             rollCyberDice(choice) {
                 if (this.dice.rolling) return;
-                if (this.cash < this.dice.bet) {
-                    this.sfx.lose();
-                    this.showToast('Brak gotówki na ten rzut!', 'red');
-                    return;
-                }
+                if (!this.validateGameWager('dice')) return;
+
                 this.cash -= this.dice.bet;
                 this.dice.rolling = true;
                 this.updateHUD();
@@ -4314,6 +4924,8 @@
                 const d1 = 1 + Math.floor(Math.random() * 6);
                 const d2 = 1 + Math.floor(Math.random() * 6);
                 const sum = d1 + d2;
+                const diceSlot = this.activeCasinoSlots.find(s => s.type === 'dice');
+                const sevenMult = (diceSlot && diceSlot.variantIdx === 1) ? 5.0 : 4.5;
 
                 setTimeout(() => {
                     b1.classList.remove('dice-rolling');
@@ -4325,7 +4937,7 @@
 
                     let mult = 0;
                     if (choice === 'UNDER' && sum < 7) mult = 2.2;
-                    else if (choice === 'SEVEN' && sum === 7) mult = 4.5;
+                    else if (choice === 'SEVEN' && sum === 7) mult = sevenMult;
                     else if (choice === 'OVER' && sum > 7) mult = 2.2;
 
                     const st = document.getElementById('dice-status');
@@ -4341,6 +4953,340 @@
                     }
                     this.updateHUD();
                 }, 420);
+            }
+
+            /**
+             * ============================================================================
+             * MINIGAME 5: SYNDICATE ROCKET CRASH ("RAKIETA // CRASH")
+             * ============================================================================
+             */
+            openCrashModal() {
+                this.sfx.chip();
+                this.crash.bet = 0;
+                this.crash.active = false;
+                this.crash.crashed = false;
+                this.crash.cashedOut = false;
+                this.crash.mult = 1.00;
+                this.syncBetInputUI('crash');
+
+                const crashSlot = this.activeCasinoSlots.find(s => s.type === 'crash');
+                const subEl = document.getElementById('crash-variant-sub');
+                if (subEl && crashSlot) {
+                    subEl.textContent = `${crashSlot.variantText} • Minimalny zakład: $${this.getMinBet()}`;
+                }
+
+                this.updateCrashUI();
+                this.renderCrashCanvas();
+                this.openModal('modal-crash');
+            }
+
+            launchCrashRocket() {
+                if (this.crash.active) return;
+                if (!this.validateGameWager('crash')) return;
+
+                this.cash -= this.crash.bet;
+                this.crash.active = true;
+                this.crash.crashed = false;
+                this.crash.cashedOut = false;
+                this.crash.mult = 1.00;
+
+                // Generate random crash point (can crash early at 1.05x–1.35x or fly high up to 15x–40x!)
+                const r = Math.random();
+                if (r < 0.14) {
+                    this.crash.crashPoint = 1.02 + Math.random() * 0.22; // Instant/early danger crash
+                } else {
+                    this.crash.crashPoint = Math.min(50, +(0.96 / (1 - Math.random() * 0.96)).toFixed(2));
+                    this.crash.crashPoint = Math.max(1.12, this.crash.crashPoint);
+                }
+
+                this.sfx.playTone(180, 'sawtooth', 0.25, 0.08, 420);
+                this.updateHUD();
+                this.updateCrashUI();
+            }
+
+            cashoutCrashRocket() {
+                if (!this.crash.active || this.crash.crashed || this.crash.cashedOut) return;
+                this.crash.cashedOut = true;
+                this.crash.active = false;
+
+                const crashSlot = this.activeCasinoSlots.find(s => s.type === 'crash');
+                const varBoost = (crashSlot && crashSlot.variantIdx === 2) ? 1.15 : 1.0;
+                const payout = this.recordWinPayout(this.crash.bet, this.crash.mult * varBoost);
+
+                this.sfx.jackpot();
+                this.showToast(`🚀 KATAPULTA PRZY ${this.crash.mult.toFixed(2)}x! +$${payout.toLocaleString()}`, 'emerald');
+                if (payout - this.crash.bet >= 400) this.advanceChallenge('big_payout', 1);
+
+                this.updateHUD();
+                this.updateCrashUI();
+                this.renderCrashCanvas();
+            }
+
+            updateCrashGame(dt) {
+                if (!this.crash.active) return;
+                // Exponential climb rate
+                const growthRate = (0.36 + Math.pow(this.crash.mult - 0.99, 0.72) * 0.48) * (this.crash.speed || 1.0);
+                this.crash.mult += growthRate * dt;
+
+                if (this.crash.mult >= this.crash.crashPoint) {
+                    this.crash.mult = this.crash.crashPoint;
+                    this.crash.active = false;
+                    this.crash.crashed = true;
+                    this.sfx.lose();
+                    this.sfx.blood();
+                    this.updateCrashUI();
+                } else {
+                    this.updateCrashUI();
+                }
+                this.renderCrashCanvas();
+            }
+
+            updateCrashUI() {
+                const multEl = document.getElementById('crash-mult-display');
+                const payEl = document.getElementById('crash-live-payout');
+                const launchBtn = document.getElementById('crash-launch-btn');
+                const cashBtn = document.getElementById('crash-cashout-btn');
+
+                if (!multEl || !payEl) return;
+
+                if (this.crash.crashed) {
+                    multEl.textContent = `💥 CRASH @ ${this.crash.mult.toFixed(2)}x`;
+                    multEl.className = 'text-3xl sm:text-5xl font-extrabold text-red-500 font-display drop-shadow-[0_0_25px_rgba(239,68,68,0.9)]';
+                    payEl.textContent = `RAKIETA EKSPLODOWAŁA (-$${this.crash.bet})`;
+                    payEl.className = 'text-xs sm:text-sm font-extrabold text-red-400 mt-1';
+                } else if (this.crash.cashedOut) {
+                    multEl.textContent = `✓ ${this.crash.mult.toFixed(2)}x`;
+                    multEl.className = 'text-4xl sm:text-6xl font-extrabold text-emerald-400 font-display';
+                    const est = Math.round(this.crash.bet * this.crash.mult);
+                    payEl.textContent = `WYPŁACONO BEZPIECZNIE: +$${est.toLocaleString()}`;
+                    payEl.className = 'text-xs sm:text-sm font-extrabold text-emerald-300 mt-1';
+                } else if (this.crash.active) {
+                    multEl.textContent = `${this.crash.mult.toFixed(2)}x`;
+                    multEl.className = 'text-4xl sm:text-6xl font-extrabold text-fuchsia-300 font-display drop-shadow-[0_0_20px_rgba(217,70,239,0.85)]';
+                    const liveWin = Math.round(this.crash.bet * this.crash.mult);
+                    payEl.textContent = `DO WYPŁATY TERAZ: $${liveWin.toLocaleString()}`;
+                    payEl.className = 'text-xs sm:text-sm font-extrabold text-emerald-400 mt-1';
+                } else {
+                    multEl.textContent = '1.00x';
+                    multEl.className = 'text-4xl sm:text-6xl font-extrabold text-white font-display';
+                    payEl.textContent = `USTAW STAWKĘ (MIN. $${this.getMinBet()}) I WYSTRZEL`;
+                    payEl.className = 'text-xs sm:text-sm font-extrabold text-zinc-400 mt-1';
+                }
+
+                if (launchBtn) launchBtn.disabled = this.crash.active;
+                if (cashBtn) cashBtn.disabled = !this.crash.active;
+            }
+
+            renderCrashCanvas() {
+                const c = document.getElementById('crashCanvas');
+                if (!c) return;
+                const ctx = c.getContext('2d');
+                const w = c.width;
+                const h = c.height;
+                ctx.clearRect(0, 0, w, h);
+
+                // Space Grid & Starfield
+                ctx.strokeStyle = 'rgba(217, 70, 239, 0.12)';
+                ctx.lineWidth = 1;
+                for (let x = 40; x < w; x += 65) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+                }
+                for (let y = 35; y < h; y += 45) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                }
+
+                ctx.fillStyle = 'rgba(248, 250, 252, 0.55)';
+                for (const st of this.crash.stars) {
+                    if (this.crash.active) {
+                        st.x -= 45 * 0.016;
+                        st.y += 22 * 0.016;
+                        if (st.x < 0) st.x = w;
+                        if (st.y > h) st.y = 0;
+                    }
+                    ctx.fillRect(st.x, st.y, st.s, st.s);
+                }
+
+                // Trajectory Curve & Rocket Position
+                const progress = Math.min(1, Math.log10(Math.max(1, this.crash.mult)) / 1.15);
+                const startX = 42;
+                const startY = h - 28;
+                const rx = startX + progress * (w - 110);
+                const ry = startY - Math.pow(progress, 1.35) * (h - 68);
+
+                // Glowing flight path curve
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.quadraticCurveTo(startX + (rx - startX) * 0.55, startY, rx, ry);
+                ctx.strokeStyle = this.crash.crashed ? '#ef4444' : '#e879f9';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Rocket or Explosion at (rx, ry)
+                ctx.save();
+                ctx.translate(rx, ry);
+                if (this.crash.crashed) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.rotate(-0.55 - progress * 0.35);
+                    if (this.crash.active) {
+                        // Thruster flame
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.beginPath();
+                        ctx.moveTo(-14, -4);
+                        ctx.lineTo(-26 - Math.random() * 10, 0);
+                        ctx.lineTo(-14, 4);
+                        ctx.fill();
+                    }
+                    // Rocket fuselage
+                    this.drawRoundedRect(ctx, -12, -6, 24, 12, 5);
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.fill();
+                    ctx.strokeStyle = '#d946ef';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    // Cockpit window
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(4, 0, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            /**
+             * ============================================================================
+             * MINIGAME 6: SYNDICATE CYBER MINES ("SAPER SYNDYKATU // POLE MINOWE")
+             * ============================================================================
+             */
+            openMinesModal() {
+                this.sfx.chip();
+                this.mines.bet = 0;
+                this.mines.active = false;
+                this.mines.revealedCount = 0;
+                this.mines.mult = 1.00;
+                this.syncBetInputUI('mines');
+
+                const minesSlot = this.activeCasinoSlots.find(s => s.type === 'mines');
+                const subEl = document.getElementById('mines-variant-sub');
+                if (subEl && minesSlot) {
+                    subEl.textContent = `${minesSlot.variantText} (${this.mines.mineCount}💣 / ${16 - this.mines.mineCount}💎) • Min. zakład: $${this.getMinBet()}`;
+                }
+
+                this.initEmptyMinesGrid();
+                this.renderMinesUI();
+                this.openModal('modal-mines');
+            }
+
+            initEmptyMinesGrid() {
+                this.mines.grid = Array.from({ length: 16 }, () => ({
+                    isMine: false,
+                    revealed: false
+                }));
+            }
+
+            startCyberMines() {
+                if (this.mines.active) return;
+                if (!this.validateGameWager('mines')) return;
+
+                this.cash -= this.mines.bet;
+                this.mines.active = true;
+                this.mines.revealedCount = 0;
+                this.mines.mult = 1.00;
+
+                // Place mines randomly on 4x4 board
+                this.initEmptyMinesGrid();
+                let placed = 0;
+                while (placed < this.mines.mineCount) {
+                    const idx = Math.floor(Math.random() * 16);
+                    if (!this.mines.grid[idx].isMine) {
+                        this.mines.grid[idx].isMine = true;
+                        placed++;
+                    }
+                }
+
+                this.sfx.chip();
+                document.getElementById('mines-status').textContent = 'KLIKAJ KAFELKI, ABY SZUKAĆ DIAMENTÓW 💎!';
+                this.updateHUD();
+                this.renderMinesUI();
+            }
+
+            clickMineTile(idx) {
+                if (!this.mines.active) return;
+                const cell = this.mines.grid[idx];
+                if (!cell || cell.revealed) return;
+
+                cell.revealed = true;
+                if (cell.isMine) {
+                    // BOOM! Reveal all mines
+                    this.mines.active = false;
+                    this.mines.grid.forEach(c => { if (c.isMine) c.revealed = true; });
+                    this.sfx.lose();
+                    this.sfx.blood();
+                    document.getElementById('mines-status').textContent = `💥 EKSPLOZJA MINY! PRZEGRANA -$${this.mines.bet}`;
+                    this.renderMinesUI();
+                } else {
+                    this.mines.revealedCount++;
+                    const stepFactor = 1.18 + (this.mines.mineCount * 0.05);
+                    this.mines.mult = +(Math.pow(stepFactor, this.mines.revealedCount)).toFixed(2);
+                    this.sfx.win();
+                    document.getElementById('mines-status').textContent = `💎 CZYSTO! MNOŻNIK: ${this.mines.mult.toFixed(2)}x — WYPŁAĆ LUB RYZYKUJ DALEJ!`;
+                    this.renderMinesUI();
+
+                    // Auto cashout if all safe tiles cleared
+                    if (this.mines.revealedCount >= 16 - this.mines.mineCount) {
+                        this.cashoutCyberMines();
+                    }
+                }
+            }
+
+            cashoutCyberMines() {
+                if (!this.mines.active || this.mines.revealedCount <= 0) return;
+                this.mines.active = false;
+                const payout = this.recordWinPayout(this.mines.bet, this.mines.mult);
+                this.sfx.jackpot();
+                document.getElementById('mines-status').textContent = `💰 WYPŁACONO ŁUP: +$${payout.toLocaleString()} (${this.mines.mult.toFixed(2)}x)!`;
+                this.showToast(`💎 Saper: Wypłacono +$${payout.toLocaleString()}!`, 'emerald');
+                if (payout - this.mines.bet >= 400) this.advanceChallenge('big_payout', 1);
+                this.updateHUD();
+                this.renderMinesUI();
+            }
+
+            renderMinesUI() {
+                this.syncBetInputUI('mines');
+                document.getElementById('mines-mult-label').textContent = `${this.mines.mult.toFixed(2)}x`;
+                const livePay = this.mines.active ? Math.round(this.mines.bet * this.mines.mult) : 0;
+                document.getElementById('mines-payout-label').textContent = `$${livePay.toLocaleString()}`;
+
+                document.getElementById('mines-start-btn').disabled = this.mines.active;
+                document.getElementById('mines-cashout-btn').disabled = !(this.mines.active && this.mines.revealedCount > 0);
+
+                const gridEl = document.getElementById('mines-grid');
+                if (!gridEl) return;
+                gridEl.innerHTML = '';
+
+                this.mines.grid.forEach((cell, idx) => {
+                    const btn = document.createElement('button');
+                    if (!cell.revealed) {
+                        btn.className = 'btn-gritty h-14 bg-zinc-900 hover:bg-zinc-800 border-2 border-zinc-700 rounded-xl flex items-center justify-center text-lg font-extrabold text-zinc-400';
+                        btn.textContent = '?';
+                        btn.disabled = !this.mines.active;
+                        btn.onclick = () => this.clickMineTile(idx);
+                    } else if (cell.isMine) {
+                        btn.className = 'h-14 bg-red-950 border-2 border-red-500 rounded-xl flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(239,68,68,0.6)]';
+                        btn.textContent = '💣';
+                    } else {
+                        btn.className = 'h-14 bg-emerald-950 border-2 border-lime-400 rounded-xl flex items-center justify-center text-2xl shadow-[0_0_12px_rgba(163,230,53,0.4)]';
+                        btn.textContent = '💎';
+                    }
+                    gridEl.appendChild(btn);
+                });
             }
 
             /**
@@ -4462,6 +5408,7 @@
 
                 this.assignNightlyModifier();
                 this.assignDailyChallenge();
+                this.randomizeNightlyCasinoFloor();
 
                 const extraRelic = this.relics.has('adrenaline_shot') ? 45 : 0;
                 const extraMod = this.currentModifier.extraTime || 0;
@@ -4472,12 +5419,14 @@
                 this.player.y = 235;
                 this.player.vx = 0;
                 this.player.vy = 0;
+                this.camera.x = 355;
+                this.camera.y = 235;
 
                 this.closeModals(true);
                 this.syncZoneMusic();
                 this.updateHUD();
                 this.sfx.win();
-                this.showToast(`☀ ${this.t('day_word')} ${this.day} — Nowa Kwota: $${this.quota.toLocaleString()}`, 'emerald');
+                this.showToast(`☀ ${this.t('day_word')} ${this.day} — Min. zakład: $${this.getMinBet()} | Kwota: $${this.quota.toLocaleString()}`, 'emerald');
             }
 
             triggerGameOver(reason) {
@@ -4505,8 +5454,11 @@
                 this.player.y = 235;
                 this.player.vx = 0;
                 this.player.vy = 0;
+                this.camera.x = 355;
+                this.camera.y = 235;
                 this.assignNightlyModifier();
                 this.assignDailyChallenge();
+                this.randomizeNightlyCasinoFloor();
                 this.closeModals(true);
                 this.syncZoneMusic();
                 this.updateHUD();
@@ -4560,6 +5512,10 @@
                 this.animTime += dt;
                 this.unstuckPlayer();
                 if (this.mainMenuOpen) return;
+
+                if (this.activeModal === 'modal-crash' && this.crash.active) {
+                    this.updateCrashGame(dt);
+                }
 
                 const isTimerPausedModal = (
                     this.activeModal === 'modal-pause' ||
@@ -4789,6 +5745,22 @@
                 } else {
                     promptEl.classList.add('hidden');
                 }
+
+                // Smooth Delayed Overhead Camera Follow (Glides smoothly behind the player with a natural delay)
+                const lookAheadX = Math.cos(this.player.facing) * 18 * this.player.moveAmount;
+                const lookAheadY = Math.sin(this.player.facing) * 18 * this.player.moveAmount;
+                const targetCamX = this.player.x + lookAheadX;
+                const targetCamY = this.player.y + lookAheadY;
+
+                const springStrength = 14.0;
+                const springDamping = 6.2;
+                const ax = (targetCamX - this.camera.x) * springStrength - this.camera.vx * springDamping;
+                const ay = (targetCamY - this.camera.y) * springStrength - this.camera.vy * springDamping;
+
+                this.camera.vx += ax * dt;
+                this.camera.vy += ay * dt;
+                this.camera.x += this.camera.vx * dt;
+                this.camera.y += this.camera.vy * dt;
             }
 
             updateHUD() {
@@ -4878,16 +5850,17 @@
                 const ch = this.canvas.height;
 
                 // Deep depressed noir void background
-                ctx.fillStyle = '#040508';
+                ctx.fillStyle = '#030407';
                 ctx.fillRect(0, 0, cw, ch);
 
-                const scale = Math.min(cw / 1040, ch / 640);
-                const offsetX = (cw - 1000 * scale) / 2;
-                const offsetY = (ch - 600 * scale) / 2 + 18;
+                // Overhead Follow Camera Transform (Zoomed in on the player so the whole room isn't visible at once)
+                const baseScale = Math.min(cw / 1000, ch / 600);
+                const camScale = baseScale * this.camera.zoom;
 
                 ctx.save();
-                ctx.translate(offsetX, offsetY);
-                ctx.scale(scale, scale);
+                ctx.translate(cw / 2, ch / 2);
+                ctx.scale(camScale, camScale);
+                ctx.translate(-this.camera.x, -this.camera.y);
 
                 if (this.zone === 0) this.drawSafehouse(ctx);
                 else if (this.zone === 1) this.drawStreet(ctx);
@@ -4928,10 +5901,8 @@
                     this.drawRain(ctx);
                 }
 
-                // Depressed Noir Darkness & Directional Flashlight Vignette
-                if (this.settings.glows && !this.settings.lowEndMode) {
-                    this.drawNoirLightingOverlay(ctx);
-                }
+                // Tight Claustrophobic Noir Fog-of-War & Flashlight Vignette around Player
+                this.drawNoirLightingOverlay(ctx);
 
                 ctx.restore();
             }
@@ -5014,47 +5985,15 @@
             drawSafehouse(ctx) {
                 const b = this.zones[0].bounds;
 
-                // Outer wall drop shadow
-                ctx.fillStyle = '#020305';
-                ctx.fillRect(b.x - 18, b.y - 18, b.w + 36, b.h + 36);
-
-                // Cold, decayed floorboards base
-                ctx.fillStyle = '#10121a';
-                ctx.fillRect(b.x, b.y, b.w, b.h);
-
-                // Wooden plank lines & seams
-                ctx.strokeStyle = '#181b26';
-                ctx.lineWidth = 1.5;
-                for (let y = b.y; y <= b.y + b.h; y += 28) {
-                    ctx.beginPath();
-                    ctx.moveTo(b.x, y);
-                    ctx.lineTo(b.x + b.w, y);
-                    ctx.stroke();
-                    for (let x = b.x + ((y * 3) % 90); x < b.x + b.w; x += 95) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x, Math.min(b.y + b.h, y + 28));
-                        ctx.stroke();
-                    }
+                // Use pre-baked floor texture if available for zero-stutter performance
+                if (this.cachedZoneFloors && this.cachedZoneFloors[0]) {
+                    ctx.drawImage(this.cachedZoneFloors[0], 0, 0);
+                } else {
+                    ctx.fillStyle = '#020305';
+                    ctx.fillRect(b.x - 18, b.y - 18, b.w + 36, b.h + 36);
+                    ctx.fillStyle = '#10121a';
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
                 }
-
-                // Interior Wall Shadow Border
-                ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-                ctx.lineWidth = 16;
-                ctx.strokeRect(b.x + 8, b.y + 8, b.w - 16, b.h - 16);
-
-                // Worn, dirty rug in the middle of the room
-                ctx.save();
-                this.drawRoundedRect(ctx, 370, 210, 230, 170, 8);
-                ctx.fillStyle = '#1e131a';
-                ctx.fill();
-                ctx.strokeStyle = '#3b1d2e';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.strokeStyle = '#4c1d3d';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(380, 220, 210, 150);
-                ctx.restore();
 
                 // Grime / dried blood stain near the door & bed
                 ctx.fillStyle = 'rgba(127, 29, 29, 0.22)';
@@ -5527,36 +6466,16 @@
             drawCasino(ctx) {
                 const b = this.zones[2].bounds;
 
-                // Deep Velvet Void Floor
-                ctx.fillStyle = '#14060b';
-                ctx.fillRect(b.x, b.y, b.w, b.h);
-
-                // Ornate Diamond Carpet Pattern
-                ctx.strokeStyle = '#280b15';
-                ctx.lineWidth = 1.5;
-                for (let x = b.x; x <= b.x + b.w; x += 48) {
-                    ctx.beginPath(); ctx.moveTo(x, b.y); ctx.lineTo(x, b.y + b.h); ctx.stroke();
+                // Use pre-baked velvet carpet grid texture if available for maximum FPS
+                if (this.cachedZoneFloors && this.cachedZoneFloors[2]) {
+                    ctx.drawImage(this.cachedZoneFloors[2], 0, 0);
+                } else {
+                    ctx.fillStyle = '#14060b';
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.strokeStyle = '#b45309';
+                    ctx.lineWidth = 8;
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
                 }
-                for (let y = b.y; y <= b.y + b.h; y += 48) {
-                    ctx.beginPath(); ctx.moveTo(b.x, y); ctx.lineTo(b.x + b.w, y); ctx.stroke();
-                }
-
-                // Gold Carpet Center Medallion under the Cyber Dice Pit
-                ctx.save();
-                ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(502, 312, 115, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-
-                // Neon Perimeter Wall Tubes
-                ctx.strokeStyle = '#b45309';
-                ctx.lineWidth = 8;
-                ctx.strokeRect(b.x, b.y, b.w, b.h);
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(b.x + 4, b.y + 4, b.w - 8, b.h - 8);
 
                 // West Street Exit Carpet & Door
                 this.drawNeonGlow(ctx, 80, 310, 95, '#f59e0b', 0.25);
@@ -5564,171 +6483,83 @@
                 ctx.fillRect(63, 265, 12, 90);
                 this.drawPropBadge(ctx, 140, 248, this.t('canvas_exit_street'), '#fde68a', '#451a03');
 
-                // --- STATION 1: VIP BLACKJACK PIT (185, 135, 180, 110) ---
-                const standVal = this.currentModifier.dealerStand || 17;
-                this.drawNeonGlow(ctx, 275, 190, 145, '#10b981', 0.26);
-                ctx.save();
-                // Stools around Blackjack Table
-                [210, 255, 295, 340].forEach(sx => {
-                    ctx.fillStyle = '#064e3b';
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath();
-                    ctx.arc(sx, 254, 9, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                });
-                // Table Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                this.drawRoundedRect(ctx, 191, 142, 182, 112, 28);
-                ctx.fill();
-                // Mahogany Rim
-                this.drawRoundedRect(ctx, 185, 135, 180, 110, 28);
-                ctx.fillStyle = '#3b180e';
-                ctx.fill();
-                ctx.strokeStyle = '#10b981';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                // Emerald Green Felt Inner Surface
-                this.drawRoundedRect(ctx, 197, 147, 156, 86, 20);
-                ctx.fillStyle = '#065f46';
-                ctx.fill();
-                // Betting Boxes & Dealer Chip Tray
-                ctx.fillStyle = '#09090b';
-                ctx.fillRect(245, 150, 60, 12);
-                ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
-                ctx.lineWidth = 1.5;
-                [220, 258, 296, 332].forEach(bx => {
-                    ctx.strokeRect(bx - 10, 208, 20, 16);
-                });
-                // Miniature cards on felt
-                ctx.fillStyle = '#f8fafc';
-                ctx.fillRect(253, 182, 12, 17);
-                ctx.fillRect(268, 184, 12, 17);
-                ctx.restore();
-                this.drawPropBadge(ctx, 275, 118, '♠ VIP BLACKJACK', '#6ee7b7', '#022c22');
+                // --- RENDER RANDOMIZED NIGHTLY CASINO STATIONS (4 DYNAMIC SLOTS) ---
+                this.activeCasinoSlots.forEach(slot => {
+                    const bx = slot.box.x;
+                    const by = slot.box.y;
+                    const bw = slot.box.w;
+                    const bh = slot.box.h;
+                    const cx = bx + bw / 2;
+                    const cy = by + bh / 2;
 
-                // --- STATION 2: DEVIL'S ROULETTE TABLE (635, 135, 190, 110) ---
-                this.drawNeonGlow(ctx, 730, 190, 150, '#ef4444', 0.26);
-                ctx.save();
-                // Stools
-                [665, 710, 755, 800].forEach(sx => {
-                    ctx.fillStyle = '#7f1d1d';
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath();
-                    ctx.arc(sx, 254, 9, 0, Math.PI * 2);
+                    this.drawNeonGlow(ctx, cx, cy, 135, slot.color, 0.25);
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+                    this.drawRoundedRect(ctx, bx + 5, by + 7, bw, bh, 18);
                     ctx.fill();
+
+                    this.drawRoundedRect(ctx, bx, by, bw, bh, 18);
+                    ctx.fillStyle = slot.bg;
+                    ctx.fill();
+                    ctx.strokeStyle = slot.color;
+                    ctx.lineWidth = 3;
                     ctx.stroke();
-                });
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                this.drawRoundedRect(ctx, 641, 142, 192, 112, 16);
-                ctx.fill();
-                // Table Base
-                this.drawRoundedRect(ctx, 635, 135, 190, 110, 16);
-                ctx.fillStyle = '#450a0a';
-                ctx.fill();
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                // Inner Felt
-                this.drawRoundedRect(ctx, 646, 146, 168, 88, 10);
-                ctx.fillStyle = '#1f2937';
-                ctx.fill();
-                // Animated Miniature Roulette Wheel on the left side of the table
-                const wheelX = 682;
-                const wheelY = 190;
-                ctx.beginPath();
-                ctx.arc(wheelX, wheelY, 27, 0, Math.PI * 2);
-                ctx.fillStyle = '#18181b';
-                ctx.fill();
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                // Rotating rotor crossbars
-                ctx.save();
-                ctx.translate(wheelX, wheelY);
-                ctx.rotate(this.animTime * 2.2);
-                for (let i = 0; i < 8; i++) {
-                    ctx.rotate(Math.PI / 4);
-                    ctx.fillStyle = i % 2 === 0 ? '#dc2626' : '#f8fafc';
-                    ctx.fillRect(6, -3, 16, 6);
-                }
-                ctx.restore();
-                // Roulette Betting Grid on right side of table
-                for (let gx = 720; gx < 800; gx += 16) {
-                    for (let gy = 160; gy < 215; gy += 18) {
-                        ctx.fillStyle = ((gx + gy) % 2 === 0) ? '#dc2626' : '#111827';
-                        ctx.fillRect(gx, gy, 14, 15);
+
+                    // Inner table felt / terminal screen
+                    this.drawRoundedRect(ctx, bx + 10, by + 10, bw - 20, bh - 20, 12);
+                    ctx.fillStyle = '#090b10';
+                    ctx.fill();
+
+                    if (slot.type === 'crash') {
+                        // Rocket Launchpad Table graphics
+                        ctx.strokeStyle = '#e879f9';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(bx + 22, by + bh - 22);
+                        ctx.quadraticCurveTo(cx, by + bh - 24, bx + bw - 24, by + 22);
+                        ctx.stroke();
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.beginPath();
+                        ctx.arc(bx + bw - 26, by + 24, 6 + Math.sin(this.animTime * 8) * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (slot.type === 'mines') {
+                        // 4x4 Mines Grid graphics on table
+                        for (let gx = 0; gx < 4; gx++) {
+                            for (let gy = 0; gy < 3; gy++) {
+                                ctx.fillStyle = ((gx + gy) % 2 === 0) ? '#365314' : '#1a2e05';
+                                ctx.fillRect(cx - 42 + gx * 22, cy - 24 + gy * 17, 18, 13);
+                            }
+                        }
+                    } else if (slot.type === 'roul') {
+                        ctx.save();
+                        ctx.translate(cx - 28, cy);
+                        ctx.rotate(this.animTime * 2.2);
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else if (slot.type === 'bj') {
+                        ctx.fillStyle = '#065f46';
+                        ctx.fillRect(bx + 14, by + 14, bw - 28, bh - 28);
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.fillRect(cx - 14, cy - 8, 11, 16);
+                        ctx.fillRect(cx + 2, cy - 6, 11, 16);
+                    } else if (slot.type === 'dice') {
+                        ctx.fillStyle = '#cffafe';
+                        ctx.fillRect(cx - 18, cy - 8, 15, 15);
+                        ctx.fillRect(cx + 4, cy - 4, 15, 15);
+                    } else if (slot.type === 'slots') {
+                        [bx + 22, cx - 16, bx + bw - 54].forEach((mx, idx) => {
+                            ctx.fillStyle = '#fde68a';
+                            ctx.fillRect(mx, cy - 14, 32, 24);
+                        });
                     }
-                }
-                ctx.restore();
-                this.drawPropBadge(ctx, 730, 118, '🎡 RULETKA', '#fca5a5', '#450a0a');
 
-                // --- STATION 3: CYBER DICE PIT (425, 265, 155, 95) ---
-                this.drawNeonGlow(ctx, 502, 312, 130, '#06b6d4', 0.28);
-                ctx.save();
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                this.drawRoundedRect(ctx, 431, 272, 157, 97, 22);
-                ctx.fill();
-                this.drawRoundedRect(ctx, 425, 265, 155, 95, 22);
-                ctx.fillStyle = '#083344';
-                ctx.fill();
-                ctx.strokeStyle = '#22d3ee';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                // Inner Neon Craps Tub
-                this.drawRoundedRect(ctx, 437, 277, 131, 71, 14);
-                ctx.fillStyle = '#0e7490';
-                ctx.fill();
-                // 2 Glowing Cyber Dice in center
-                this.drawRoundedRect(ctx, 478, 298, 20, 20, 4);
-                ctx.fillStyle = '#cffafe';
-                ctx.fill();
-                this.drawRoundedRect(ctx, 506, 304, 20, 20, 4);
-                ctx.fill();
-                ctx.fillStyle = '#083344';
-                ctx.beginPath();
-                ctx.arc(488, 308, 2.5, 0, Math.PI * 2);
-                ctx.arc(512, 310, 2.5, 0, Math.PI * 2);
-                ctx.arc(520, 318, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-                this.drawPropBadge(ctx, 502, 248, '🎲 CYBER KOŚCI', '#67e8f9', '#083344');
-
-                // --- STATION 4: "THE ARTERY" BLOOD SLOTS (195, 385, 165, 85) ---
-                this.drawNeonGlow(ctx, 277, 427, 135, '#f59e0b', 0.25);
-                ctx.save();
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                ctx.fillRect(201, 392, 167, 87);
-                // Base platform
-                this.drawRoundedRect(ctx, 195, 385, 165, 85, 10);
-                ctx.fillStyle = '#271206';
-                ctx.fill();
-                ctx.strokeStyle = '#f59e0b';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                // 3 Individual Slot Machine Cabinets
-                [205, 255, 305].forEach((mx, idx) => {
-                    this.drawRoundedRect(ctx, mx, 392, 44, 68, 6);
-                    ctx.fillStyle = '#451a03';
-                    ctx.fill();
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    // Glowing Reel Screen
-                    const flash = Math.sin(this.animTime * 6 + idx * 2) > 0;
-                    ctx.fillStyle = flash ? '#fef08a' : '#fde68a';
-                    ctx.fillRect(mx + 6, 402, 32, 24);
-                    // Red Lever on side
-                    ctx.fillStyle = '#ef4444';
-                    ctx.beginPath();
-                    ctx.arc(mx + 46, 415, 3.5, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.restore();
+                    this.drawPropBadge(ctx, cx, by - 14, slot.title, slot.color, slot.bg, `${slot.variantText} • MIN $${this.getMinBet()}`);
                 });
-                ctx.restore();
-                this.drawPropBadge(ctx, 277, 368, '🎰 AUTOMATY', '#fde68a', '#451a03');
 
                 // --- STATION 5: USURY BLOOD ATM (655, 385, 145, 80) ---
                 const atmActive = !this.bloodPumpedThisNight;
@@ -6047,18 +6878,18 @@
             }
 
             /**
-             * Atmospheric Noir Vignette & Mood Overlay
+             * Atmospheric Noir Vignette & Claustrophobic Fog-of-War centered on the Player
              */
             drawNoirLightingOverlay(ctx) {
                 ctx.save();
                 const p = this.player;
-                // Subtle darkness vignette centered on the player so the world feels moody & oppressive
-                const grad = ctx.createRadialGradient(p.x, p.y, 90, p.x, p.y, 580);
+                const grad = ctx.createRadialGradient(p.x, p.y, 75, p.x, p.y, 310);
                 grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                grad.addColorStop(0.65, 'rgba(4, 6, 12, 0.25)');
-                grad.addColorStop(1, 'rgba(2, 3, 8, 0.58)');
+                grad.addColorStop(0.55, 'rgba(3, 5, 10, 0.48)');
+                grad.addColorStop(0.85, 'rgba(2, 3, 7, 0.88)');
+                grad.addColorStop(1, 'rgba(1, 2, 5, 0.97)');
                 ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, 1000, 600);
+                ctx.fillRect(p.x - 1000, p.y - 1000, 2000, 2000);
                 ctx.restore();
             }
 
@@ -6104,10 +6935,14 @@
                 if (this.mainMenuOpen) {
                     this.animTime += dt;
                     this.updateAndRenderMenuCash(dt);
+                    requestAnimationFrame((ts) => this.loop(ts));
+                    return;
                 }
 
                 this.update(dt);
-                this.render();
+                if (this.renderGameWorld) {
+                    this.render();
+                }
                 requestAnimationFrame((ts) => this.loop(ts));
             }
         }
