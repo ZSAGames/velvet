@@ -27,172 +27,212 @@ thickness: 11 + Math.floor(Math.random() * 10)
 };
 },
 drawMenuNeonNoirSkyline(ctx, w, h) {
-// 1. Nocne niebo i neonowa łuna nad horyzontem
+// 1. Głębokie, przygaszone niebo Noir (ciemny indygo/grafit — łagodne dla oczu)
 const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
 skyGrad.addColorStop(0, '#020306');
-skyGrad.addColorStop(0.52, '#070913');
-skyGrad.addColorStop(0.82, '#13091c');
-skyGrad.addColorStop(1, '#05060a');
+skyGrad.addColorStop(0.45, '#050811');
+skyGrad.addColorStop(0.78, '#0b101d');
+skyGrad.addColorStop(1, '#040509');
 ctx.fillStyle = skyGrad;
 ctx.fillRect(0, 0, w, h);
 
-// 2. Szperacze (searchlights) przecinające nocne niebo
-ctx.save();
-for (let s = 0; s < 3; s++) {
-const sx = w * (0.18 + s * 0.32);
-const sy = h * 0.88;
-const swing = Math.sin(this.animTime * (0.45 + s * 0.18) + s * 2.1) * 0.42;
-const ang = -Math.PI / 2 + swing;
-const len = Math.max(w, h) * 0.95;
-const beamGrad = ctx.createLinearGradient(sx, sy, sx + Math.cos(ang) * len, sy + Math.sin(ang) * len);
-const col = s === 0 ? 'rgba(34, 211, 238, 0.08)' : (s === 1 ? 'rgba(236, 72, 153, 0.08)' : 'rgba(245, 158, 11, 0.08)');
-beamGrad.addColorStop(0, col);
-beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = beamGrad;
+// 2. Blady księżyc za ciężkimi chmurami smogu
+const moonX = w * 0.78;
+const moonY = h * 0.18;
+const moonGlow = ctx.createRadialGradient(moonX, moonY, 4, moonX, moonY, Math.min(w, h) * 0.22);
+moonGlow.addColorStop(0, 'rgba(203, 213, 225, 0.16)');
+moonGlow.addColorStop(0.35, 'rgba(100, 116, 139, 0.06)');
+moonGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = moonGlow;
+ctx.fillRect(0, 0, w, h);
+
+// Powolne pasma ciemnych chmur smogu
+for (let c = 0; c < 4; c++) {
+const cx = ((w * 0.25 * c + this.animTime * (6 + c * 2)) % (w + 320)) - 160;
+const cy = h * (0.12 + c * 0.07);
+const cwCloud = 260 + c * 55;
+const chCloud = 26 + c * 8;
+ctx.fillStyle = 'rgba(9, 13, 24, 0.55)';
 ctx.beginPath();
-ctx.moveTo(sx - 12, sy);
-ctx.lineTo(sx + Math.cos(ang - 0.09) * len, sy + Math.sin(ang - 0.09) * len);
-ctx.lineTo(sx + Math.cos(ang + 0.09) * len, sy + Math.sin(ang + 0.09) * len);
-ctx.lineTo(sx + 12, sy);
-ctx.closePath();
+ctx.ellipse(cx, cy, cwCloud * 0.5, chCloud * 0.5, 0, 0, Math.PI * 2);
 ctx.fill();
 }
-ctx.restore();
 
-// 3. Poświaty neonowe po bokach i w centrum horyzontu
-const leftGlow = ctx.createRadialGradient(w * 0.15, h * 0.62, 20, w * 0.15, h * 0.62, w * 0.34);
-leftGlow.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
-leftGlow.addColorStop(0.6, 'rgba(6, 182, 212, 0.08)');
-leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = leftGlow;
+// 3. Bardzo delikatna, przytłumiona łuna miejskiego smogu nad horyzontem
+const leftHaze = ctx.createRadialGradient(w * 0.18, h * 0.68, 20, w * 0.18, h * 0.68, w * 0.36);
+leftHaze.addColorStop(0, 'rgba(14, 116, 144, 0.09)');
+leftHaze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = leftHaze;
 ctx.fillRect(0, 0, w, h);
 
-const rightGlow = ctx.createRadialGradient(w * 0.85, h * 0.62, 20, w * 0.85, h * 0.62, w * 0.34);
-rightGlow.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
-rightGlow.addColorStop(0.6, 'rgba(239, 68, 68, 0.08)');
-rightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = rightGlow;
+const rightHaze = ctx.createRadialGradient(w * 0.82, h * 0.68, 20, w * 0.82, h * 0.68, w * 0.36);
+rightHaze.addColorStop(0, 'rgba(153, 27, 27, 0.09)');
+rightHaze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = rightHaze;
 ctx.fillRect(0, 0, w, h);
 
-// 4. Dalszy plan wieżowców (tło)
-const backBuildings = [
-{ xf: 0.00, wf: 0.09, hf: 0.44, col: '#070a12', neon: '#06b6d4' },
-{ xf: 0.08, wf: 0.08, hf: 0.56, col: '#080b14', neon: '#ec4899' },
-{ xf: 0.15, wf: 0.09, hf: 0.48, col: '#070a12', neon: '#f59e0b' },
-{ xf: 0.23, wf: 0.08, hf: 0.39, col: '#060911', neon: '#a855f7' },
-{ xf: 0.69, wf: 0.09, hf: 0.42, col: '#060911', neon: '#22d3ee' },
-{ xf: 0.77, wf: 0.08, hf: 0.58, col: '#080b14', neon: '#ef4444' },
-{ xf: 0.84, wf: 0.09, hf: 0.50, col: '#070a12', neon: '#f59e0b' },
-{ xf: 0.92, wf: 0.09, hf: 0.45, col: '#070a12', neon: '#10b981' }
+// 4. Dalekie monolityczne megabloki korporacji (sylwetki w głębi)
+const farTowers = [
+{ xf: 0.02, wf: 0.10, hf: 0.58 },
+{ xf: 0.11, wf: 0.09, hf: 0.68 },
+{ xf: 0.19, wf: 0.08, hf: 0.52 },
+{ xf: 0.28, wf: 0.11, hf: 0.44 },
+{ xf: 0.61, wf: 0.11, hf: 0.46 },
+{ xf: 0.71, wf: 0.09, hf: 0.64 },
+{ xf: 0.79, wf: 0.10, hf: 0.71 },
+{ xf: 0.88, wf: 0.11, hf: 0.56 }
 ];
-backBuildings.forEach((b, idx) => {
-const bx = Math.floor(b.xf * w);
-const bw = Math.ceil(b.wf * w);
-const bh = Math.floor(b.hf * h);
-const by = h - bh;
-ctx.fillStyle = b.col;
-ctx.fillRect(bx, by, bw, bh);
-ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
+farTowers.forEach((t, idx) => {
+const tx = Math.floor(t.xf * w);
+const tw = Math.ceil(t.wf * w);
+const th = Math.floor(t.hf * h);
+const ty = h - th;
+ctx.fillStyle = '#04060c';
+ctx.fillRect(tx, ty, tw, th);
+ctx.strokeStyle = 'rgba(30, 41, 59, 0.28)';
 ctx.lineWidth = 1;
-ctx.strokeRect(bx, by, bw, bh);
-// Iglica na dachu
-const spireX = bx + bw * 0.5;
-ctx.strokeStyle = '#1e293b';
-ctx.lineWidth = 1.5;
+ctx.strokeRect(tx, ty, tw, th);
+
+// Pionowe pasy przygaszonych świateł w dalekich wieżowcach
+ctx.fillStyle = idx % 2 === 0 ? 'rgba(56, 189, 248, 0.07)' : 'rgba(217, 119, 6, 0.07)';
+ctx.fillRect(tx + tw * 0.3, ty + 18, 2, th - 36);
+ctx.fillRect(tx + tw * 0.68, ty + 28, 2, th - 46);
+
+// Antena dachowa z powolnym czerwonym światłem ostrzegawczym
+const ax = tx + tw * 0.5;
+ctx.strokeStyle = '#0f172a';
+ctx.lineWidth = 1.2;
 ctx.beginPath();
-ctx.moveTo(spireX, by);
-ctx.lineTo(spireX, by - 26);
+ctx.moveTo(ax, ty);
+ctx.lineTo(ax, ty - 28);
 ctx.stroke();
-if (Math.sin(this.animTime * 4 + idx * 1.7) > -0.2) {
-ctx.fillStyle = '#ef4444';
+const beaconAlpha = 0.2 + 0.45 * (0.5 + 0.5 * Math.sin(this.animTime * 1.4 + idx * 1.9));
+ctx.fillStyle = `rgba(220, 38, 38, ${beaconAlpha.toFixed(2)})`;
 ctx.beginPath();
-ctx.arc(spireX, by - 26, 2.2, 0, Math.PI * 2);
+ctx.arc(ax, ty - 28, 2, 0, Math.PI * 2);
 ctx.fill();
-}
 });
 
-// 5. Pierwszy plan wieżowców Neon Noir ze świecącymi oknami i szyldami
-const frontBuildings = [
-{ xf: -0.01, wf: 0.075, hf: 0.36, neon: '#22d3ee', sign: 'SYNDICATE' },
-{ xf: 0.06,  wf: 0.085, hf: 0.49, neon: '#ec4899', sign: 'VELVET PIT' },
-{ xf: 0.14,  wf: 0.075, hf: 0.38, neon: '#f59e0b', sign: 'CASINO 777' },
-{ xf: 0.21,  wf: 0.070, hf: 0.30, neon: '#10b981', sign: '' },
-{ xf: 0.275, wf: 0.070, hf: 0.24, neon: '#a855f7', sign: '' },
-{ xf: 0.655, wf: 0.070, hf: 0.25, neon: '#38bdf8', sign: '' },
-{ xf: 0.72,  wf: 0.075, hf: 0.32, neon: '#f43f5e', sign: '' },
-{ xf: 0.79,  wf: 0.085, hf: 0.48, neon: '#f59e0b', sign: 'BLACKWATER' },
-{ xf: 0.87,  wf: 0.075, hf: 0.40, neon: '#10b981', sign: 'LICHWA 24H' },
-{ xf: 0.94,  wf: 0.075, hf: 0.34, neon: '#c084fc', sign: 'VIP CLUB' }
+// 5. Estakada / wiadukt kolejki w oddali z powoli jadącymi światłami aut
+const bridgeY = Math.floor(h * 0.74);
+ctx.fillStyle = '#03050a';
+ctx.fillRect(0, bridgeY, w, 7);
+for (let px = 40; px < w; px += 110) {
+ctx.fillRect(px, bridgeY + 7, 8, h - bridgeY);
+}
+for (let c = 0; c < 5; c++) {
+const dir = c % 2 === 0 ? 1 : -1;
+const speed = 28 + c * 9;
+const carX = dir > 0
+? ((this.animTime * speed + c * 210) % (w + 80)) - 40
+: w + 40 - ((this.animTime * speed + c * 210) % (w + 80));
+const carY = dir > 0 ? bridgeY - 2 : bridgeY + 1;
+ctx.fillStyle = dir > 0 ? 'rgba(220, 38, 38, 0.42)' : 'rgba(251, 191, 36, 0.35)';
+ctx.fillRect(carX, carY, 12, 2.5);
+}
+
+// 6. Pierwszy plan: ponure kamienice i bloki Neon Noir (stonowane okna i szyldy)
+const frontBlocks = [
+{ xf: -0.01, wf: 0.085, hf: 0.38, tint: 'rgba(34, 211, 238, 0.25)', sign: 'SYN-CORP' },
+{ xf: 0.07,  wf: 0.090, hf: 0.48, tint: 'rgba(244, 63, 94, 0.24)',  sign: 'HOTEL NOIR' },
+{ xf: 0.155, wf: 0.080, hf: 0.36, tint: 'rgba(217, 119, 6, 0.24)',  sign: 'PAWN 24H' },
+{ xf: 0.23,  wf: 0.075, hf: 0.27, tint: 'rgba(16, 185, 129, 0.20)', sign: '' },
+{ xf: 0.695, wf: 0.075, hf: 0.28, tint: 'rgba(56, 189, 248, 0.20)', sign: '' },
+{ xf: 0.765, wf: 0.085, hf: 0.39, tint: 'rgba(217, 119, 6, 0.24)',  sign: 'BLACKWATER' },
+{ xf: 0.845, wf: 0.090, hf: 0.50, tint: 'rgba(225, 29, 72, 0.25)',  sign: 'VELVET PIT' },
+{ xf: 0.93,  wf: 0.085, hf: 0.37, tint: 'rgba(168, 85, 247, 0.22)', sign: 'CLINIC' }
 ];
 
-frontBuildings.forEach((b, bIdx) => {
+frontBlocks.forEach((b, bIdx) => {
 const bx = Math.floor(b.xf * w);
 const bw = Math.ceil(b.wf * w);
 const bh = Math.floor(b.hf * h);
 const by = h - bh;
 
-// Bryła budynku
-ctx.fillStyle = '#05070d';
+// Ciemna bryła budynku
+ctx.fillStyle = '#030509';
 ctx.fillRect(bx, by, bw, bh);
-
-// Świecąca neonowa krawędź dachu i obrys
-ctx.strokeStyle = b.neon;
-ctx.globalAlpha = 0.45 + 0.15 * Math.sin(this.animTime * 2.5 + bIdx);
-ctx.lineWidth = 1.6;
+ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+ctx.lineWidth = 1;
 ctx.strokeRect(bx, by, bw, bh);
-ctx.globalAlpha = 1;
 
-// Neonowy szyld na dachu wybranych wieżowców
-if (b.sign && bw >= 48) {
-const pulse = Math.sin(this.animTime * 6 + bIdx * 2.3) > -0.85 ? 1 : 0.25;
+// Klimatyzatory i gzymsy na fasadzie
+for (let gy = by + 28; gy < h - 30; gy += 42) {
+ctx.fillStyle = '#070a12';
+ctx.fillRect(bx + 2, gy, bw - 4, 2);
+}
+
+// Przygaszony szyld neonowy (bez ostrego mrugania!)
+if (b.sign && bw >= 52) {
+const slowBreath = 0.32 + 0.12 * Math.sin(this.animTime * 1.2 + bIdx * 1.7);
 ctx.save();
-ctx.globalAlpha = pulse;
-const signW = Math.min(bw - 6, 86);
-const signH = 15;
+ctx.globalAlpha = slowBreath;
+const signW = Math.min(bw - 8, 84);
+const signH = 14;
 const sx = bx + (bw - signW) * 0.5;
-const sy = by - signH - 4;
-ctx.fillStyle = '#04050a';
+const sy = by - signH - 3;
+ctx.fillStyle = '#030408';
 ctx.fillRect(sx, sy, signW, signH);
-ctx.strokeStyle = b.neon;
-ctx.lineWidth = 1.4;
+ctx.strokeStyle = b.tint;
+ctx.lineWidth = 1;
 ctx.strokeRect(sx, sy, signW, signH);
-ctx.fillStyle = b.neon;
-ctx.font = '800 8.5px "JetBrains Mono", monospace';
+ctx.fillStyle = '#cbd5e1';
+ctx.font = '700 8px "JetBrains Mono", monospace';
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
 ctx.fillText(b.sign, sx + signW * 0.5, sy + signH * 0.5, signW - 4);
 ctx.restore();
 }
 
-// Siatka świecących okien w stylu Neon Noir
-const cols = Math.max(2, Math.floor((bw - 12) / 11));
-const rows = Math.max(4, Math.floor((bh - 24) / 14));
-const padX = Math.max(5, Math.floor((bw - cols * 7) / (cols + 1)));
+// Pojedyncze, melancholijne okna (większość budynku pogrążona w mroku)
+const cols = Math.max(2, Math.floor((bw - 14) / 13));
+const rows = Math.max(3, Math.floor((bh - 28) / 16));
+const padX = Math.max(6, Math.floor((bw - cols * 6) / (cols + 1)));
 for (let r = 0; r < rows; r++) {
-const wy = by + 12 + r * 13;
-if (wy > h - 18) break;
+const wy = by + 14 + r * 15;
+if (wy > h - 22) break;
 for (let c = 0; c < cols; c++) {
-const seed = (bIdx * 31 + r * 17 + c * 13) % 19;
-if (seed < 7) continue; // Część okien wygaszona dla klimatu noir
-const wx = bx + padX + c * (7 + padX * 0.5);
-if (wx + 6 > bx + bw - 3) continue;
-const flick = Math.sin(this.animTime * (1.5 + (seed % 4)) + seed) > -0.75;
-if (!flick) continue;
-if (seed % 5 === 0) ctx.fillStyle = b.neon;
-else if (seed % 3 === 0) ctx.fillStyle = 'rgba(251, 191, 36, 0.78)';
-else ctx.fillStyle = 'rgba(56, 189, 248, 0.62)';
+const seed = (bIdx * 37 + r * 19 + c * 11) % 23;
+if (seed > 5) continue; // Tylko ~25% okien świeci dla ponurego klimatu noir
+const wx = bx + padX + c * (6 + padX * 0.5);
+if (wx + 5 > bx + bw - 4) continue;
+const winAlpha = 0.16 + 0.08 * Math.sin(this.animTime * 0.7 + seed);
+if (seed % 3 === 0) {
+ctx.fillStyle = `rgba(217, 119, 6, ${winAlpha.toFixed(2)})`;
+} else if (seed % 2 === 0) {
+ctx.fillStyle = `rgba(56, 189, 248, ${(winAlpha * 0.85).toFixed(2)})`;
+} else {
+ctx.fillStyle = `rgba(148, 163, 184, ${(winAlpha * 0.75).toFixed(2)})`;
+}
 ctx.fillRect(wx, wy, 5, 7);
 }
 }
 });
 
-// 6. Dolna mgła uliczna (neon mist)
-const mistGrad = ctx.createLinearGradient(0, h * 0.82, 0, h);
-mistGrad.addColorStop(0, 'rgba(4, 5, 8, 0)');
-mistGrad.addColorStop(0.65, 'rgba(15, 23, 42, 0.55)');
-mistGrad.addColorStop(1, 'rgba(3, 4, 8, 0.92)');
+// 7. Melancholijny deszcz Noir i gęsta mgła przy ziemi + ciemna winieta
+ctx.strokeStyle = 'rgba(148, 163, 184, 0.13)';
+ctx.lineWidth = 1;
+ctx.beginPath();
+for (let i = 0; i < 48; i++) {
+const rx = ((i * 73 + w - (this.animTime * 45) % w) % w);
+const ry = ((i * 59 + this.animTime * (260 + (i % 5) * 25)) % h);
+ctx.moveTo(rx, ry);
+ctx.lineTo(rx - 3, ry + 13);
+}
+ctx.stroke();
+
+const mistGrad = ctx.createLinearGradient(0, h * 0.72, 0, h);
+mistGrad.addColorStop(0, 'rgba(3, 4, 8, 0)');
+mistGrad.addColorStop(0.6, 'rgba(6, 9, 17, 0.68)');
+mistGrad.addColorStop(1, 'rgba(2, 3, 6, 0.95)');
 ctx.fillStyle = mistGrad;
-ctx.fillRect(0, h * 0.82, w, h * 0.18);
+ctx.fillRect(0, h * 0.72, w, h * 0.28);
+
+const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.22, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+vig.addColorStop(1, 'rgba(1, 2, 5, 0.65)');
+ctx.fillStyle = vig;
+ctx.fillRect(0, 0, w, h);
 },
 updateAndRenderMenuCash(dt) {
 if (!this.mainMenuOpen || !this.menuCashCtx || !this.menuCashCanvas) return;
@@ -201,7 +241,7 @@ const w = this.menuCashCanvas.width;
 const h = this.menuCashCanvas.height;
 ctx.clearRect(0, 0, w, h);
 
-// TRYB DLA SŁABYCH PC (LOW-END MODE): tylko mniej spadających banknotów 2D bez skyline i bez 3D
+// TRYB DLA SŁABYCH PC (LOW-END MODE): mniej spadających banknotów 2D w stonowanych barwach
 if (this.settings.lowEndMode) {
 const lowEndCount = Math.min(18, this.menuCashBills.length);
 ctx.font = '800 11px "JetBrains Mono", monospace';
@@ -218,18 +258,18 @@ const bx = b.xFrac * w;
 const by = b.y;
 const bw = 40;
 const bh = 20;
-ctx.fillStyle = '#059669';
+ctx.fillStyle = 'rgba(6, 78, 59, 0.75)';
 ctx.fillRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
-ctx.strokeStyle = '#6ee7b7';
-ctx.lineWidth = 1.5;
+ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+ctx.lineWidth = 1.2;
 ctx.strokeRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
-ctx.fillStyle = '#fbbf24';
+ctx.fillStyle = 'rgba(217, 119, 6, 0.85)';
 ctx.fillText('$', bx, by);
 }
 return;
 }
 
-// TRYB NORMALNY / WYSOKA JAKOŚĆ: Neon Noir Skyline + gęsty deszcz banknotów 3D
+// TRYB NORMALNY: Ponura panorama Neon Noir + stonowane banknoty 3D
 this.drawMenuNeonNoirSkyline(ctx, w, h);
 
 const fov = 320;
@@ -253,29 +293,30 @@ if (b.y > h + 120) {
 this.menuCashBills[i] = this.spawnMenuCashBill(i, false);
 continue;
 }
-const bx = b.xFrac * w + Math.sin(this.animTime * 1.4 + i) * 12;
+const bx = b.xFrac * w + Math.sin(this.animTime * 1.1 + i) * 10;
 const by = b.y;
-const hw = 42 * b.z;
-const hh = 21 * b.z;
-const hd = (b.thickness * 0.5) * b.z;
+const hw = 40 * b.z;
+const hh = 20 * b.z;
+const hd = (b.thickness * 0.45) * b.z;
 const localVerts = [
 [-hw, -hh, -hd], [hw, -hh, -hd], [hw, hh, -hd], [-hw, hh, -hd],
 [-hw, -hh,  hd], [hw, -hh,  hd], [hw, hh,  hd], [-hw, hh,  hd]
 ];
 const pts = localVerts.map(v => rot3D(v[0], v[1], v[2], b.rx, b.ry, b.rz));
 const faces = [
-{ idx: [0, 1, 2, 3], type: 'front', color: '#10b981', stroke: '#a7f3d0' },
-{ idx: [5, 4, 7, 6], type: 'back',  color: '#047857', stroke: '#6ee7b7' },
-{ idx: [4, 5, 1, 0], type: 'sideLong', color: '#064e3b', stroke: '#022c22' },
-{ idx: [3, 2, 6, 7], type: 'sideLong', color: '#064e3b', stroke: '#022c22' },
-{ idx: [4, 0, 3, 7], type: 'sideShort', color: '#065f46', stroke: '#022c22' },
-{ idx: [1, 5, 6, 2], type: 'sideShort', color: '#065f46', stroke: '#022c22' }
+{ idx: [0, 1, 2, 3], type: 'front', color: '#065f46', stroke: '#34d399' },
+{ idx: [5, 4, 7, 6], type: 'back',  color: '#064e3b', stroke: '#10b981' },
+{ idx: [4, 5, 1, 0], type: 'sideLong', color: '#022c22', stroke: '#064e3b' },
+{ idx: [3, 2, 6, 7], type: 'sideLong', color: '#022c22', stroke: '#064e3b' },
+{ idx: [4, 0, 3, 7], type: 'sideShort', color: '#042f2e', stroke: '#022c22' },
+{ idx: [1, 5, 6, 2], type: 'sideShort', color: '#042f2e', stroke: '#022c22' }
 ];
 faces.forEach(f => {
 f.avgZ = (pts[f.idx[0]].z + pts[f.idx[1]].z + pts[f.idx[2]].z + pts[f.idx[3]].z) * 0.25;
 });
 faces.sort((aFace, bFace) => bFace.avgZ - aFace.avgZ);
 ctx.save();
+ctx.globalAlpha = b.side === 'center' ? 0.35 : 0.62;
 ctx.translate(bx, by);
 for (const f of faces) {
 const p0 = pts[f.idx[0]];
@@ -291,7 +332,7 @@ ctx.closePath();
 ctx.fillStyle = f.color;
 ctx.fill();
 ctx.strokeStyle = f.stroke;
-ctx.lineWidth = 1.2;
+ctx.lineWidth = 0.9;
 ctx.stroke();
 if (f.type === 'front' || f.type === 'back' || f.type === 'sideLong') {
 const lerpPt = (pa, pb, t) => ({
@@ -308,14 +349,14 @@ ctx.lineTo(b1.x, b1.y);
 ctx.lineTo(b2.x, b2.y);
 ctx.lineTo(b3.x, b3.y);
 ctx.closePath();
-ctx.fillStyle = f.type === 'sideLong' ? '#b45309' : '#fbbf24';
+ctx.fillStyle = f.type === 'sideLong' ? '#92400e' : '#d97706';
 ctx.fill();
 if (f.type === 'front' || f.type === 'back') {
 const cx = (p0.x + p1.x + p2.x + p3.x) * 0.25;
 const cy = (p0.y + p1.y + p2.y + p3.y) * 0.25;
 ctx.beginPath();
-ctx.arc(cx, cy, 4 * b.z, 0, Math.PI * 2);
-ctx.fillStyle = '#064e3b';
+ctx.arc(cx, cy, 3.8 * b.z, 0, Math.PI * 2);
+ctx.fillStyle = '#022c22';
 ctx.fill();
 }
 }
@@ -427,7 +468,7 @@ if (this.cutscene && this.cutscene.active) {
 this.drawCutsceneWorldOverPlayer(ctx);
 }
 this.flushPropBadges(ctx);
-if (this.zone === 2 && (!this.cutscene || !this.cutscene.active)) {
+if ((this.zone === 1 || this.zone === 2) && (!this.cutscene || !this.cutscene.active)) {
 this.drawNpcBubbles(ctx);
 }
 if (this.hoveredInteractable && this.hoveredInteractable.box && (!this.cutscene || !this.cutscene.active)) {
@@ -534,11 +575,84 @@ ctx.fillRect(b.x - 18, b.y - 18, b.w + 36, b.h + 36);
 ctx.fillStyle = '#10121a';
 ctx.fillRect(b.x, b.y, b.w, b.h);
 }
+// Ślady na podłodze, rysy i plamy
 ctx.fillStyle = 'rgba(127, 29, 29, 0.22)';
 ctx.beginPath();
 ctx.arc(345, 290, 24, 0, Math.PI * 2);
 ctx.arc(362, 302, 14, 0, Math.PI * 2);
 ctx.fill();
+
+// Wycieraczka przy drzwiach wyjściowych
+ctx.save();
+this.drawRoundedRect(ctx, 458, 454, 84, 24, 4);
+ctx.fillStyle = '#1c1917';
+ctx.fill();
+ctx.strokeStyle = '#44403c';
+ctx.lineWidth = 1.5;
+ctx.stroke();
+ctx.fillStyle = '#57534e';
+ctx.font = '800 7.5px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.fillText('WELCOME', 500, 469);
+ctx.restore();
+
+// Stolik kawowy na dywanie z popielniczką, dymkiem papierosa i kartami
+ctx.save();
+ctx.fillStyle = 'rgba(0,0,0,0.45)';
+this.drawRoundedRect(ctx, 454, 266, 68, 46, 6);
+ctx.fill();
+this.drawRoundedRect(ctx, 450, 262, 68, 46, 6);
+ctx.fillStyle = '#271c19';
+ctx.fill();
+ctx.strokeStyle = '#573d32';
+ctx.lineWidth = 1.8;
+ctx.stroke();
+// Pudełko po pizzy i popielniczka
+ctx.fillStyle = '#d6d3d1';
+ctx.fillRect(458, 270, 22, 20);
+ctx.fillStyle = '#dc2626';
+ctx.fillRect(463, 275, 12, 10);
+ctx.fillStyle = '#334155';
+ctx.beginPath(); ctx.arc(500, 286, 6, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#ef4444';
+ctx.beginPath(); ctx.arc(502, 286, 1.5, 0, Math.PI * 2); ctx.fill();
+if (!this.settings.lowEndMode) {
+const wispY = (this.animTime * 12) % 18;
+ctx.strokeStyle = `rgba(203, 213, 225, ${(0.35 - wispY / 60).toFixed(2)})`;
+ctx.lineWidth = 1.2;
+ctx.beginPath();
+ctx.moveTo(502, 285 - wispY * 0.4);
+ctx.quadraticCurveTo(506 + Math.sin(this.animTime * 4) * 3, 276 - wispY, 500, 268 - wispY);
+ctx.stroke();
+}
+ctx.restore();
+
+// Aneks kuchenny przy prawej ścianie (zlew z kapiącym kranem i mikrofalówka)
+ctx.save();
+this.drawRoundedRect(ctx, 836, 235, 38, 125, 5);
+ctx.fillStyle = '#1e293b';
+ctx.fill();
+ctx.strokeStyle = '#475569';
+ctx.lineWidth = 2;
+ctx.stroke();
+// Zlew
+this.drawRoundedRect(ctx, 842, 248, 26, 38, 4);
+ctx.fillStyle = '#0f172a';
+ctx.fill();
+const dripR = (this.animTime * 6) % 9;
+ctx.strokeStyle = `rgba(56, 189, 248, ${(0.6 - dripR / 15).toFixed(2)})`;
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.arc(855, 267, dripR, 0, Math.PI * 2);
+ctx.stroke();
+// Mikrofalówka z zielonym zegarem LED
+this.drawRoundedRect(ctx, 841, 305, 28, 42, 3);
+ctx.fillStyle = '#09090b';
+ctx.fill();
+ctx.fillStyle = Math.sin(this.animTime * 3) > 0 ? '#10b981' : '#064e3b';
+ctx.fillRect(845, 310, 4, 8);
+ctx.restore();
+
 const papers = [{ x: 560, y: 270, a: 0.3 }, { x: 578, y: 282, a: -0.4 }, { x: 420, y: 395, a: 0.2 }];
 papers.forEach(p => {
 ctx.save();
@@ -561,6 +675,42 @@ ctx.globalAlpha = 0.25;
 ctx.lineWidth = 1.5;
 ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
 ctx.globalAlpha = 1;
+
+// Okno na północnej ścianie z żaluzjami i spływającymi kroplami deszczu
+ctx.save();
+ctx.fillStyle = '#090d16';
+ctx.fillRect(435, 104, 130, 14);
+ctx.strokeStyle = '#38bdf8';
+ctx.lineWidth = 1.5;
+ctx.strokeRect(435, 104, 130, 14);
+for (let lx = 442; lx < 560; lx += 14) {
+ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+ctx.fillRect(lx, 107, 9, 2);
+ctx.fillRect(lx, 112, 9, 2);
+}
+if (!this.settings.lowEndMode) {
+const winGlow = ctx.createLinearGradient(500, 115, 500, 195);
+winGlow.addColorStop(0, 'rgba(56, 189, 248, 0.16)');
+winGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+ctx.fillStyle = winGlow;
+ctx.beginPath();
+ctx.moveTo(435, 118); ctx.lineTo(565, 118); ctx.lineTo(590, 195); ctx.lineTo(410, 195);
+ctx.closePath(); ctx.fill();
+}
+// Tablica korkowa ze śledztwem i wezwaniami do zapłaty
+ctx.fillStyle = '#451a03';
+ctx.fillRect(342, 105, 68, 12);
+ctx.strokeStyle = '#78350f';
+ctx.strokeRect(342, 105, 68, 12);
+ctx.fillStyle = '#fef08a';
+ctx.fillRect(348, 107, 10, 8);
+ctx.fillStyle = '#fca5a5';
+ctx.fillRect(366, 107, 12, 8);
+ctx.fillStyle = '#e2e8f0';
+ctx.fillRect(386, 107, 10, 8);
+ctx.restore();
+
+// ŁÓŻKO
 this.drawNeonGlow(ctx, 245, 217, 110, '#dc2626', this.cash >= this.quota ? 0.32 : 0.14);
 ctx.save();
 ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -590,6 +740,8 @@ ctx.fillStyle = '#991b1b';
 ctx.fillRect(196, 205, 98, 12);
 ctx.restore();
 this.drawPropBadge(ctx, 245, 125, this.t('canvas_bed'), '#fca5a5', '#450a0a');
+
+// TERMINAL CRT SYNDYKATU
 const crtFlicker = 0.25 + 0.08 * Math.sin(this.animTime * 18);
 this.drawNeonGlow(ctx, 725, 195, 135, '#10b981', crtFlicker);
 ctx.save();
@@ -608,10 +760,20 @@ ctx.strokeStyle = '#10b981';
 ctx.lineWidth = 2.5;
 ctx.stroke();
 this.drawRoundedRect(ctx, 685, 142, 80, 46, 5);
-ctx.fillStyle = '#1e293b';
+ctx.fillStyle = '#061310';
 ctx.fill();
 ctx.strokeStyle = '#34d399';
 ctx.lineWidth = 1.5;
+ctx.stroke();
+// Animowany wykres długu na ekranie CRT
+ctx.strokeStyle = '#10b981';
+ctx.lineWidth = 1.4;
+ctx.beginPath();
+for (let gx = 0; gx <= 66; gx += 6) {
+const gy = 162 + Math.sin(this.animTime * 5 + gx * 0.2) * 7;
+if (gx === 0) ctx.moveTo(692 + gx, gy);
+else ctx.lineTo(692 + gx, gy);
+}
 ctx.stroke();
 ctx.fillStyle = '#059669';
 ctx.fillRect(692, 176, 66, 9);
@@ -625,6 +787,7 @@ for (let kx = 695; kx < 752; kx += 7) {
 ctx.fillRect(kx, 201, 4, 3);
 ctx.fillRect(kx, 207, 4, 3);
 }
+// Kubek z gorącą kawą i parą
 ctx.beginPath();
 ctx.arc(662, 198, 8, 0, Math.PI * 2);
 ctx.fillStyle = '#f8fafc';
@@ -633,8 +796,19 @@ ctx.beginPath();
 ctx.arc(662, 198, 5, 0, Math.PI * 2);
 ctx.fillStyle = '#451a03';
 ctx.fill();
+if (!this.settings.lowEndMode) {
+const stY = (this.animTime * 10) % 12;
+ctx.strokeStyle = `rgba(248, 250, 252, ${(0.35 - stY / 40).toFixed(2)})`;
+ctx.lineWidth = 1.2;
+ctx.beginPath();
+ctx.moveTo(662, 195 - stY);
+ctx.lineTo(662 + Math.sin(this.animTime * 4) * 2.5, 188 - stY);
+ctx.stroke();
+}
 ctx.restore();
 this.drawPropBadge(ctx, 725, 120, this.t('canvas_crt'), '#6ee7b7', '#022c22');
+
+// OŁTARZ RELIKTÓW
 const candlePulse = 0.25 + 0.08 * Math.sin(this.animTime * 9);
 this.drawNeonGlow(ctx, 267, 420, 130, '#f59e0b', candlePulse);
 ctx.save();
@@ -676,12 +850,15 @@ ctx.fill();
 });
 ctx.restore();
 this.drawPropBadge(ctx, 267, 360, this.t('canvas_shrine', { tokens: this.tokens }), '#fde68a', '#451a03');
+
+// DRZWI WYJŚCIOWE NA ULICĘ
 this.drawNeonGlow(ctx, 500, 492, 85, '#f59e0b', 0.25);
 ctx.fillStyle = '#18181b';
 ctx.fillRect(440, 482, 120, 20);
 ctx.fillStyle = '#f59e0b';
 ctx.fillRect(445, 490, 110, 8);
 this.drawPropBadge(ctx, 500, 464, this.t('canvas_street_exit'), '#fbbf24', '#27272a');
+
 if (this.settings.glows && !this.settings.lowEndMode) {
 ctx.save();
 const scanY = 144 + ((this.animTime * 28) % 30);
@@ -698,39 +875,120 @@ ctx.fillStyle = doorShaft;
 ctx.beginPath();
 ctx.moveTo(445, 492); ctx.lineTo(555, 492); ctx.lineTo(590, 390); ctx.lineTo(410, 390);
 ctx.closePath(); ctx.fill();
+
+// Obracający się cień wentylatora sufitowego na środku pokoju
+ctx.translate(485, 285);
+ctx.rotate(this.animTime * 1.8);
+ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+for (let f = 0; f < 4; f++) {
+ctx.rotate(Math.PI / 2);
+this.drawRoundedRect(ctx, 6, -4, 34, 8, 3);
+ctx.fill();
+}
+ctx.beginPath();
+ctx.arc(0, 0, 7, 0, Math.PI * 2);
+ctx.fill();
 ctx.restore();
 }
-const bulbFlicker = Math.sin(this.animTime * 23) > -0.85 ? 0.14 : 0.04;
+const bulbFlicker = Math.sin(this.animTime * 11) > -0.92 ? 0.12 : 0.05;
 this.drawNeonGlow(ctx, 485, 295, 230, '#fef08a', bulbFlicker);
 }
 ,
 drawStreet(ctx) {
 const b = this.zones[1].bounds;
 this.drawStreetBuildings(ctx, b);
-ctx.fillStyle = '#090b10';
+
+// Asfaltowa czteropasmowa aleja Blackwater (x: -120..1340, y: 75..545)
+ctx.fillStyle = '#080a0f';
 ctx.fillRect(b.x, b.y, b.w, b.h);
-ctx.fillStyle = '#161922';
-ctx.fillRect(b.x, b.y, b.w, 82);
-ctx.fillRect(b.x, b.y + b.h - 82, b.w, 82);
+
+// Szerokie chodniki północny (y: 75..165) i południowy (y: 455..545)
+ctx.fillStyle = '#151821';
+ctx.fillRect(b.x, b.y, b.w, 90);
+ctx.fillRect(b.x, b.y + b.h - 90, b.w, 90);
 ctx.strokeStyle = '#262b38';
 ctx.lineWidth = 3;
 ctx.beginPath();
-ctx.moveTo(b.x, b.y + 82); ctx.lineTo(b.x + b.w, b.y + 82);
-ctx.moveTo(b.x, b.y + b.h - 82); ctx.lineTo(b.x + b.w, b.y + b.h - 82);
+ctx.moveTo(b.x, b.y + 90); ctx.lineTo(b.x + b.w, b.y + 90);
+ctx.moveTo(b.x, b.y + b.h - 90); ctx.lineTo(b.x + b.w, b.y + b.h - 90);
 ctx.stroke();
-ctx.strokeStyle = '#1e2230';
+
+// Płyty chodnikowe
+ctx.strokeStyle = '#1d2230';
 ctx.lineWidth = 1;
-for (let x = b.x; x < b.x + b.w; x += 60) {
+for (let x = b.x; x <= b.x + b.w; x += 60) {
 ctx.beginPath();
-ctx.moveTo(x, b.y); ctx.lineTo(x, b.y + 82);
-ctx.moveTo(x, b.y + b.h - 82); ctx.lineTo(x, b.y + b.h);
+ctx.moveTo(x, b.y); ctx.lineTo(x, b.y + 90);
+ctx.moveTo(x, b.y + b.h - 90); ctx.lineTo(x, b.y + b.h);
 ctx.stroke();
 }
+
+// Dwa przejścia dla pieszych (Zebra Zachodnia przy Kryjówce i Wschodnia przy Kasynie)
+ctx.save();
+ctx.fillStyle = 'rgba(203, 213, 225, 0.20)';
+for (let zy = b.y + 104; zy < b.y + b.h - 98; zy += 24) {
+ctx.fillRect(-55, zy, 46, 12);
+ctx.fillRect(1225, zy, 46, 12);
+}
+const walkSignal = Math.sin(this.animTime * 1.5) > 0;
+[-68, 1212].forEach(sx => {
+ctx.fillStyle = '#0f172a';
+ctx.fillRect(sx, 140, 12, 20);
+ctx.fillStyle = walkSignal ? '#10b981' : '#ef4444';
+ctx.beginPath();
+ctx.arc(sx + 6, walkSignal ? 154 : 146, 3, 0, Math.PI * 2);
+ctx.fill();
+});
+ctx.restore();
+
+// Centralny pas rozdzielający jezdnię (wysepki bezpieczeństwa z neonowymi słupkami)
+ctx.strokeStyle = 'rgba(245, 158, 11, 0.38)';
+ctx.lineWidth = 3;
+ctx.setLineDash([36, 28]);
+ctx.beginPath();
+ctx.moveTo(b.x + 95, 240); ctx.lineTo(b.x + b.w - 95, 240);
+ctx.moveTo(b.x + 95, 380); ctx.lineTo(b.x + b.w - 95, 380);
+ctx.stroke();
+ctx.setLineDash([]);
+
+[120, 480, 840].forEach((mx, midx) => {
+ctx.save();
+this.drawRoundedRect(ctx, mx, 298, 210, 24, 8);
+ctx.fillStyle = '#11141d';
+ctx.fill();
+ctx.strokeStyle = '#334155';
+ctx.lineWidth = 2;
+ctx.stroke();
+const bollardCol = (this.day >= 5) ? '#a855f7' : '#f59e0b';
+ctx.fillStyle = bollardCol;
+ctx.beginPath();
+ctx.arc(mx + 14, 310, 4, 0, Math.PI * 2);
+ctx.arc(mx + 196, 310, 4, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+});
+
+// Kratki ściekowe przy krawężnikach
+[{ x: 115, y: 168 }, { x: 525, y: 168 }, { x: 965, y: 168 }, { x: 245, y: 442 }, { x: 685, y: 442 }, { x: 1115, y: 442 }].forEach(gr => {
+ctx.save();
+ctx.fillStyle = '#05070b';
+ctx.fillRect(gr.x, gr.y, 24, 10);
+ctx.strokeStyle = '#334155';
+ctx.lineWidth = 1;
+ctx.strokeRect(gr.x, gr.y, 24, 10);
+for (let gx = gr.x + 4; gx < gr.x + 22; gx += 4) {
+ctx.beginPath(); ctx.moveTo(gx, gr.y); ctx.lineTo(gx, gr.y + 10); ctx.stroke();
+}
+ctx.restore();
+});
+
+// Kałuże odbijające neony na szerokiej ulicy
 const puddles = [
-{ x: 185, y: 275, rx: 58, ry: 22, col: 'rgba(236, 72, 153, 0.18)', stroke: 'rgba(244, 114, 182, 0.36)' },
-{ x: 475, y: 345, rx: 78, ry: 26, col: 'rgba(34, 211, 238, 0.17)', stroke: 'rgba(56, 189, 248, 0.36)' },
-{ x: 690, y: 255, rx: 52, ry: 20, col: 'rgba(168, 85, 247, 0.18)', stroke: 'rgba(192, 132, 252, 0.34)' },
-{ x: 825, y: 305, rx: 68, ry: 30, col: 'rgba(239, 68, 68, 0.22)', stroke: 'rgba(248, 113, 113, 0.42)' }
+{ x: 45,   y: 255, rx: 62, ry: 22, col: 'rgba(236, 72, 153, 0.15)', stroke: 'rgba(244, 114, 182, 0.30)' },
+{ x: 385,  y: 355, rx: 82, ry: 26, col: 'rgba(34, 211, 238, 0.14)', stroke: 'rgba(56, 189, 248, 0.30)' },
+{ x: 655,  y: 225, rx: 68, ry: 22, col: 'rgba(168, 85, 247, 0.16)', stroke: 'rgba(192, 132, 252, 0.32)' },
+{ x: 985,  y: 345, rx: 74, ry: 25, col: 'rgba(16, 185, 129, 0.15)', stroke: 'rgba(52, 211, 153, 0.30)' },
+{ x: 1195, y: 275, rx: 68, ry: 28, col: 'rgba(239, 68, 68, 0.18)',  stroke: 'rgba(248, 113, 113, 0.36)' }
 ];
 puddles.forEach(p => {
 ctx.save();
@@ -743,108 +1001,231 @@ ctx.lineWidth = 1.5;
 ctx.stroke();
 ctx.restore();
 });
-ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-ctx.lineWidth = 4;
-ctx.setLineDash([32, 26]);
-ctx.beginPath();
-ctx.moveTo(b.x + 30, 310);
-ctx.lineTo(b.x + b.w - 30, 310);
-ctx.stroke();
-ctx.setLineDash([]);
+
+// Dwie studzienki kanalizacyjne z unoszącą się parą
+[345, 925].forEach((mhx, idx) => {
 ctx.save();
 ctx.beginPath();
-ctx.arc(465, 255, 18, 0, Math.PI * 2);
+ctx.arc(mhx, 240 + idx * 130, 18, 0, Math.PI * 2);
 ctx.fillStyle = '#1e293b';
 ctx.fill();
 ctx.strokeStyle = '#475569';
 ctx.lineWidth = 2;
 ctx.stroke();
-const steamOffset = (this.animTime * 16) % 24;
+const steamOffset = ((this.animTime * 16 + idx * 12) % 24);
 ctx.fillStyle = `rgba(203, 213, 225, ${0.22 - steamOffset / 120})`;
 ctx.beginPath();
-ctx.arc(465 + Math.sin(this.animTime * 3) * 4, 250 - steamOffset, 8 + steamOffset * 0.3, 0, Math.PI * 2);
+ctx.arc(mhx + Math.sin(this.animTime * 3 + idx) * 4, 235 + idx * 130 - steamOffset, 8 + steamOffset * 0.3, 0, Math.PI * 2);
 ctx.fill();
 ctx.restore();
+});
+
+// Przeszkoda 1: Kontener przemysłowy przy Klinice (x: 290, y: 92, w: 125, h: 62)
 ctx.save();
 ctx.fillStyle = 'rgba(0,0,0,0.65)';
-ctx.fillRect(316, 152, 122, 67);
-this.drawRoundedRect(ctx, 310, 145, 120, 65, 5);
-ctx.fillStyle = '#1e293b';
+ctx.fillRect(296, 98, 127, 64);
+this.drawRoundedRect(ctx, 290, 92, 125, 62, 5);
+ctx.fillStyle = '#14332b';
 ctx.fill();
-ctx.strokeStyle = '#64748b';
+ctx.strokeStyle = '#475569';
 ctx.lineWidth = 2.5;
 ctx.stroke();
 ctx.fillStyle = '#0f172a';
-for (let rx = 322; rx < 420; rx += 22) {
-ctx.fillRect(rx, 149, 12, 57);
+for (let rx = 302; rx < 405; rx += 22) {
+ctx.fillRect(rx, 96, 12, 54);
 }
-ctx.fillStyle = '#334155';
+ctx.restore();
+
+// Przeszkoda 3: Opancerzona furgonetka Syndykatu na północnym chodniku (x: 1030, y: 92, w: 135, h: 60)
+ctx.save();
+ctx.fillStyle = 'rgba(0,0,0,0.68)';
+this.drawRoundedRect(ctx, 1035, 98, 137, 62, 10);
+ctx.fill();
+this.drawRoundedRect(ctx, 1030, 92, 135, 60, 10);
+ctx.fillStyle = '#18181b';
+ctx.fill();
+ctx.strokeStyle = '#dc2626';
+ctx.lineWidth = 2;
+ctx.stroke();
+ctx.fillStyle = '#09090b';
+ctx.fillRect(1052, 98, 88, 48);
+ctx.fillStyle = '#ef4444';
+ctx.font = '800 8px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.fillText('SYNDICATE SEC', 1096, 125);
+ctx.restore();
+
+// INTERAKTYWNY PUNKT 1: CZARNY RYNEK SYNDYKATU (x: 575, y: 75, w: 135, h: 36)
+const bmColor = this.day >= 5 ? '#f59e0b' : '#a855f7';
+this.drawNeonGlow(ctx, 642, 95, 115, bmColor, 0.28);
+ctx.save();
+this.drawRoundedRect(ctx, 575, 75, 135, 34, 6);
+ctx.fillStyle = '#1b0b2e';
+ctx.fill();
+ctx.strokeStyle = bmColor;
+ctx.lineWidth = 2.5;
+ctx.stroke();
+ctx.fillStyle = '#09090b';
+ctx.fillRect(585, 81, 115, 22);
+ctx.fillStyle = bmColor;
+for (let bx = 592; bx < 692; bx += 16) {
+ctx.fillRect(bx, 85, 10, 14);
+}
+ctx.restore();
+this.drawPropBadge(
+ctx,
+642,
+62,
+this.day >= 5 ? '🔥 CZARNY RYNEK [OVERDRIVE]' : '🕶️ CZARNY RYNEK SYNDYKATU',
+this.day >= 5 ? '#fde047' : '#e9d5ff',
+'#2e1065',
+this.day >= 5 ? 'HAKI KWOTY • CHIPY • STYMY' : 'STYMULANTY • ŻETONY (OD NOCY 5: OVERDRIVE)'
+);
+
+// Automat "STYM-COLA" i płonący koksownik przy Barze Zdechły Pies (południowy chodnik)
+ctx.save();
+this.drawRoundedRect(ctx, 212, 495, 34, 34, 4);
+ctx.fillStyle = '#064e3b';
+ctx.fill();
+ctx.strokeStyle = '#10b981';
+ctx.lineWidth = 1.5;
+ctx.stroke();
+ctx.fillStyle = '#34d399';
+ctx.fillRect(217, 500, 16, 22);
+
+const fireFlicker = 0.28 + 0.1 * Math.sin(this.animTime * 14);
+this.drawNeonGlow(ctx, 468, 492, 70, '#f97316', fireFlicker);
+ctx.fillStyle = '#292524';
 ctx.beginPath();
-ctx.arc(436, 192, 12, 0, Math.PI * 2);
+ctx.arc(468, 492, 11, 0, Math.PI * 2);
+ctx.fill();
+ctx.strokeStyle = '#78350f';
+ctx.lineWidth = 2;
+ctx.stroke();
+ctx.fillStyle = '#f97316';
+ctx.beginPath();
+ctx.arc(468, 492, 6.5 + Math.sin(this.animTime * 16) * 1.5, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#fef08a';
+ctx.beginPath();
+ctx.arc(468, 492, 3.2, 0, Math.PI * 2);
 ctx.fill();
 ctx.restore();
+
+// Przeszkoda 2: Radiowóz Syndykatu na światłach awaryjnych (x: 760, y: 448, w: 170, h: 72)
 const hazardBlink = Math.sin(this.animTime * 6) > 0;
 if (hazardBlink) {
-this.drawNeonGlow(ctx, 560, 440, 75, '#f59e0b', 0.28);
-this.drawNeonGlow(ctx, 725, 440, 75, '#ef4444', 0.28);
+this.drawNeonGlow(ctx, 760, 484, 75, '#f59e0b', 0.26);
+this.drawNeonGlow(ctx, 925, 484, 75, '#ef4444', 0.26);
 }
 ctx.save();
 ctx.fillStyle = 'rgba(0,0,0,0.7)';
-this.drawRoundedRect(ctx, 566, 412, 167, 72, 12);
+this.drawRoundedRect(ctx, 766, 455, 170, 72, 12);
 ctx.fill();
-ctx.fillStyle = '#09090b';
-ctx.fillRect(578, 400, 26, 8);
-ctx.fillRect(682, 400, 26, 8);
-ctx.fillRect(578, 472, 26, 8);
-ctx.fillRect(682, 472, 26, 8);
-this.drawRoundedRect(ctx, 560, 405, 165, 70, 12);
-ctx.fillStyle = '#312e43';
+this.drawRoundedRect(ctx, 760, 448, 170, 72, 12);
+ctx.fillStyle = '#1e1b2e';
 ctx.fill();
-ctx.strokeStyle = '#94a3b8';
+ctx.strokeStyle = '#64748b';
 ctx.lineWidth = 2;
 ctx.stroke();
-this.drawRoundedRect(ctx, 598, 412, 88, 56, 6);
+ctx.fillStyle = '#dc2626';
+ctx.fillRect(765, 480, 32, 8);
+this.drawRoundedRect(ctx, 798, 455, 90, 56, 6);
 ctx.fillStyle = '#0f172a';
 ctx.fill();
-ctx.fillStyle = '#1e1b2e';
-ctx.fillRect(622, 416, 46, 48);
-ctx.strokeStyle = '#38bdf8';
-ctx.lineWidth = 1;
-ctx.beginPath();
-ctx.moveTo(605, 425); ctx.lineTo(618, 438); ctx.lineTo(608, 452);
-ctx.stroke();
+ctx.fillStyle = hazardBlink ? '#ef4444' : '#1e3a8a';
+ctx.fillRect(838, 467, 10, 14);
+ctx.fillStyle = hazardBlink ? '#3b82f6' : '#7f1d1d';
+ctx.fillRect(838, 485, 10, 14);
 ctx.fillStyle = hazardBlink ? '#fbbf24' : '#78350f';
-ctx.fillRect(561, 412, 5, 12);
-ctx.fillRect(561, 456, 5, 12);
+ctx.fillRect(761, 455, 5, 12);
+ctx.fillRect(761, 499, 5, 12);
 ctx.fillStyle = hazardBlink ? '#ef4444' : '#7f1d1d';
-ctx.fillRect(720, 412, 5, 12);
-ctx.fillRect(720, 456, 5, 12);
+ctx.fillRect(923, 455, 5, 12);
+ctx.fillRect(923, 499, 5, 12);
 ctx.restore();
-this.drawNeonGlow(ctx, 65, 320, 110, '#10b981', 0.3);
+
+// INTERAKTYWNY PUNKT 2: KURIER PODZIEMIA // ZRZUT ZAOPATRZENIA (x: 895, y: 508, w: 130, h: 36)
+const smugActive = !this.smugglerUsedThisNight;
+const smugCol = !smugActive ? '#52525b' : (this.day >= 5 ? '#fbbf24' : '#10b981');
+this.drawNeonGlow(ctx, 960, 524, 95, smugCol, smugActive ? 0.26 : 0.08);
+ctx.save();
+this.drawRoundedRect(ctx, 895, 508, 130, 34, 6);
+ctx.fillStyle = smugActive ? '#062e22' : '#18181b';
+ctx.fill();
+ctx.strokeStyle = smugCol;
+ctx.lineWidth = 2;
+ctx.stroke();
+ctx.fillStyle = smugCol;
+ctx.fillRect(910, 516, 22, 18);
+ctx.fillRect(942, 516, 22, 18);
+ctx.restore();
+this.drawPropBadge(
+ctx,
+960,
+558,
+!smugActive ? '📦 ZRZUT ODEBRANY (1/1)' : (this.day >= 5 ? '📦 ★ ZŁOTY ZRZUT OVERDRIVE' : '📦 KURIER PODZIEMIA (1/NOC)'),
+smugCol,
+'#022c22',
+!smugActive ? 'WRÓĆ KOLEJNEJ NOCY' : 'DARMOWA GOTÓWKA / ŻETONY / CZAS'
+);
+
+// Wejście do Kryjówki na zachodzie (x: -132, y: 265)
+this.drawNeonGlow(ctx, -115, 312, 110, '#10b981', 0.3);
 ctx.fillStyle = '#10b981';
-ctx.fillRect(48, 275, 14, 90);
-this.drawPropBadge(ctx, 130, 260, this.t('canvas_safehouse_left'), '#6ee7b7', '#022c22');
+ctx.fillRect(-132, 265, 14, 95);
+this.drawPropBadge(ctx, -45, 250, this.t('canvas_safehouse_left'), '#6ee7b7', '#022c22');
+
+// Wejście do Kasyna na wschodzie (x: 1330, y: 250)
 const casinoPulse = 0.32 + 0.1 * Math.sin(this.animTime * 8);
-this.drawNeonGlow(ctx, 925, 320, 165, '#ef4444', casinoPulse);
+this.drawNeonGlow(ctx, 1320, 312, 165, '#ef4444', casinoPulse);
+ctx.fillStyle = '#450a0a';
+ctx.fillRect(1260, 282, 75, 64);
+ctx.strokeStyle = '#d97706';
+ctx.lineWidth = 1.5;
+ctx.strokeRect(1260, 282, 75, 64);
 ctx.fillStyle = '#7f1d1d';
-ctx.fillRect(885, 282, 65, 76);
+ctx.fillRect(1280, 274, 65, 80);
 ctx.strokeStyle = '#fbbf24';
 ctx.lineWidth = 2;
-ctx.strokeRect(885, 282, 65, 76);
+ctx.strokeRect(1280, 274, 65, 80);
+for (let my = 278; my <= 350; my += 11) {
+const bulbOn = ((Math.floor(this.animTime * 7) + my) % 2 === 0);
+ctx.fillStyle = bulbOn ? '#fef08a' : '#b45309';
+ctx.beginPath(); ctx.arc(1282, my, 2.2, 0, Math.PI * 2); ctx.fill();
+}
 ctx.fillStyle = '#ef4444';
-ctx.fillRect(938, 260, 14, 120);
-this.drawPropBadge(ctx, 845, 245, this.t('canvas_casino_right'), '#fca5a5', '#450a0a');
+ctx.fillRect(1332, 250, 14, 125);
+this.drawPropBadge(ctx, 1235, 238, this.t('canvas_casino_right'), '#fca5a5', '#450a0a');
+
 if (this.streetNpcs) {
 this.streetNpcs.forEach((npc, idx) => this.drawTopDownNpc(ctx, npc, idx + 30));
 }
-const lamps = [{ x: 210, y: 205 }, { x: 520, y: 205 }, { x: 820, y: 205 }];
+
+// 5 Latarni ulicznych wzdłuż całej alei
+const lamps = [{ x: -10, y: 155 }, { x: 280, y: 155 }, { x: 610, y: 155 }, { x: 940, y: 155 }, { x: 1220, y: 155 }];
 lamps.forEach(l => {
-this.drawNeonGlow(ctx, l.x, l.y, 120, '#f59e0b', 0.18);
+this.drawNeonGlow(ctx, l.x, l.y, 125, '#f59e0b', 0.18);
 ctx.fillStyle = '#fbbf24';
 ctx.beginPath();
 ctx.arc(l.x, l.y, 5, 0, Math.PI * 2);
 ctx.fill();
 });
+
+if (!this.settings.lowEndMode) {
+ctx.save();
+ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+ctx.lineWidth = 1.5;
+const sway = Math.sin(this.animTime * 2.2) * 5;
+[[-10, 75, 110, 545], [280, 75, 420, 545], [610, 75, 740, 545], [940, 75, 1060, 545]].forEach(wLine => {
+ctx.beginPath();
+ctx.moveTo(wLine[0], wLine[1]);
+ctx.quadraticCurveTo((wLine[0] + wLine[2]) * 0.5 + sway, 310, wLine[2], wLine[3]);
+ctx.stroke();
+});
+ctx.restore();
+}
+
 if (this.settings.glows && !this.settings.lowEndMode) {
 ctx.save();
 puddles.forEach((p, idx) => {
@@ -856,22 +1237,6 @@ ctx.moveTo(p.x - shimmerW, p.y - 3); ctx.lineTo(p.x + shimmerW, p.y - 3);
 ctx.moveTo(p.x - shimmerW * 0.7, p.y + 4); ctx.lineTo(p.x + shimmerW * 0.7, p.y + 4);
 ctx.stroke();
 });
-if (hazardBlink) {
-const hlGrad = ctx.createLinearGradient(560, 440, 465, 440);
-hlGrad.addColorStop(0, 'rgba(251, 191, 36, 0.28)');
-hlGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
-ctx.fillStyle = hlGrad;
-ctx.beginPath();
-ctx.moveTo(560, 410); ctx.lineTo(465, 385); ctx.lineTo(465, 495); ctx.lineTo(560, 470);
-ctx.closePath(); ctx.fill();
-}
-if (Math.sin(this.animTime * 19) > 0.75) {
-ctx.strokeStyle = '#38bdf8';
-ctx.lineWidth = 1.5;
-ctx.beginPath();
-ctx.moveTo(580, 425); ctx.lineTo(573, 419); ctx.lineTo(584, 415);
-ctx.stroke();
-}
 if (this.smokePuffs) {
 for (const sp of this.smokePuffs) {
 ctx.fillStyle = `${sp.color}${Math.max(0, sp.alpha)})`;
@@ -888,16 +1253,81 @@ ctx.strokeRect(b.x, b.y, b.w, b.h);
 }
 ,
 drawStreetBuildings(ctx, b) {
+// WARSTWA 1 (TŁO): Wysokie megabloki i wieżowce za pierwszą linią budynków (północ i południe)
+const farTopTowers = [
+{ x: -165, y: -165, w: 240, h: 120, sign: 'SECTOR 04 // SLUMS', neon: '#38bdf8' },
+{ x: 95,   y: -180, w: 265, h: 135, sign: 'SYNDICATE CORP TOWER', neon: '#f43f5e' },
+{ x: 380,  y: -170, w: 250, h: 125, sign: 'CYBER-BANK // DŁUGI', neon: '#fbbf24' },
+{ x: 650,  y: -185, w: 270, h: 140, sign: 'OVERDRIVE LABS', neon: '#a855f7' },
+{ x: 940,  y: -170, w: 240, h: 125, sign: 'HOTEL NOIR SKYLINE', neon: '#22d3ee' },
+{ x: 1195, y: -180, w: 220, h: 135, sign: 'VELVET CASINO SPIRE', neon: '#f59e0b' }
+];
+const farBotTowers = [
+{ x: -165, y: 665, w: 250, h: 125, sign: 'POWER GRID // SEKTOR B', neon: '#10b981' },
+{ x: 105,  y: 665, w: 280, h: 135, sign: 'BIO-PHARMA // STYMY', neon: '#22d3ee' },
+{ x: 405,  y: 665, w: 270, h: 130, sign: 'NIGHT CITY ARCHIVES', neon: '#f43f5e' },
+{ x: 695,  y: 665, w: 290, h: 140, sign: 'HEAVY INDUSTRY // DOKI', neon: '#f59e0b' },
+{ x: 1005, y: 665, w: 390, h: 135, sign: 'SYNDICATE VIP PENTHOUSE', neon: '#c084fc' }
+];
+
+const renderFarTower = (tw, isTop) => {
+ctx.save();
+this.drawRoundedRect(ctx, tw.x, tw.y, tw.w, tw.h, 6);
+ctx.fillStyle = '#04060b';
+ctx.fill();
+ctx.strokeStyle = '#161e2e';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+// Siatka przygaszonych okien w dalekich wieżowcach
+for (let wy = tw.y + 14; wy < tw.y + tw.h - 18; wy += 16) {
+for (let wx = tw.x + 14; wx < tw.x + tw.w - 18; wx += 22) {
+if (((wx + wy) % 5) === 0) continue;
+ctx.fillStyle = ((wx * wy) % 7 === 0) ? tw.neon : 'rgba(148, 163, 184, 0.18)';
+ctx.globalAlpha = 0.28;
+ctx.fillRect(wx, wy, 8, 9);
+}
+}
+ctx.globalAlpha = 1;
+
+// Neonowy billboard korporacji na dachu dalekiego wieżowca
+const sx = tw.x + tw.w * 0.5;
+const sy = isTop ? (tw.y + 24) : (tw.y + tw.h - 24);
+ctx.font = '800 9px "JetBrains Mono", monospace';
+const bw = ctx.measureText(tw.sign).width + 16;
+ctx.fillStyle = '#030408';
+ctx.fillRect(sx - bw * 0.5, sy - 9, bw, 18);
+ctx.strokeStyle = tw.neon;
+ctx.globalAlpha = 0.55;
+ctx.lineWidth = 1.2;
+ctx.strokeRect(sx - bw * 0.5, sy - 9, bw, 18);
+ctx.fillStyle = tw.neon;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(tw.sign, sx, sy);
+ctx.restore();
+};
+
+farTopTowers.forEach(t => renderFarTower(t, true));
+farBotTowers.forEach(t => renderFarTower(t, false));
+
+// WARSTWA 2 (PIERWSZY PLAN PRZY CHODNIKU): 13 szczegółowych budynków wzdłuż rozszerzonej ulicy
 const topBlocks = [
-{ x: 50, y: 18, w: 215, h: 110, bg: '#0b0d16', border: '#1e293b', sign: 'LOMBARD // LICHWA 24H', neon: '#ec4899', flicker: 1 },
-{ x: 275, y: 12, w: 235, h: 116, bg: '#090d16', border: '#1e293b', sign: 'CYBER-KLINIKA // KREW', neon: '#22d3ee', flicker: 2 },
-{ x: 520, y: 20, w: 210, h: 108, bg: '#100c1c', border: '#312e81', sign: 'HOTEL NOIR // POKOJE', neon: '#a855f7', flicker: 3 },
-{ x: 740, y: 10, w: 210, h: 118, bg: '#18080c', border: '#7f1d1d', sign: '🎰 VELVET PIT CASINO 777', neon: '#f59e0b', flicker: 0 }
+{ x: -130, y: -42, w: 190, h: 112, bg: '#090c14', border: '#1e293b', sign: 'KAMIENICA // KRYJÓWKA #4', neon: '#10b981', flicker: 2, kind: 'safehouse_ext' },
+{ x: 72,   y: -42, w: 205, h: 112, bg: '#0b0d16', border: '#1e293b', sign: 'LOMBARD // LICHWA 24H', neon: '#ec4899', flicker: 1, kind: 'pawn' },
+{ x: 289,  y: -45, w: 225, h: 115, bg: '#090d16', border: '#1e293b', sign: 'CYBER-KLINIKA // KREW', neon: '#22d3ee', flicker: 2, kind: 'clinic' },
+{ x: 526,  y: -45, w: 235, h: 115, bg: '#140924', border: '#4c1d95', sign: '🕶️ CZARNY RYNEK // OVERDRIVE', neon: '#a855f7', flicker: 0, kind: 'blackmarket' },
+{ x: 773,  y: -42, w: 220, h: 112, bg: '#100c1c', border: '#312e81', sign: 'HOTEL NOIR // POKOJE', neon: '#818cf8', flicker: 3, kind: 'hotel' },
+{ x: 1005, y: -42, w: 155, h: 112, bg: '#0c0a14', border: '#334155', sign: 'BIURO AUDYTU', neon: '#38bdf8', flicker: 2, kind: 'office' },
+{ x: 1172, y: -48, w: 180, h: 118, bg: '#18080c', border: '#7f1d1d', sign: '🎰 VELVET PIT CASINO 777', neon: '#f59e0b', flicker: 0, kind: 'casino' }
 ];
 const botBlocks = [
-{ x: 50, y: 492, w: 265, h: 92, bg: '#0c0f17', border: '#1e293b', sign: 'APTEKA NOCNA // STYMY', neon: '#10b981', flicker: 2 },
-{ x: 325, y: 492, w: 285, h: 92, bg: '#120d16', border: '#3b0764', sign: 'BAR "ZDECHŁY PIES"', neon: '#f43f5e', flicker: 4 },
-{ x: 620, y: 492, w: 330, h: 92, bg: '#16090d', border: '#7f1d1d', sign: 'VIP LOUNGE // RULETKA & KOŚCI', neon: '#fbbf24', flicker: 1 }
+{ x: -130, y: 550, w: 185, h: 98, bg: '#080b11', border: '#1e293b', sign: 'STACJA TRANSFORMATOROWA', neon: '#38bdf8', flicker: 3, kind: 'power' },
+{ x: 67,   y: 550, w: 235, h: 98, bg: '#0c0f17', border: '#1e293b', sign: 'APTEKA NOCNA // STYMY', neon: '#10b981', flicker: 2, kind: 'pharmacy' },
+{ x: 314,  y: 550, w: 265, h: 98, bg: '#120d16', border: '#3b0764', sign: 'BAR "ZDECHŁY PIES"', neon: '#f43f5e', flicker: 4, kind: 'bar' },
+{ x: 591,  y: 550, w: 235, h: 98, bg: '#0f1118', border: '#334155', sign: 'WARSZTAT // CYBER-AUTO', neon: '#fb923c', flicker: 1, kind: 'garage' },
+{ x: 838,  y: 550, w: 235, h: 98, bg: '#061a14', border: '#065f46', sign: '📦 KURIER PODZIEMIA // ZRZUT', neon: '#34d399', flicker: 0, kind: 'smuggler' },
+{ x: 1085, y: 550, w: 267, h: 98, bg: '#16090d', border: '#7f1d1d', sign: 'VIP LOUNGE // RULETKA & KOŚCI', neon: '#fbbf24', flicker: 1, kind: 'vip' }
 ];
 const renderBlock = (blk, isTop) => {
 ctx.save();
@@ -907,51 +1337,108 @@ ctx.fill();
 ctx.strokeStyle = blk.border;
 ctx.lineWidth = 2.5;
 ctx.stroke();
+
+// Dachowy wentylator wyciągowy
 ctx.fillStyle = '#161b26';
 ctx.strokeStyle = '#334155';
 ctx.lineWidth = 1.2;
-ctx.fillRect(blk.x + 18, blk.y + 16, 36, 26);
-ctx.strokeRect(blk.x + 18, blk.y + 16, 36, 26);
+ctx.fillRect(blk.x + 14, blk.y + 14, 32, 22);
+ctx.strokeRect(blk.x + 14, blk.y + 14, 32, 22);
 ctx.save();
-ctx.translate(blk.x + 36, blk.y + 29);
-ctx.rotate(this.animTime * 4);
+ctx.translate(blk.x + 30, blk.y + 25);
+ctx.rotate(this.animTime * 3.6);
 ctx.strokeStyle = '#64748b';
 ctx.beginPath();
-ctx.moveTo(-9, 0); ctx.lineTo(9, 0);
-ctx.moveTo(0, -9); ctx.lineTo(0, 9);
+ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
+ctx.moveTo(0, -7); ctx.lineTo(0, 7);
 ctx.stroke();
 ctx.restore();
-const winY = isTop ? blk.y + blk.h - 22 : blk.y + 8;
-for (let wx = blk.x + 16; wx < blk.x + blk.w - 24; wx += 32) {
-const isLit = ((wx + blk.x) % 3 === 0);
-ctx.fillStyle = isLit ? 'rgba(251, 191, 36, 0.35)' : '#05070b';
-ctx.fillRect(wx, winY, 18, 10);
-ctx.strokeStyle = isLit ? '#f59e0b' : '#1e293b';
-ctx.lineWidth = 1;
-ctx.strokeRect(wx, winY, 18, 10);
+
+if (blk.kind === 'pawn') {
+const swayAng = Math.sin(this.animTime * 2.5) * 0.12;
+ctx.save();
+ctx.translate(blk.x + blk.w - 30, blk.y + 26);
+ctx.rotate(swayAng);
+ctx.fillStyle = '#fbbf24';
+ctx.beginPath();
+ctx.arc(-6, 6, 4, 0, Math.PI * 2);
+ctx.arc(6, 6, 4, 0, Math.PI * 2);
+ctx.arc(0, -2, 4, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+} else if (blk.kind === 'clinic' || blk.kind === 'pharmacy') {
+const medPulse = 0.55 + 0.45 * Math.sin(this.animTime * 4);
+ctx.save();
+ctx.globalAlpha = medPulse;
+ctx.fillStyle = blk.neon;
+const mx = blk.x + blk.w - 32, my = blk.y + 26;
+ctx.fillRect(mx - 3, my - 8, 6, 16);
+ctx.fillRect(mx - 8, my - 3, 16, 6);
+ctx.restore();
+} else if (blk.kind === 'blackmarket') {
+// Pulsujące oko / symbol Syndykatu nad Czarnym Rynkiem
+ctx.save();
+ctx.strokeStyle = this.day >= 5 ? '#f59e0b' : '#c084fc';
+ctx.lineWidth = 1.6;
+const bx = blk.x + blk.w - 34, by = blk.y + 25;
+ctx.beginPath();
+ctx.arc(bx, by, 9, 0, Math.PI * 2);
+ctx.stroke();
+ctx.fillStyle = '#ef4444';
+ctx.beginPath();
+ctx.arc(bx, by, 3.5, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+} else if (blk.kind === 'casino') {
+for (let bx = blk.x + 14; bx < blk.x + blk.w - 12; bx += 18) {
+const on = ((Math.floor(this.animTime * 8) + Math.floor(bx / 18)) % 2 === 0);
+ctx.fillStyle = on ? '#fde047' : '#78350f';
+ctx.beginPath();
+ctx.arc(bx, blk.y + blk.h - 4, 2.2, 0, Math.PI * 2);
+ctx.fill();
 }
-const flickOn = blk.flicker === 0 || Math.sin(this.animTime * 12 + blk.flicker * 3) > -0.82;
+} else if (blk.kind === 'vip') {
+ctx.save();
+ctx.translate(blk.x + blk.w - 36, blk.y + 26);
+ctx.rotate(Math.sin(this.animTime * 1.1) * 0.5);
+ctx.strokeStyle = '#fbbf24';
+ctx.lineWidth = 1.6;
+ctx.beginPath();
+ctx.arc(0, 0, 9, -Math.PI * 0.7, Math.PI * 0.7);
+ctx.stroke();
+ctx.fillStyle = '#ef4444';
+ctx.beginPath(); ctx.arc(4, 0, 2, 0, Math.PI * 2); ctx.fill();
+ctx.restore();
+}
+
+const winY = isTop ? blk.y + blk.h - 22 : blk.y + 8;
+for (let wx = blk.x + 14; wx < blk.x + blk.w - 22; wx += 30) {
+const isLit = ((wx + blk.x) % 3 === 0);
+ctx.fillStyle = isLit ? 'rgba(251, 191, 36, 0.28)' : '#05070b';
+ctx.fillRect(wx, winY, 17, 10);
+ctx.strokeStyle = isLit ? '#d97706' : '#1e293b';
+ctx.lineWidth = 1;
+ctx.strokeRect(wx, winY, 17, 10);
+}
+
+const flickOn = blk.flicker === 0 || Math.sin(this.animTime * 7 + blk.flicker * 3) > -0.88;
 const signX = blk.x + blk.w / 2;
 const signY = isTop ? blk.y + blk.h - 38 : blk.y + 42;
 if (flickOn) {
-this.drawNeonGlow(ctx, signX, isTop ? signY + 42 : signY - 35, 115, blk.neon, 0.24);
+this.drawNeonGlow(ctx, signX, isTop ? signY + 42 : signY - 35, 95, blk.neon, 0.18);
 }
-ctx.font = '800 10.5px "JetBrains Mono", monospace';
-const tw = ctx.measureText(blk.sign).width + 20;
-this.drawRoundedRect(ctx, signX - tw / 2, signY - 11, tw, 22, 5);
+ctx.font = '800 9.5px "JetBrains Mono", monospace';
+const tw = Math.min(blk.w - 8, ctx.measureText(blk.sign).width + 16);
+this.drawRoundedRect(ctx, signX - tw / 2, signY - 10, tw, 20, 5);
 ctx.fillStyle = '#05060a';
 ctx.fill();
 ctx.strokeStyle = flickOn ? blk.neon : '#334155';
-ctx.lineWidth = 2;
-if (flickOn && this.settings.glows && !this.settings.lowEndMode) {
-ctx.shadowColor = blk.neon;
-ctx.shadowBlur = 12;
-}
+ctx.lineWidth = 1.8;
 ctx.stroke();
 ctx.fillStyle = flickOn ? '#ffffff' : '#475569';
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
-ctx.fillText(blk.sign, signX, signY);
+ctx.fillText(blk.sign, signX, signY, tw - 6);
 ctx.restore();
 };
 topBlocks.forEach(blk => renderBlock(blk, true));
@@ -969,6 +1456,42 @@ ctx.strokeStyle = '#b45309';
 ctx.lineWidth = 8;
 ctx.strokeRect(b.x, b.y, b.w, b.h);
 }
+
+// Krwistoczerwony dywan wejściowy ze złotym obszyciem prowadzący od drzwi ulicy
+ctx.save();
+ctx.fillStyle = 'rgba(127, 29, 29, 0.55)';
+ctx.fillRect(75, 276, 130, 68);
+ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
+ctx.lineWidth = 2;
+ctx.strokeRect(75, 276, 130, 68);
+
+// Złoty obracający się hologram / rozeta Syndykatu w centralnej rotundzie podłogi
+ctx.translate(502, 312);
+ctx.rotate(this.animTime * 0.35);
+ctx.strokeStyle = 'rgba(245, 158, 11, 0.16)';
+ctx.lineWidth = 1.5;
+for (let r = 0; r < 8; r++) {
+ctx.rotate(Math.PI / 4);
+ctx.strokeRect(-42, -42, 84, 84);
+}
+ctx.restore();
+
+// Podświetlany Bar VIP z butelkami pod północną ścianą (między stołami VIP, x: 420..585, y: 112)
+ctx.save();
+this.drawRoundedRect(ctx, 420, 112, 165, 28, 6);
+ctx.fillStyle = '#1c0a13';
+ctx.fill();
+ctx.strokeStyle = '#f59e0b';
+ctx.lineWidth = 2;
+ctx.stroke();
+const bottleColors = ['#22d3ee', '#10b981', '#f43f5e', '#fbbf24', '#a855f7'];
+for (let bx = 432, bi = 0; bx < 572; bx += 14, bi++) {
+ctx.fillStyle = bottleColors[bi % bottleColors.length];
+ctx.fillRect(bx, 116, 6, 11);
+}
+this.drawNeonGlow(ctx, 502, 126, 75, '#f59e0b', 0.18);
+ctx.restore();
+
 this.drawNeonGlow(ctx, 80, 310, 95, '#f59e0b', 0.25);
 ctx.fillStyle = '#f59e0b';
 ctx.fillRect(63, 265, 12, 90);
@@ -1592,9 +2115,9 @@ ctx.save();
 const p = this.player;
 const grad = ctx.createRadialGradient(p.x, p.y, 75, p.x, p.y, 310);
 grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-grad.addColorStop(0.55, 'rgba(3, 5, 10, 0.48)');
-grad.addColorStop(0.85, 'rgba(2, 3, 7, 0.88)');
-grad.addColorStop(1, 'rgba(1, 2, 5, 0.97)');
+grad.addColorStop(0.60, 'rgba(3, 5, 10, 0.34)');
+grad.addColorStop(0.88, 'rgba(2, 3, 7, 0.68)');
+grad.addColorStop(1, 'rgba(1, 2, 5, 0.82)');
 ctx.fillStyle = grad;
 ctx.fillRect(p.x - 1000, p.y - 1000, 2000, 2000);
 ctx.restore();

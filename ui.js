@@ -358,14 +358,21 @@ toggleClockSpeed() {
 this.clockMultiplier = this.clockMultiplier === 1 ? 5 : 1;
 const btn = document.getElementById('btn-clock-speed');
 const mBtn = document.getElementById('mobile-speed-btn');
-if (mBtn) mBtn.textContent = `${this.clockMultiplier}x ⏱️`;
+const label = this.clockMultiplier === 5 ? '5x ⚡' : '1x ⏱️';
+if (mBtn) {
+mBtn.textContent = label;
+mBtn.className = this.clockMultiplier === 5
+? 'btn-gritty bg-amber-500 text-zinc-950 border border-amber-300 px-3 py-2 rounded-xl text-xs font-extrabold shadow-lg'
+: 'btn-gritty bg-zinc-900/90 hover:bg-zinc-800 text-amber-300 border border-zinc-700 px-3 py-2 rounded-xl text-xs font-extrabold shadow-lg';
+}
 if (btn) {
-btn.textContent = `${this.clockMultiplier}x ⏱️`;
+btn.textContent = label;
 btn.className = this.clockMultiplier === 5
-? 'btn-gritty bg-amber-500 text-zinc-950 border-amber-700 text-xs font-extrabold px-2 py-1.5 rounded-lg'
-: 'btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-xs font-bold px-2 py-1.5 rounded-lg';
+? 'btn-gritty bg-amber-500 text-zinc-950 border-amber-700 text-[10px] font-extrabold px-2 py-1 rounded shrink-0'
+: 'btn-gritty bg-zinc-800 hover:bg-zinc-700 border-zinc-950 text-zinc-200 text-[10px] font-extrabold px-2 py-1 rounded shrink-0';
 }
 this.sfx.tick();
+this.showToast(this.clockMultiplier === 5 ? '⚡ PRĘDKOŚĆ GRY I CZASU: 5x!' : '⏱️ PRĘDKOŚĆ GRY I CZASU: 1x', this.clockMultiplier === 5 ? 'amber' : 'emerald');
 },
 showToast(msg, tone = 'amber') {
 const container = document.getElementById('toast-container');
@@ -549,15 +556,15 @@ const timerBox = document.getElementById('hud-timer-box');
 timerEl.textContent = timerText;
 if (this.phase === 'PREP') {
 timerLabel.textContent = this.t('hud_prep');
-timerEl.className = 'text-lg sm:text-xl font-extrabold tracking-wider text-emerald-400 leading-none';
+timerEl.className = 'text-xs sm:text-sm font-extrabold tracking-wider text-emerald-400 leading-none';
 timerBox.classList.remove('danger-pulse');
 } else if (this.timeLeft <= 60) {
 timerLabel.textContent = this.t('hud_hurry');
-timerEl.className = 'text-lg sm:text-xl font-extrabold tracking-wider text-red-400 leading-none';
+timerEl.className = 'text-xs sm:text-sm font-extrabold tracking-wider text-red-400 leading-none';
 timerBox.classList.add('danger-pulse');
 } else {
 timerLabel.textContent = this.t('hud_shift');
-timerEl.className = 'text-lg sm:text-xl font-extrabold tracking-wider text-amber-400 leading-none';
+timerEl.className = 'text-xs sm:text-sm font-extrabold tracking-wider text-amber-400 leading-none';
 timerBox.classList.remove('danger-pulse');
 }
 if (this.currentChallenge) {

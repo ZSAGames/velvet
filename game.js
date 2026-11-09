@@ -64,8 +64,12 @@ vy: (Math.random() - 0.5) * 14,
 alpha: 0.15 + Math.random() * 0.35
 }));
 this.streetNpcs = [
-{ x: 205, y: 175, r: 15, facing: Math.PI / 2, coat: '#1e293b', trim: '#f472b6', hair: '#94a3b8', smoking: true },
-{ x: 775, y: 452, r: 15, facing: -Math.PI / 2, coat: '#27171c', trim: '#f59e0b', hair: '#475569' }
+{ x: 45, y: 132, r: 15, facing: Math.PI / 2, coat: '#1e293b', trim: '#f472b6', hair: '#94a3b8', smoking: true, barks: ['Ten deszcz nigdy nie przestaje...', 'Lombard bierze już nawet implanty.', 'Masz ognia?'] },
+{ x: 438, y: 492, r: 15, facing: -0.35, coat: '#1c1917', trim: '#fb923c', hair: '#78716c', barks: ['Dobrze, że chociaż koksownik grzeje...', 'W Barze Zdechły Pies leją samogon.', 'Syndykat zamknął całą dzielnicę.'] },
+{ x: 655, y: 132, r: 15, facing: Math.PI / 2, coat: '#0f172a', trim: '#a855f7', hair: '#e2e8f0', visor: '#c084fc', barks: ['Czarny Rynek otwarty...', 'Po 5. Nocy mamy towar Overdrive.', 'Stymy, chipy, fałszywe żetony...'] },
+{ x: 965, y: 492, r: 15, facing: -Math.PI / 2, coat: '#14261c', trim: '#34d399', hair: '#94a3b8', barks: ['Mam zrzut od Kuriera Podziemia!', 'Jedna paczka na noc — bierzesz?', 'Po 5. Nocy przychodzą Złote Zrzuty!'] },
+{ x: 1125, y: 490, r: 15, facing: -Math.PI / 2, coat: '#27171c', trim: '#f59e0b', hair: '#475569', smoking: true, barks: ['W kasynie po 5. Nocy otwierają 5. Stół VIP!', 'Nie patrz w kamery Syndykatu.', 'Zegar tyka dla każdego z nas.'] },
+{ x: 1245, y: 145, r: 15, facing: Math.PI * 0.75, coat: '#09090b', trim: '#dc2626', hair: '#09090b', visor: '#ef4444', role: 'guard', barks: ['Wchodzisz do kasyna czy stoisz na deszczu?', 'Syndykat pamięta każdy dług.', 'Ruszaj się.'] }
 ];
 this.cutscene = {
 active: false,
@@ -122,9 +126,9 @@ this.hoveredInteractable = null;
 this.menuCashCanvas = document.getElementById('menuCashCanvas');
 this.menuCashCtx = this.menuCashCanvas ? this.menuCashCanvas.getContext('2d') : null;
 this.menuCashBills = Array.from({ length: 72 }, (_, idx) => this.spawnMenuCashBill(idx, true));
-this.rain = Array.from({ length: 65 }, () => ({
-x: Math.random() * 1000,
-y: Math.random() * 600,
+this.rain = Array.from({ length: 85 }, () => ({
+x: -160 + Math.random() * 1560,
+y: 60 + Math.random() * 520,
 len: 10 + Math.random() * 12,
 speed: 350 + Math.random() * 200
 }));
@@ -613,6 +617,9 @@ return;
 if ((k === 'e' || k === ' ') && !this.activeModal && !this.mainMenuOpen) {
 e.preventDefault();
 this.triggerContextInteraction();
+} else if (k === 't' && !this.activeModal && !this.mainMenuOpen) {
+e.preventDefault();
+this.toggleClockSpeed();
 } else if (k === 'escape') {
 e.preventDefault();
 if (this.activeModal) {
@@ -735,15 +742,29 @@ this.menuCashCanvas.height = h;
 assignNightlyModifier() {
 if (this.day === 1) {
 this.currentModifier = NIGHTLY_MODIFIERS[0];
-} else {
-const idx = (this.day - 1) % NIGHTLY_MODIFIERS.length;
-this.currentModifier = NIGHTLY_MODIFIERS[idx];
+return;
 }
+const avail = NIGHTLY_MODIFIERS.filter(m => !m.minDay || this.day >= m.minDay);
+if (this.day >= 5) {
+const overdriveMods = avail.filter(m => (m.minDay || 1) >= 5);
+if (overdriveMods.length > 0 && Math.random() < 0.75) {
+this.currentModifier = overdriveMods[(this.day + Math.floor(Math.random() * overdriveMods.length)) % overdriveMods.length];
+return;
+}
+}
+this.currentModifier = avail[(this.day - 1 + Math.floor(Math.random() * avail.length)) % avail.length];
 }
 assignDailyChallenge() {
-const tpl = DAILY_CHALLENGES[(this.day - 1) % DAILY_CHALLENGES.length];
+const avail = DAILY_CHALLENGES.filter(c => !c.minDay || this.day >= c.minDay);
+let tpl = avail[(this.day - 1 + Math.floor(Math.random() * avail.length)) % avail.length];
+if (this.day >= 5 && Math.random() < 0.6) {
+const odPool = avail.filter(c => (c.minDay || 1) >= 5);
+if (odPool.length > 0) tpl = odPool[Math.floor(Math.random() * odPool.length)];
+}
+const extraReward = (this.day >= 5 && (!tpl.minDay || tpl.minDay < 5)) ? 1 : 0;
 this.currentChallenge = {
 ...tpl,
+reward: tpl.reward + extraReward,
 progress: 0,
 completed: false
 };
@@ -799,23 +820,44 @@ action: () => this.exitSafehouseToStreet()
 },
 {
 getName: () => this.t('zone_1'),
-bounds: { x: 60, y: 130, w: 880, h: 360 },
+bounds: { x: -120, y: 75, w: 1460, h: 470 },
 obstacles: [
-{ x: 310, y: 145, w: 120, h: 65 },
-{ x: 560, y: 405, w: 165, h: 70 }
+{ x: 290, y: 92, w: 125, h: 62 },
+{ x: 760, y: 448, w: 170, h: 72 },
+{ x: 1030, y: 92, w: 135, h: 60 }
 ],
 interactables: [
 {
-box: { x: 48, y: 275, w: 20, h: 90 },
-edgeDist: 56,
+box: { x: -132, y: 265, w: 22, h: 95 },
+edgeDist: 60,
 getPrompt: () => this.t('prompt_enter_home'),
 action: () => {
 this.transitionToZone(0, 485, 455);
 }
 },
 {
-box: { x: 935, y: 260, w: 20, h: 120 },
-edgeDist: 56,
+box: { x: 575, y: 75, w: 135, h: 36 },
+edgeDist: 62,
+getPrompt: () => this.day >= 5
+? '🕶️ CZARNY RYNEK // TRYB OVERDRIVE AKTYWNY (STYMULANTY, HAKI & ŻETONY)'
+: '🕶️ CZARNY RYNEK SYNDYKATU (STYMULANTY, ŻETONY & ULEPSZENIA [NOC 5+])',
+action: () => {
+if (this.openBlackMarketModal) this.openBlackMarketModal();
+}
+},
+{
+box: { x: 895, y: 508, w: 130, h: 36 },
+edgeDist: 62,
+getPrompt: () => this.smugglerUsedThisNight
+? '📦 KURIER PODZIEMIA (ZRZUT ODEBRANY DZIŚ W NOCY 1/1)'
+: (this.day >= 5 ? '📦 KURIER PODZIEMIA // ★ ZŁOTY ZRZUT OVERDRIVE (1/NOC)' : '📦 KURIER PODZIEMIA // TAJNY ZRZUT ZAOPATRZENIA (1/NOC)'),
+action: () => {
+if (this.useStreetSmugglerDrop) this.useStreetSmugglerDrop();
+}
+},
+{
+box: { x: 1330, y: 250, w: 22, h: 125 },
+edgeDist: 60,
 getPrompt: () => this.t('prompt_enter_casino'),
 action: () => {
 if (this.phase === 'PREP') {
@@ -842,7 +884,7 @@ box: { x: 63, y: 265, w: 16, h: 90 },
 edgeDist: 56,
 getPrompt: () => this.t('prompt_door_exit'),
 action: () => {
-this.transitionToZone(1, 910, 320);
+this.transitionToZone(1, 1285, 315);
 }
 },
 {
@@ -889,7 +931,7 @@ exitSafehouseToStreet() {
 if (this.phase === 'PREP') {
 this.startNightShift();
 }
-this.transitionToZone(1, 95, 320);
+this.transitionToZone(1, -75, 310);
 }
 startNightShift() {
 this.phase = 'SHIFT';
@@ -1331,13 +1373,21 @@ while (diff < -Math.PI) diff += Math.PI * 2;
 while (diff > Math.PI) diff -= Math.PI * 2;
 return current + diff * Math.min(1, t);
 }
-update(dt) {
-this.animTime += dt;
+update(rawDt) {
 if (this.mainMenuOpen) return;
 if (this.cutscene && this.cutscene.active) {
-this.updateCutscene(dt);
+this.animTime += rawDt;
+this.updateCutscene(rawDt);
 return;
 }
+const steps = (this.clockMultiplier && this.clockMultiplier > 1) ? this.clockMultiplier : 1;
+for (let s = 0; s < steps; s++) {
+this.updateSingleStep(rawDt);
+if (this.mainMenuOpen || (this.cutscene && this.cutscene.active)) break;
+}
+}
+updateSingleStep(dt) {
+this.animTime += dt;
 this.unstuckPlayer();
 if (this.checkBankruptcy) this.checkBankruptcy();
 if (this.cutscene && this.cutscene.active) return;
@@ -1353,7 +1403,7 @@ this.activeModal === 'modal-day-complete'
 );
 if (this.phase === 'SHIFT' && !isTimerPausedModal) {
 const prevSec = Math.floor(this.timeLeft);
-this.timeLeft -= dt * this.clockMultiplier;
+this.timeLeft -= dt;
 const curSec = Math.floor(this.timeLeft);
 if (curSec <= 30 && curSec < prevSec && curSec > 0) {
 this.sfx.alarm();
@@ -1531,17 +1581,44 @@ b.alpha = Math.min(1, b.life / 0.6);
 if (b.life <= 0) this.npcBubbles.splice(i, 1);
 }
 }
+if (this.zone === 1) {
+this.npcBubbleTimer -= dt;
+if (this.npcBubbleTimer <= 0 && this.streetNpcs && this.streetNpcs.length > 0) {
+this.npcBubbleTimer = 2.6 + Math.random() * 2.5;
+const npc = this.streetNpcs[Math.floor(Math.random() * this.streetNpcs.length)];
+if (npc && npc.barks && npc.barks.length > 0) {
+const text = npc.barks[Math.floor(Math.random() * npc.barks.length)];
+this.npcBubbles.push({
+x: npc.x + (Math.random() - 0.5) * 10,
+y: npc.y - 22,
+text,
+color: '#cbd5e1',
+alpha: 1.0,
+life: 2.3
+});
+if (this.npcBubbles.length > 4) this.npcBubbles.shift();
+}
+}
+for (let i = this.npcBubbles.length - 1; i >= 0; i--) {
+const b = this.npcBubbles[i];
+b.y -= dt * 9;
+b.life -= dt;
+b.alpha = Math.min(1, b.life / 0.6);
+if (b.life <= 0) this.npcBubbles.splice(i, 1);
+}
+}
 if (this.zone === 1 && !this.settings.lowEndMode) {
-if (Math.random() < 0.35 && this.smokePuffs.length < 22) {
-const isCarSmoke = Math.random() < 0.55;
+if (Math.random() < 0.45 && this.smokePuffs.length < 28) {
+const roll = Math.random();
+const srcType = roll < 0.45 ? 'car' : (roll < 0.78 ? 'brazier' : 'cig');
 this.smokePuffs.push({
-x: isCarSmoke ? (575 + Math.random() * 18) : (214 + Math.random() * 4),
-y: isCarSmoke ? (418 + Math.random() * 20) : 178,
-r: isCarSmoke ? 4 : 2,
-vx: -10 - Math.random() * 12,
-vy: -16 - Math.random() * 14,
-alpha: isCarSmoke ? 0.32 : 0.45,
-color: isCarSmoke ? 'rgba(148, 163, 184,' : 'rgba(226, 232, 240,'
+x: srcType === 'car' ? (775 + Math.random() * 18) : (srcType === 'brazier' ? (468 + (Math.random() - 0.5) * 10) : (54 + Math.random() * 4)),
+y: srcType === 'car' ? (460 + Math.random() * 20) : (srcType === 'brazier' ? 488 : 135),
+r: srcType === 'car' ? 4 : (srcType === 'brazier' ? 2.2 : 2),
+vx: srcType === 'brazier' ? (-6 + Math.random() * 12) : (-10 - Math.random() * 12),
+vy: srcType === 'brazier' ? (-24 - Math.random() * 18) : (-16 - Math.random() * 14),
+alpha: srcType === 'car' ? 0.32 : (srcType === 'brazier' ? 0.75 : 0.45),
+color: srcType === 'car' ? 'rgba(148, 163, 184,' : (srcType === 'brazier' ? 'rgba(251, 146, 60,' : 'rgba(226, 232, 240,')
 });
 }
 for (let i = this.smokePuffs.length - 1; i >= 0; i--) {
@@ -1557,17 +1634,17 @@ if (this.zone === 1 && this.settings.weather && !this.settings.lowEndMode) {
 for (const drop of this.rain) {
 drop.y += drop.speed * dt;
 drop.x -= 55 * dt;
-if (drop.y > 500) {
-if (Math.random() < 0.35 && this.rainSplashes.length < 25) {
+if (drop.y > 545) {
+if (Math.random() < 0.35 && this.rainSplashes.length < 32) {
 this.rainSplashes.push({
 x: drop.x,
-y: 150 + Math.random() * 320,
+y: 95 + Math.random() * 430,
 r: 1,
 alpha: 0.65
 });
 }
-drop.y = 110;
-drop.x = 60 + Math.random() * 900;
+drop.y = 65;
+drop.x = -140 + Math.random() * 1520;
 }
 }
 for (let i = this.rainSplashes.length - 1; i >= 0; i--) {

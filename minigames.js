@@ -56,6 +56,10 @@ const VelvetMinigames = {
     this.featuredMinigameBag = this.featuredMinigameBag || [];
     this.dailyFeaturedGame = this.dailyFeaturedGame || null;
 
+    this.smugglerUsedThisNight = false;
+    this.bmBoughtThisNight = {};
+    this.overdriveChipActive = false;
+    this.activeOverdriveTableType = null;
     this.injectExtraMinigameModals();
     this.hookRendererAndModals();
   },
@@ -197,6 +201,37 @@ const VelvetMinigames = {
             <button id="cups-cashout-btn" onclick="window.game.cashoutCupsGame()" disabled class="btn-gritty bg-amber-500 hover:bg-amber-400 border-amber-800 text-zinc-950 font-extrabold py-3 rounded-xl text-xs sm:text-sm uppercase">💰 WYPŁAĆ ŁUP</button>
           </div>
         </div>
+      </div>
+
+      <!-- 5. CZARNY RYNEK SYNDYKATU (BLACK MARKET ON THE STREET) -->
+      <div id="modal-blackmarket" class="hidden w-full max-w-2xl cyber-panel p-5 sm:p-6 space-y-4 max-h-[92dvh] overflow-y-auto my-auto">
+        <div class="flex items-center justify-between border-b border-purple-500/40 pb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">🕶️</span>
+            <div>
+              <h2 class="text-purple-300 font-extrabold tracking-wider text-sm sm:text-base uppercase font-display">CZARNY RYNEK // PODZIEMIE BLACKWATER</h2>
+              <p id="bm-subtitle" class="text-[11px] text-zinc-400">Taktyczne stymulanty, fałszywe żetony i nielegalne moduły Overdrive (od Nocy 5+)</p>
+            </div>
+          </div>
+          <button onclick="window.game.closeModals()" class="cyber-btn-sec text-purple-300 hover:text-white font-extrabold text-xs px-3 py-1.5">[ESC] ODEJDŹ</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 bg-zinc-950/90 border border-zinc-800 p-3 rounded-lg text-center">
+          <div class="border-r border-zinc-800 pr-1">
+            <div class="text-[9px] font-bold uppercase text-zinc-400">TWOJA RANGA</div>
+            <div id="bm-rank-label" class="text-xs sm:text-sm font-extrabold text-purple-300 mt-0.5">DŁUŻNIK ULICY</div>
+          </div>
+          <div class="border-r border-zinc-800 px-1">
+            <div class="text-[9px] font-bold uppercase text-zinc-400">GOTÓWKA / KWOTA</div>
+            <div id="bm-cash-label" class="text-xs sm:text-sm font-extrabold text-emerald-400 mt-0.5">$500 / $1,000</div>
+          </div>
+          <div class="pl-1">
+            <div class="text-[9px] font-bold uppercase text-zinc-400">ŻETONY</div>
+            <div id="bm-tokens-label" class="text-xs sm:text-sm font-extrabold text-amber-400 mt-0.5">1 🪙</div>
+          </div>
+        </div>
+
+        <div id="bm-items-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
       </div>
     `;
     while (wrapper.firstElementChild) {
@@ -441,19 +476,45 @@ const VelvetMinigames = {
     }
     this.lastDayGameTypes = selected.map(g => g.type);
 
+    const tableCount = this.day >= 5 ? 5 : 4;
+    if (tableCount === 5 && selected.length < 5) {
+      const remaining = allGames.filter(g => !selected.some(s => s.type === g.type));
+      if (remaining.length > 0) {
+        selected.push(remaining[Math.floor(Math.random() * remaining.length)]);
+      }
+    }
     const tableBoxes = [
       { x: 185, y: 135, w: 180, h: 110 },
       { x: 635, y: 135, w: 190, h: 110 },
-      { x: 425, y: 265, w: 155, h: 95 },
-      { x: 195, y: 385, w: 165, h: 85 }
+      { x: 425, y: 255, w: 155, h: 92 },
+      { x: 195, y: 385, w: 165, h: 85 },
+      { x: 420, y: 388, w: 165, h: 82 }
     ];
-    this.activeCasinoSlots = selected.map((game, idx) => {
+    if (this.zones && this.zones[2]) {
+      this.zones[2].obstacles = [
+        { x: 185, y: 110, w: 180, h: 135 },
+        { x: 635, y: 110, w: 190, h: 135 },
+        { x: 425, y: 255, w: 155, h: 92 },
+        { x: 195, y: 385, w: 165, h: 85 },
+        ...(this.day >= 5 ? [{ x: 420, y: 388, w: 165, h: 82 }] : []),
+        { x: 655, y: 385, w: 145, h: 80 }
+      ];
+    }
+    this.activeOverdriveTableType = this.day >= 5 && selected[4] ? selected[4].type : null;
+    this.activeCasinoSlots = selected.slice(0, tableCount).map((game, idx) => {
       const variantIdx = (this.day * 3 + idx + Math.floor(Math.random() * game.variants.length)) % game.variants.length;
       const isFeatured = game.type === this.dailyFeaturedGame;
+      const isOverdriveTable = idx === 4;
+      const prefix = isOverdriveTable
+        ? '🔥 STÓŁ OVERDRIVE (+25% WYPŁAT) • '
+        : (isFeatured ? '★ MINIGRA DNIA • ' : '');
       return {
         ...game,
+        title: isOverdriveTable ? `🔥 ${game.title} [VIP 5+]` : game.title,
+        color: isOverdriveTable ? '#f59e0b' : game.color,
+        isOverdriveTable,
         variantIdx,
-        variantText: (isFeatured ? '★ MINIGRA DNIA • ' : '') + game.variants[variantIdx],
+        variantText: prefix + game.variants[variantIdx],
         box: tableBoxes[idx]
       };
     });
@@ -493,15 +554,231 @@ const VelvetMinigames = {
     }
   },
 
+  getSyndicateRank() {
+    if (this.day >= 10) return { name: '👑 LEGENDA VELVET PIT', winBonus: 1.40, startCash: 1000 };
+    if (this.day >= 7)  return { name: '🔥 BARON OTCHŁANI [OD II]', winBonus: 1.25, startCash: 500 };
+    if (this.day >= 5)  return { name: '⚡ SZULER OVERDRIVE [OD I]', winBonus: 1.15, startCash: 250 };
+    if (this.day >= 3)  return { name: '🎲 RYZYKANT BLACKWATER', winBonus: 1.05, startCash: 100 };
+    return { name: '⛓ DŁUŻNIK ULICY', winBonus: 1.00, startCash: 0 };
+  },
+
+  openBlackMarketModal() {
+    this.ensureExtraMinigamesInitialized();
+    this.sfx.tick();
+    this.renderBlackMarketUI();
+    this.openModal('modal-blackmarket');
+  },
+
+  renderBlackMarketUI() {
+    const rank = this.getSyndicateRank();
+    const rEl = document.getElementById('bm-rank-label');
+    const cEl = document.getElementById('bm-cash-label');
+    const tEl = document.getElementById('bm-tokens-label');
+    if (rEl) rEl.textContent = rank.name;
+    if (cEl) cEl.textContent = `$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}`;
+    if (tEl) tEl.textContent = `${this.tokens} 🪙`;
+
+    const disc = (this.relics && this.relics.has('street_kingpin')) ? 0.65 : 1.0;
+    const modDisc = (this.currentModifier && this.currentModifier.id === 'overdrive_blackmarket') ? 0.75 : 1.0;
+    const priceMult = disc * modDisc;
+
+    const items = [
+      {
+        id: 'chrono_stim',
+        icon: '💉',
+        title: 'Zastrzyk Chrono-Stymu',
+        desc: 'Natychmiast dodaje +45 sekund do Zegara Nocnej Zmiany.',
+        costCash: Math.round((200 + (this.day - 1) * 50) * priceMult),
+        minDay: 1
+      },
+      {
+        id: 'forged_token',
+        icon: '🪙',
+        title: 'Fałszywy Żeton Syndykatu',
+        desc: 'Kup 1 🪙 Żeton na Ołtarz Reliktów za gotówkę (1x na noc).',
+        costCash: Math.round((300 + (this.day - 1) * 75) * priceMult),
+        minDay: 1
+      },
+      {
+        id: 'quota_hack',
+        icon: '💻',
+        title: '🔥 [NOC 5+] Exploit Rejestru Długu',
+        desc: 'Hakuje serwer Syndykatu i obniża dzisiejszą wymaganą Kwotę Długu o -20%!',
+        costCash: Math.round((450 + (this.day - 1) * 90) * priceMult),
+        minDay: 5
+      },
+      {
+        id: 'overdrive_chip',
+        icon: '⚡',
+        title: '🔥 [NOC 5+] Chip Overdrive (+30%)',
+        desc: 'Do końca dzisiejszej nocy wszystkie wygrane w Kasynie są wyższe o +30%!',
+        costCash: Math.round((500 + (this.day - 1) * 100) * priceMult),
+        minDay: 5
+      },
+      {
+        id: 'synthetic_plasma',
+        icon: '🩸',
+        title: '🔥 [NOC 5+] Syntetyczna Plazma',
+        desc: 'Otwiera i resetuje Pompę Krwi w Bankomacie oraz dodaje +30s czasu!',
+        costTokens: 1,
+        minDay: 5
+      },
+      {
+        id: 'mystery_relic',
+        icon: '🕯️',
+        title: '🔥 [NOC 6+] Kontrabanda Rusznikarza',
+        desc: 'Natychmiast odblokowuje losowy nieposiadany Relikt za gotówkę!',
+        costCash: Math.round((1100 + (this.day - 1) * 180) * priceMult),
+        minDay: 6
+      }
+    ];
+
+    const grid = document.getElementById('bm-items-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    this.bmBoughtThisNight = this.bmBoughtThisNight || {};
+
+    items.forEach(it => {
+      const locked = this.day < it.minDay;
+      const bought = !!this.bmBoughtThisNight[it.id];
+      const canAfford = it.costTokens ? (this.tokens >= it.costTokens) : (this.cash >= it.costCash);
+      const costText = it.costTokens ? `${it.costTokens} 🪙` : `$${it.costCash.toLocaleString()}`;
+      const card = document.createElement('div');
+      card.className = `p-3.5 rounded-xl border ${locked ? 'bg-zinc-950/50 border-zinc-800/60 opacity-60' : (bought ? 'bg-emerald-950/30 border-emerald-500/50' : 'bg-zinc-900/90 border-purple-500/40')} flex flex-col justify-between gap-2.5`;
+      card.innerHTML = `
+        <div class="flex items-start gap-2.5">
+          <div class="text-xl bg-zinc-950 p-2 rounded-lg border border-zinc-800">${it.icon}</div>
+          <div>
+            <div class="font-extrabold text-xs sm:text-sm text-white">${it.title}</div>
+            <p class="text-[11px] text-zinc-400 mt-0.5 leading-snug">${it.desc}</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+          <span class="text-xs font-extrabold ${it.costTokens ? 'text-amber-400' : 'text-emerald-400'}">${locked ? `ODBLOKOWANIE: NOC ${it.minDay}` : `KOSZT: ${costText}`}</span>
+          <button ${locked || bought || !canAfford ? 'disabled' : ''} class="btn-gritty px-3.5 py-1.5 rounded-lg text-xs font-extrabold ${bought ? 'bg-emerald-800 text-emerald-200 border-emerald-950' : (!locked && canAfford ? 'bg-purple-500 hover:bg-purple-400 text-zinc-950 border-purple-800' : 'bg-zinc-800 text-zinc-500 border-zinc-950')}">
+            ${locked ? `🔒 NOC ${it.minDay}+` : (bought ? 'KUPIONO ✓' : 'KUP TERAZ')}
+          </button>
+        </div>
+      `;
+      if (!locked && !bought && canAfford) {
+        card.querySelector('button').onclick = () => this.buyBlackMarketItem(it);
+      }
+      grid.appendChild(card);
+    });
+  },
+
+  buyBlackMarketItem(it) {
+    if (this.day < it.minDay || (this.bmBoughtThisNight && this.bmBoughtThisNight[it.id])) return;
+    if (it.costTokens) {
+      if (this.tokens < it.costTokens) return;
+      this.tokens -= it.costTokens;
+    } else {
+      if (this.cash < it.costCash) return;
+      this.cash -= it.costCash;
+    }
+    this.bmBoughtThisNight = this.bmBoughtThisNight || {};
+    this.bmBoughtThisNight[it.id] = true;
+
+    if (it.id === 'chrono_stim') {
+      this.timeLeft += 45;
+      this.maxTime = Math.max(this.maxTime, this.timeLeft);
+      this.sfx.win();
+      this.showToast('💉 Chrono-Stymulant: +45s do Zegara Zmiany!', 'emerald');
+    } else if (it.id === 'forged_token') {
+      this.tokens += 1;
+      this.sfx.jackpot();
+      this.showToast('🪙 Kupiono Fałszywy Żeton (+1 🪙)!', 'amber');
+    } else if (it.id === 'quota_hack') {
+      this.quota = Math.max(500, Math.round((this.quota * 0.80) / 50) * 50);
+      this.sfx.jackpot();
+      this.showToast(`💻 Zhakowano rejestr! Nowa Kwota Długu: $${this.quota.toLocaleString()}!`, 'emerald');
+    } else if (it.id === 'overdrive_chip') {
+      this.overdriveChipActive = true;
+      this.sfx.jackpot();
+      this.showToast('⚡ Chip Overdrive aktywny: +30% do wygranych tej nocy!', 'emerald');
+    } else if (it.id === 'synthetic_plasma') {
+      this.bloodAvailableToday = true;
+      this.bloodPumpedThisNight = false;
+      this.timeLeft += 30;
+      this.sfx.win();
+      this.showToast('🩸 Syntetyczna Plazma: Pompa Krwi odblokowana + 30s czasu!', 'emerald');
+    } else if (it.id === 'mystery_relic') {
+      const unowned = RELIC_CATALOG.filter(r => !this.relics.has(r.id));
+      if (unowned.length > 0) {
+        const picked = unowned[Math.floor(Math.random() * unowned.length)];
+        this.relics.add(picked.id);
+        this.sfx.jackpot();
+        this.showToast(`🕯️ Odblokowano Relikt z przemytu: ${this.getLocalized(picked.name)}!`, 'emerald');
+      } else {
+        this.tokens += 3;
+        this.showToast('Posiadasz już wszystkie Relikty! Otrzymujesz +3 🪙!', 'amber');
+      }
+    }
+    this.renderBlackMarketUI();
+    this.updateHUD();
+    if (this.checkBankruptcy) this.checkBankruptcy();
+  },
+
+  useStreetSmugglerDrop() {
+    this.ensureExtraMinigamesInitialized();
+    if (this.smugglerUsedThisNight) {
+      this.sfx.lose();
+      this.showToast('Kurier Podziemia dostarczył już dzisiejszy zrzut (1/1 w tę noc)!', 'amber');
+      return;
+    }
+    this.smugglerUsedThisNight = true;
+    const isOverdrive = this.day >= 5;
+    const kingpinMult = (this.relics && this.relics.has('street_kingpin')) ? 2 : 1;
+    const roll = Math.random();
+    if (isOverdrive && roll < 0.25) {
+      const unowned = RELIC_CATALOG.filter(r => !this.relics.has(r.id));
+      if (unowned.length > 0) {
+        const picked = unowned[Math.floor(Math.random() * unowned.length)];
+        this.relics.add(picked.id);
+        this.sfx.jackpot();
+        this.showToast(`📦 ★ ZŁOTY ZRZUT OVERDRIVE: Darmowy Relikt (${this.getLocalized(picked.name)})!`, 'emerald');
+        this.updateHUD();
+        return;
+      }
+    }
+    if (roll < 0.45) {
+      const tokGain = (isOverdrive ? 2 : 1) * kingpinMult;
+      this.tokens += tokGain;
+      this.sfx.jackpot();
+      this.showToast(`📦 Zrzut Kuriera: Znaleziono +${tokGain} 🪙 w ukrytej skrytce!`, 'amber');
+    } else if (roll < 0.80) {
+      const cashGain = Math.round((150 + this.day * 75) * (isOverdrive ? 1.6 : 1.0) * kingpinMult);
+      this.cash += cashGain;
+      this.sfx.win();
+      this.showToast(`📦 Zrzut Kuriera: Paczka z gotówką +$${cashGain.toLocaleString()}!`, 'emerald');
+    } else {
+      const secGain = (isOverdrive ? 50 : 30) * kingpinMult;
+      this.timeLeft += secGain;
+      this.maxTime = Math.max(this.maxTime, this.timeLeft);
+      this.sfx.win();
+      this.showToast(`📦 Zrzut Kuriera: Kapsuła Chrono +${secGain}s do zegara!`, 'emerald');
+    }
+    this.updateHUD();
+  },
+
   advanceToNextDay(ev) {
     if (ev) ev.preventDefault();
     this.day += 1;
     this.phase = 'PREP';
     this.zone = 0;
     this.bloodPumpedThisNight = false;
+    this.smugglerUsedThisNight = false;
+    this.bmBoughtThisNight = {};
+    this.overdriveChipActive = false;
+    if (this.relics && this.relics.has('infinity_vault')) {
+      this.tokens += 2;
+    }
     this.rollDailyAtmAvailability();
-    const surplusCarry = Math.min(400, Math.floor(Math.max(0, this.cash - this.quota) * 0.25));
-    const relicFund = (this.relics.has('trust_fund') ? 350 : 0) + (this.relics.has('velvet_crown') ? 1000 : 0);
+    const rank = this.getSyndicateRank();
+    const surplusCarry = (this.relics && this.relics.has('infinity_vault'))
+      ? Math.floor(Math.max(0, this.cash - this.quota) * 0.60)
+      : Math.min(400, Math.floor(Math.max(0, this.cash - this.quota) * 0.25));
+    const relicFund = (this.relics.has('trust_fund') ? 350 : 0) + (this.relics.has('velvet_crown') ? 1000 : 0) + rank.startCash;
     this.cash = 500 + (this.day - 1) * 150 + surplusCarry + relicFund;
     const rawQuota = 1000 * Math.pow(1.45, this.day - 1) * (this.relics.has('syndicate_seal') ? 0.85 : 1.0);
     this.quota = Math.round(rawQuota / 50) * 50;
@@ -522,7 +799,14 @@ const VelvetMinigames = {
     this.syncZoneMusic();
     this.updateHUD();
     this.sfx.win();
-    this.showToast(`☀ ${this.t('day_word')} ${this.day} — Nowe minigry w Kasynie! | Kwota: $${this.quota.toLocaleString()}`, 'emerald');
+    if (this.day === 5) {
+      this.sfx.jackpot();
+      this.showToast('🔥 NOC 5 — ODBLOKOWANO TRYB OVERDRIVE: 5. Stół VIP w Kasynie, Nowe Towary na Czarnym Rynku i Kontrakty Wysokiej Stawki!', 'amber');
+    } else if (this.day > 5) {
+      this.showToast(`🔥 ${this.t('day_word')} ${this.day} [OVERDRIVE] — Ranga: ${rank.name} | Kwota: $${this.quota.toLocaleString()}`, 'emerald');
+    } else {
+      this.showToast(`☀ ${this.t('day_word')} ${this.day} — Nowe minigry w Kasynie! | Kwota: $${this.quota.toLocaleString()}`, 'emerald');
+    }
   },
 
   restartRun() {
@@ -534,6 +818,9 @@ const VelvetMinigames = {
     this.tokens = 1;
     this.relics.clear();
     this.bloodPumpedThisNight = false;
+    this.smugglerUsedThisNight = false;
+    this.bmBoughtThisNight = {};
+    this.overdriveChipActive = false;
     this.rollDailyAtmAvailability();
     this.maxTime = 360;
     this.timeLeft = 360;
@@ -1039,7 +1326,7 @@ const VelvetMinigames = {
     document.getElementById('roul-spin-btn').disabled = true;
     const winningNum = Math.floor(Math.random() * 37);
     const redNums = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-    const startTime = performance.now(), duration = 1750;
+    const startTime = performance.now(), duration = 1750 / (this.clockMultiplier || 1);
     const roulSlot = this.activeCasinoSlots.find(s => s.type === 'roul');
     const singleMult = (roulSlot && roulSlot.variantIdx === 1) ? 42 : 36;
     const colorMult = (roulSlot && roulSlot.variantIdx === 2) ? 2.15 : 2;
@@ -1150,7 +1437,7 @@ const VelvetMinigames = {
       }
       this.updateHUD();
       if (this.checkBankruptcy) this.checkBankruptcy();
-    }, 480);
+    }, Math.round(480 / (this.clockMultiplier || 1)));
   },
 
   // ==========================================
@@ -1206,7 +1493,7 @@ const VelvetMinigames = {
       }
       this.updateHUD();
       if (this.checkBankruptcy) this.checkBankruptcy();
-    }, 420);
+    }, Math.round(420 / (this.clockMultiplier || 1)));
   },
 
   // ==========================================
@@ -1643,7 +1930,7 @@ const VelvetMinigames = {
     let last = performance.now();
     const step = (now) => {
       if (!this.pulse.active || this.activeModal !== 'modal-pulse') return;
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dt = Math.min(0.05, (now - last) / 1000) * (this.clockMultiplier || 1);
       last = now;
       this.pulse.cursor += this.pulse.dir * this.pulse.speed * dt;
       if (this.pulse.cursor >= 1) { this.pulse.cursor = 1; this.pulse.dir = -1; }
@@ -1918,9 +2205,9 @@ const VelvetMinigames = {
     if (this.checkBankruptcy) this.checkBankruptcy();
   },
   refreshAtmModalUI() {
-    const chaliceMult = this.relics.has('crimson_chalice') ? 1.45 : 1.0;
+    const chaliceMult = (this.relics.has('crimson_chalice') ? 1.45 : 1.0) * (this.relics.has('blood_emperor') ? 2.0 : 1.0);
     const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
-    const timeCost = Math.max(15, (this.currentModifier.bloodCost || 60) - (this.relics.has('crimson_chalice') ? 20 : 0));
+    const timeCost = this.relics.has('blood_emperor') ? 0 : Math.max(15, (this.currentModifier.bloodCost || 60) - (this.relics.has('crimson_chalice') ? 20 : 0));
     const badge = document.getElementById('atm-usage-badge');
     const costLbl = document.getElementById('atm-cost-label');
     const loanBtn = document.getElementById('btn-blood-loan');
@@ -1967,13 +2254,13 @@ const VelvetMinigames = {
       return;
     }
     if (this.bloodPumpedThisNight) return;
-    const timeCost = Math.max(15, (this.currentModifier.bloodCost || 60) - (this.relics.has('crimson_chalice') ? 20 : 0));
-    if (this.timeLeft <= timeCost + 5) {
+    const timeCost = this.relics.has('blood_emperor') ? 0 : Math.max(15, (this.currentModifier.bloodCost || 60) - (this.relics.has('crimson_chalice') ? 20 : 0));
+    if (timeCost > 0 && this.timeLeft <= timeCost + 5) {
       this.sfx.lose();
       this.showToast('Za mało czasu na zegarze na ekstrakcję krwi!', 'red');
       return;
     }
-    const chaliceMult = this.relics.has('crimson_chalice') ? 1.45 : 1.0;
+    const chaliceMult = (this.relics.has('crimson_chalice') ? 1.45 : 1.0) * (this.relics.has('blood_emperor') ? 2.0 : 1.0);
     const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
     this.bloodPumpedThisNight = true;
     this.timeLeft -= timeCost;
@@ -2004,10 +2291,42 @@ const VelvetMinigames = {
     if (this.relics.has('golden_cufflinks')) relicBonus *= 1.20;
     if (this.relics.has('diamond_magnet')) relicBonus *= 1.35;
     if (this.relics.has('velvet_crown')) relicBonus *= 1.50;
+    if (this.relics.has('overdrive_core') && this.day >= 5) {
+      relicBonus *= (1 + (this.day - 4) * 0.10);
+    }
+    if (this.overdriveChipActive) relicBonus *= 1.30;
+    const rankObj = this.getSyndicateRank ? this.getSyndicateRank() : { winBonus: 1.0 };
+    relicBonus *= (rankObj.winBonus || 1.0);
+
+    // Sprawdź czy aktualnie otwarta gra to 5. Stół Overdrive (+25% wypłaty)
+    const modalToType = {
+      'modal-blackjack': 'bj',
+      'modal-roulette': 'roul',
+      'modal-slots': 'slots',
+      'modal-dice': 'dice',
+      'modal-crash': 'crash',
+      'modal-mines': 'mines',
+      'modal-tower': 'tower',
+      'modal-pulse': 'pulse',
+      'modal-hilo': 'hilo',
+      'modal-cups': 'cups'
+    };
+    const activeType = modalToType[this.activeModal];
+    if (activeType && this.activeOverdriveTableType === activeType) {
+      relicBonus *= 1.25;
+    }
+
     const modBonus = this.currentModifier.payoutMult || 1.0;
     const total = Math.round(baseBetOrWin * multiplier * relicBonus * modBonus);
     this.cash += total;
     if (this.rumble) this.rumble(0.45, 0.75, 220);
+
+    // Postęp kontraktów ogólnych i Overdrive (Noc 5+)
+    this.advanceChallenge('overdrive_streak_3', 1);
+    if (total >= 1200) this.advanceChallenge('overdrive_big_win', 1);
+    if (activeType === 'tower' || activeType === 'pulse') this.advanceChallenge('tower_win_1', 1);
+    if (activeType === 'crash' || activeType === 'mines') this.advanceChallenge('crash_mines_win', 1);
+
     return total;
   },
   advanceChallenge(id, amount = 1) {

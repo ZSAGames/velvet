@@ -2,7 +2,7 @@
 *{box-sizing:border-box;user-select:none;-webkit-user-select:none}
 body,html{margin:0;padding:0;width:100%;height:100%;width:100dvw;height:100dvh;overflow:hidden;touch-action:none;overscroll-behavior:none;background-color:var(--bg-void);font-family:'JetBrains Mono',monospace;color:#f3f4f6}
 .font-display{font-family:'Syne',sans-serif}
-.crt-overlay{pointer-events:none;position:fixed;inset:0;z-index:45;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.28) 50%),radial-gradient(circle at center,transparent 58%,rgba(0,0,0,0.78) 100%);background-size:100% 4px,100% 100%}
+.crt-overlay{pointer-events:none;position:fixed;inset:0;z-index:15;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.22) 50%),radial-gradient(circle at center,transparent 64%,rgba(0,0,0,0.62) 100%);background-size:100% 4px,100% 100%}
 @keyframes neonPulse{0%,100%{opacity:1;filter:drop-shadow(0 0 8px rgba(245,158,11,0.7))}50%{opacity:0.85;filter:drop-shadow(0 0 3px rgba(245,158,11,0.4))}52%{opacity:0.4}54%{opacity:0.95}}
 .neon-text{animation:neonPulse 3.5s infinite}
 @keyframes dangerPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,0.7)}50%{transform:scale(1.03);box-shadow:0 0 20px 4px rgba(220,38,38,0.45)}}
@@ -69,3 +69,34 @@ body.is-mobile #interact-prompt{bottom:9.5rem;width:max-content;max-width:92vw}
 
 .cyber-clip-sm{clip-path:polygon(0 6px,6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%)}
 .cyber-panel::before{content:'';position:absolute;top:0;left:24px;right:24px;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,#f59e0b,transparent);opacity:0.85;pointer-events:none}
+
+@keyframes hudFloatRight3D {
+  0%, 100% { transform: perspective(650px) rotateY(-15deg) rotateX(6deg) rotateZ(-0.8deg) translateY(0px); }
+  50% { transform: perspective(650px) rotateY(-13deg) rotateX(4.5deg) rotateZ(-0.4deg) translateY(-3px); }
+}
+@keyframes hudFloatRightSub3D {
+  0%, 100% { transform: perspective(650px) rotateY(-15deg) rotateX(4deg) rotateZ(-0.6deg) translateX(-4px) translateY(0px); }
+  50% { transform: perspective(650px) rotateY(-13deg) rotateX(5.5deg) rotateZ(-0.2deg) translateX(-4px) translateY(3px); }
+}
+@keyframes hudFloatLeft3D {
+  0%, 100% { transform: perspective(650px) rotateY(16deg) rotateX(4deg) rotateZ(0.8deg) translateY(0px); }
+  50% { transform: perspective(650px) rotateY(14deg) rotateX(2.5deg) rotateZ(0.4deg) translateY(-3.5px); }
+}
+.hud-3d-right {
+  transform-origin: right top;
+  transform: perspective(650px) rotateY(-15deg) rotateX(6deg) rotateZ(-0.8deg);
+  animation: hudFloatRight3D 5s ease-in-out infinite;
+  box-shadow: 7px 9px 0px rgba(6, 182, 212, 0.32), 0 0 28px rgba(6, 182, 212, 0.28), inset 0 0 18px rgba(6, 182, 212, 0.12);
+}
+.hud-3d-right-sub {
+  transform-origin: right top;
+  transform: perspective(650px) rotateY(-15deg) rotateX(4deg) rotateZ(-0.6deg) translateX(-4px);
+  animation: hudFloatRightSub3D 5.6s ease-in-out infinite;
+  box-shadow: 7px 9px 0px rgba(16, 185, 129, 0.30), 0 0 28px rgba(16, 185, 129, 0.24), inset 0 0 18px rgba(16, 185, 129, 0.10);
+}
+.hud-3d-left {
+  transform-origin: left center;
+  transform: perspective(650px) rotateY(16deg) rotateX(4deg) rotateZ(0.8deg);
+  animation: hudFloatLeft3D 5.2s ease-in-out infinite;
+  box-shadow: -7px 9px 0px rgba(245, 158, 11, 0.32), 0 0 28px rgba(245, 158, 11, 0.25), inset 0 0 18px rgba(245, 158, 11, 0.12);
+}
