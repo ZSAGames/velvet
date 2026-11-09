@@ -203,7 +203,9 @@ ctx.fillStyle = '#030407';
 ctx.fillRect(0, 0, cw, ch);
 const isPortrait = cw < ch;
 const baseScale = isPortrait ? Math.max(cw / 620, ch / 960) : Math.min(cw / 1000, ch / 600);
-const camScale = baseScale * this.camera.zoom;
+const zoomMult = (this.cutscene && this.cutscene.active) ? 1.12 : 1.0;
+const camScale = baseScale * this.camera.zoom * zoomMult;
+this.pendingBadges = [];
 ctx.save();
 ctx.translate(cw / 2, ch / 2);
 ctx.scale(camScale, camScale);
@@ -223,15 +225,35 @@ ctx.stroke();
 ctx.restore();
 }
 }
-if (this.hoveredInteractable && this.hoveredInteractable.box) {
-this.drawInteractableHighlight(ctx, this.hoveredInteractable);
+if (this.cutscene && this.cutscene.active) {
+this.drawCutsceneWorldUnderPlayer(ctx);
 }
 this.drawPlayer(ctx);
+if (this.cutscene && this.cutscene.active) {
+this.drawCutsceneWorldOverPlayer(ctx);
+}
+this.flushPropBadges(ctx);
+if (this.zone === 2 && (!this.cutscene || !this.cutscene.active)) {
+this.drawNpcBubbles(ctx);
+}
+if (this.hoveredInteractable && this.hoveredInteractable.box && (!this.cutscene || !this.cutscene.active)) {
+this.drawInteractableHighlight(ctx, this.hoveredInteractable);
+}
 if (!this.settings.lowEndMode) {
-ctx.fillStyle = this.zone === 2 ? 'rgba(251, 191, 36, 0.22)' : 'rgba(148, 163, 184, 0.18)';
 for (const d of this.ambientDust) {
+const dx = d.x - this.player.x;
+const dy = d.y - this.player.y;
+const dist = Math.hypot(dx, dy);
+let inBeam = false;
+if (this.settings.glows && dist < 185) {
+let angDiff = Math.atan2(dy, dx) - this.player.facing;
+while (angDiff < -Math.PI) angDiff += Math.PI * 2;
+while (angDiff > Math.PI) angDiff -= Math.PI * 2;
+if (Math.abs(angDiff) < 0.36) inBeam = true;
+}
+ctx.fillStyle = inBeam ? 'rgba(254, 243, 199, 0.78)' : (this.zone === 2 ? 'rgba(251, 191, 36, 0.22)' : 'rgba(148, 163, 184, 0.18)');
 ctx.beginPath();
-ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+ctx.arc(d.x, d.y, inBeam ? d.r * 1.35 : d.r, 0, Math.PI * 2);
 ctx.fill();
 }
 }
@@ -240,6 +262,9 @@ this.drawRain(ctx);
 }
 this.drawNoirLightingOverlay(ctx);
 ctx.restore();
+if (this.cutscene && this.cutscene.active) {
+this.drawCutsceneScreenOverlay(ctx, cw, ch);
+}
 },
 drawRoundedRect(ctx, x, y, w, h, r) {
 ctx.beginPath();
@@ -257,8 +282,10 @@ ctx.closePath();
 drawNeonGlow(ctx, x, y, radius, colorHex, alpha = 0.25) {
 if (!this.settings.glows || this.settings.lowEndMode) return;
 ctx.save();
-const grad = ctx.createRadialGradient(x, y, 2, x, y, radius);
-grad.addColorStop(0, colorHex);
+const grad = ctx.createRadialGradient(x, y, 1, x, y, radius);
+grad.addColorStop(0, '#ffffff');
+grad.addColorStop(0.14, colorHex);
+grad.addColorStop(0.55, colorHex);
 grad.addColorStop(1, 'rgba(0,0,0,0)');
 ctx.globalAlpha = alpha;
 ctx.fillStyle = grad;
@@ -298,7 +325,8 @@ ctx.fillStyle = '#09090b';
 ctx.font = '800 11px "JetBrains Mono", monospace';
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
-ctx.fillText('[E]', pillX, pillY);
+const actKey = this.getActionKeyLabel ? this.getActionKeyLabel() : 'E';
+ctx.fillText(`[${actKey}]`, pillX, pillY);
 ctx.restore();
 }
 ,
@@ -460,6 +488,24 @@ ctx.fillRect(440, 482, 120, 20);
 ctx.fillStyle = '#f59e0b';
 ctx.fillRect(445, 490, 110, 8);
 this.drawPropBadge(ctx, 500, 464, this.t('canvas_street_exit'), '#fbbf24', '#27272a');
+if (this.settings.glows && !this.settings.lowEndMode) {
+ctx.save();
+const scanY = 144 + ((this.animTime * 28) % 30);
+ctx.fillStyle = 'rgba(110, 231, 183, 0.35)';
+ctx.fillRect(690, scanY, 70, 2);
+ctx.fillStyle = Math.sin(this.animTime * 10) > 0 ? '#10b981' : '#047857';
+ctx.beginPath(); ctx.arc(792, 155, 2.5, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#ef4444';
+ctx.beginPath(); ctx.arc(792, 163, 2, 0, Math.PI * 2); ctx.fill();
+const doorShaft = ctx.createLinearGradient(500, 495, 500, 390);
+doorShaft.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
+doorShaft.addColorStop(1, 'rgba(245, 158, 11, 0)');
+ctx.fillStyle = doorShaft;
+ctx.beginPath();
+ctx.moveTo(445, 492); ctx.lineTo(555, 492); ctx.lineTo(590, 390); ctx.lineTo(410, 390);
+ctx.closePath(); ctx.fill();
+ctx.restore();
+}
 const bulbFlicker = Math.sin(this.animTime * 23) > -0.85 ? 0.14 : 0.04;
 this.drawNeonGlow(ctx, 485, 295, 230, '#fef08a', bulbFlicker);
 }
@@ -594,15 +640,9 @@ ctx.strokeRect(885, 282, 65, 76);
 ctx.fillStyle = '#ef4444';
 ctx.fillRect(938, 260, 14, 120);
 this.drawPropBadge(ctx, 845, 245, this.t('canvas_casino_right'), '#fca5a5', '#450a0a');
-this.drawTopDownNpc(ctx, {
-x: 205, y: 175, facing: Math.PI / 2,
-coat: '#1e293b', trim: '#f472b6', hair: '#94a3b8',
-smoking: true
-});
-this.drawTopDownNpc(ctx, {
-x: 775, y: 452, facing: -Math.PI / 2,
-coat: '#27171c', trim: '#f59e0b', hair: '#475569'
-});
+if (this.streetNpcs) {
+this.streetNpcs.forEach((npc, idx) => this.drawTopDownNpc(ctx, npc, idx + 30));
+}
 const lamps = [{ x: 210, y: 205 }, { x: 520, y: 205 }, { x: 820, y: 205 }];
 lamps.forEach(l => {
 this.drawNeonGlow(ctx, l.x, l.y, 120, '#f59e0b', 0.18);
@@ -611,6 +651,43 @@ ctx.beginPath();
 ctx.arc(l.x, l.y, 5, 0, Math.PI * 2);
 ctx.fill();
 });
+if (this.settings.glows && !this.settings.lowEndMode) {
+ctx.save();
+puddles.forEach((p, idx) => {
+ctx.strokeStyle = p.stroke;
+ctx.lineWidth = 1;
+const shimmerW = p.rx * (0.45 + 0.2 * Math.sin(this.animTime * 4 + idx));
+ctx.beginPath();
+ctx.moveTo(p.x - shimmerW, p.y - 3); ctx.lineTo(p.x + shimmerW, p.y - 3);
+ctx.moveTo(p.x - shimmerW * 0.7, p.y + 4); ctx.lineTo(p.x + shimmerW * 0.7, p.y + 4);
+ctx.stroke();
+});
+if (hazardBlink) {
+const hlGrad = ctx.createLinearGradient(560, 440, 465, 440);
+hlGrad.addColorStop(0, 'rgba(251, 191, 36, 0.28)');
+hlGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+ctx.fillStyle = hlGrad;
+ctx.beginPath();
+ctx.moveTo(560, 410); ctx.lineTo(465, 385); ctx.lineTo(465, 495); ctx.lineTo(560, 470);
+ctx.closePath(); ctx.fill();
+}
+if (Math.sin(this.animTime * 19) > 0.75) {
+ctx.strokeStyle = '#38bdf8';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(580, 425); ctx.lineTo(573, 419); ctx.lineTo(584, 415);
+ctx.stroke();
+}
+if (this.smokePuffs) {
+for (const sp of this.smokePuffs) {
+ctx.fillStyle = `${sp.color}${Math.max(0, sp.alpha)})`;
+ctx.beginPath();
+ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
+ctx.fill();
+}
+}
+ctx.restore();
+}
 ctx.strokeStyle = '#334155';
 ctx.lineWidth = 6;
 ctx.strokeRect(b.x, b.y, b.w, b.h);
@@ -767,6 +844,16 @@ ctx.fillStyle = '#fde68a';
 ctx.fillRect(mx, cy - 14, 32, 24);
 });
 }
+if (this.settings.glows && !this.settings.lowEndMode) {
+for (let bi = 0; bi < 6; bi++) {
+const pulseOn = ((Math.floor(this.animTime * 8) + bi) % 2 === 0);
+ctx.fillStyle = pulseOn ? '#ffffff' : slot.color;
+ctx.beginPath();
+ctx.arc(bx + 20 + bi * ((bw - 40) / 5), by + 5, 1.8, 0, Math.PI * 2);
+ctx.arc(bx + 20 + bi * ((bw - 40) / 5), by + bh - 5, 1.8, 0, Math.PI * 2);
+ctx.fill();
+}
+}
 ctx.restore();
 this.drawPropBadge(ctx, cx, by - 14, slot.title, slot.color, slot.bg, `${slot.variantText} • MIN $${this.getMinBet()}`);
 });
@@ -814,23 +901,7 @@ trim: '#fbbf24',
 hair: '#f8fafc',
 role: 'waiter'
 }, 99);
-for (const b of this.npcBubbles) {
-ctx.save();
-ctx.globalAlpha = Math.max(0, b.alpha);
-ctx.font = '800 9.5px "JetBrains Mono", monospace';
-const tw = ctx.measureText(b.text).width + 12;
-this.drawRoundedRect(ctx, b.x - tw / 2, b.y - 9, tw, 18, 5);
-ctx.fillStyle = 'rgba(9, 9, 11, 0.92)';
-ctx.fill();
-ctx.strokeStyle = b.color;
-ctx.lineWidth = 1.2;
-ctx.stroke();
-ctx.fillStyle = b.color;
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText(b.text, b.x, b.y);
-ctx.restore();
-}
+
 }
 ,
 drawTopDownNpc(ctx, npc, seed = 0) {
@@ -871,6 +942,25 @@ ctx.fill();
 ctx.strokeStyle = npc.trim || '#64748b';
 ctx.lineWidth = 1.8;
 ctx.stroke();
+if (!this.settings.lowEndMode) {
+if (npc.role === 'dealer') {
+ctx.fillStyle = '#f8fafc';
+ctx.fillRect(-2, -5, 6, 10);
+ctx.fillStyle = npc.trim || '#ef4444';
+ctx.beginPath();
+ctx.moveTo(3, -3); ctx.lineTo(6, -5); ctx.lineTo(6, 5); ctx.lineTo(3, 3);
+ctx.closePath(); ctx.fill();
+} else if (npc.role === 'guard') {
+ctx.fillStyle = '#27272a';
+this.drawRoundedRect(ctx, -6, -14, 10, 5, 2); ctx.fill();
+this.drawRoundedRect(ctx, -6, 9, 10, 5, 2); ctx.fill();
+if (this.settings.glows) {
+ctx.strokeStyle = 'rgba(239, 68, 68, 0.22)';
+ctx.lineWidth = 1;
+ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(52, 0); ctx.stroke();
+}
+}
+}
 ctx.beginPath();
 ctx.arc(1, 0, 7.5, 0, Math.PI * 2);
 ctx.fillStyle = npc.hair || '#cbd5e1';
@@ -893,6 +983,13 @@ ctx.restore();
 }
 ,
 drawPropBadge(ctx, x, y, title, textColor, bgColor, subtitle = '') {
+if (this.pendingBadges) {
+this.pendingBadges.push({ x, y, title, textColor, bgColor, subtitle });
+return;
+}
+this.renderPropBadgeImmediate(ctx, x, y, title, textColor, bgColor, subtitle);
+},
+renderPropBadgeImmediate(ctx, x, y, title, textColor, bgColor, subtitle = '') {
 ctx.save();
 ctx.font = '800 10.5px "JetBrains Mono", monospace';
 const titleW = ctx.measureText(title).width;
@@ -903,7 +1000,7 @@ const bx = x - boxW / 2;
 const by = y - boxH / 2;
 this.drawRoundedRect(ctx, bx, by, boxW, boxH, 6);
 ctx.fillStyle = bgColor || 'rgba(9, 9, 11, 0.9)';
-ctx.globalAlpha = 0.92;
+ctx.globalAlpha = 0.94;
 ctx.fill();
 ctx.globalAlpha = 1;
 ctx.strokeStyle = textColor;
@@ -920,8 +1017,168 @@ ctx.fillText(subtitle, x, y + 7);
 }
 ctx.restore();
 },
-drawTableLabel(ctx, x, y, text, color) {
-this.drawPropBadge(ctx, x, y, text, color, '#09090b');
+flushPropBadges(ctx) {
+if (!this.pendingBadges || !this.pendingBadges.length) return;
+for (const b of this.pendingBadges) {
+this.renderPropBadgeImmediate(ctx, b.x, b.y, b.title, b.textColor, b.bgColor, b.subtitle);
+}
+this.pendingBadges = [];
+},
+drawNpcBubbles(ctx) {
+for (const b of this.npcBubbles) {
+ctx.save();
+ctx.globalAlpha = Math.max(0, b.alpha);
+ctx.font = '800 9.5px "JetBrains Mono", monospace';
+const tw = ctx.measureText(b.text).width + 12;
+this.drawRoundedRect(ctx, b.x - tw / 2, b.y - 9, tw, 18, 5);
+ctx.fillStyle = 'rgba(9, 9, 11, 0.92)';
+ctx.fill();
+ctx.strokeStyle = b.color;
+ctx.lineWidth = 1.2;
+ctx.stroke();
+ctx.fillStyle = b.color;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(b.text, b.x, b.y);
+ctx.restore();
+}
+},
+drawCutsceneWorldUnderPlayer(ctx) {
+const cs = this.cutscene;
+if (!cs || !cs.active) return;
+if (cs.switchedToStreet) {
+ctx.save();
+const lx = 235, ly = 278, lw = 155, lh = 72;
+const beamGrad = ctx.createLinearGradient(lx + lw, ly + lh / 2, 575, ly + lh / 2);
+beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.36)');
+beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+ctx.fillStyle = beamGrad;
+ctx.beginPath();
+ctx.moveTo(lx + lw, ly + 10);
+ctx.lineTo(585, 245);
+ctx.lineTo(585, 385);
+ctx.lineTo(lx + lw, ly + lh - 10);
+ctx.closePath();
+ctx.fill();
+ctx.fillStyle = 'rgba(0,0,0,0.75)';
+this.drawRoundedRect(ctx, lx + 5, ly + 7, lw, lh, 12);
+ctx.fill();
+this.drawRoundedRect(ctx, lx, ly, lw, lh, 12);
+ctx.fillStyle = '#09090b';
+ctx.fill();
+ctx.strokeStyle = '#dc2626';
+ctx.lineWidth = 2.5;
+ctx.stroke();
+this.drawRoundedRect(ctx, lx + 28, ly + 8, lw - 58, lh - 16, 6);
+ctx.fillStyle = '#18181b';
+ctx.fill();
+ctx.fillStyle = '#fef08a';
+ctx.fillRect(lx + lw - 5, ly + 8, 5, 14);
+ctx.fillRect(lx + lw - 5, ly + lh - 22, 5, 14);
+ctx.restore();
+}
+if (cs.bloodPoolR > 0) {
+ctx.save();
+ctx.fillStyle = 'rgba(153, 27, 27, 0.85)';
+ctx.beginPath();
+ctx.ellipse(this.player.x, this.player.y + 2, cs.bloodPoolR, cs.bloodPoolR * 0.68, 0.1, 0, Math.PI * 2);
+ctx.fill();
+for (const bd of cs.bloodDrops) {
+ctx.fillStyle = '#dc2626';
+ctx.beginPath();
+ctx.arc(bd.x, bd.y, bd.r, 0, Math.PI * 2);
+ctx.fill();
+}
+ctx.restore();
+}
+},
+drawCutsceneWorldOverPlayer(ctx) {
+const cs = this.cutscene;
+if (!cs || !cs.active) return;
+cs.goons.forEach((g, idx) => {
+this.drawTopDownNpc(ctx, g, 70 + idx);
+ctx.save();
+ctx.translate(g.x, g.y);
+ctx.rotate(g.facing);
+ctx.fillStyle = '#18181b';
+ctx.strokeStyle = '#52525b';
+ctx.lineWidth = 1.2;
+ctx.fillRect(6, 3, 14, 4);
+ctx.strokeRect(6, 3, 14, 4);
+ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+ctx.lineWidth = 1.2;
+ctx.beginPath();
+ctx.moveTo(20, 5);
+ctx.lineTo(85, 5);
+ctx.stroke();
+if (g.muzzleTimer > 0) {
+ctx.fillStyle = '#fef08a';
+ctx.beginPath();
+ctx.arc(23, 5, 6 + Math.random() * 4, 0, Math.PI * 2);
+ctx.fill();
+}
+ctx.restore();
+});
+for (const tr of cs.tracers) {
+ctx.save();
+ctx.strokeStyle = `rgba(253, 224, 71, ${Math.max(0, tr.alpha)})`;
+ctx.lineWidth = 2.4;
+ctx.beginPath();
+ctx.moveTo(tr.x1, tr.y1);
+ctx.lineTo(tr.x2, tr.y2);
+ctx.stroke();
+ctx.restore();
+}
+if (cs.phase === 'KIDNAP') {
+this.renderPropBadgeImmediate(ctx, this.player.x, this.player.y - 26, this.lang === 'uk' ? '⛓ ВИКРАДЕНО МАФІЄЮ!' : '⛓ PORWANY PRZEZ MAFIĘ!', '#fca5a5', '#450a0a');
+} else if (cs.phase === 'ARRIVAL') {
+this.renderPropBadgeImmediate(ctx, cs.goons[0].x, cs.goons[0].y - 24, '💀 MAFIA SYNDYKATU', '#fca5a5', '#450a0a');
+}
+},
+drawCutsceneScreenOverlay(ctx, cw, ch) {
+const cs = this.cutscene;
+if (!cs || !cs.active) return;
+ctx.save();
+if (cs.flashAlpha > 0) {
+ctx.fillStyle = `rgba(239, 68, 68, ${cs.flashAlpha})`;
+ctx.fillRect(0, 0, cw, ch);
+}
+const barH = Math.max(54, Math.round(ch * 0.12));
+ctx.fillStyle = 'rgba(3, 4, 7, 0.94)';
+ctx.fillRect(0, 0, cw, barH);
+ctx.fillRect(0, ch - barH, cw, barH);
+ctx.strokeStyle = '#dc2626';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(0, barH); ctx.lineTo(cw, barH);
+ctx.moveTo(0, ch - barH); ctx.lineTo(cw, ch - barH);
+ctx.stroke();
+ctx.fillStyle = '#ef4444';
+ctx.font = '800 11px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('🎬 SYNDICATE_EXECUTION_PROTOCOL // CUTSCENE', cw / 2, barH / 2);
+if (cs.subtitle) {
+ctx.fillStyle = '#fef3c7';
+const fontPx = cw < 500 ? 11 : 14;
+ctx.font = `800 ${fontPx}px "JetBrains Mono", monospace`;
+ctx.fillText(cs.subtitle, cw / 2, ch - barH / 2, cw - 24);
+}
+if (cs.blackAlpha > 0) {
+ctx.fillStyle = `rgba(0, 0, 0, ${cs.blackAlpha})`;
+ctx.fillRect(0, 0, cw, ch);
+if (cs.blackAlpha > 0.45) {
+const textAlpha = Math.min(1, (cs.blackAlpha - 0.45) / 0.4);
+ctx.globalAlpha = textAlpha;
+ctx.fillStyle = '#dc2626';
+ctx.font = `800 ${cw < 500 ? 22 : 34}px "Syne", sans-serif`;
+ctx.fillText(this.lang === 'uk' ? 'БОРГ СТЯГНУТО' : 'DŁUG WYEGZEKWOWANY', cw / 2, ch / 2 - 14);
+ctx.fillStyle = '#fca5a5';
+ctx.font = `700 ${cw < 500 ? 11 : 13}px "JetBrains Mono", monospace`;
+ctx.fillText(cs.reason, cw / 2, ch / 2 + 18, cw - 32);
+}
+}
+ctx.restore();
 }
 ,
 drawPlayer(ctx) {
@@ -937,6 +1194,10 @@ ctx.restore();
 }
 ctx.save();
 ctx.translate(p.x, p.y);
+if (this.cutscene && this.cutscene.active && this.cutscene.playerDown) {
+ctx.rotate(0.85);
+ctx.scale(1.12, 0.68);
+}
 if (this.settings.glows && !this.settings.lowEndMode) {
 const auraGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, 56);
 auraGrad.addColorStop(0, 'rgba(56, 189, 248, 0.32)');
@@ -1006,6 +1267,18 @@ ctx.fill();
 ctx.lineWidth = 2;
 ctx.strokeStyle = '#fef3c7';
 ctx.stroke();
+if (!this.settings.lowEndMode) {
+ctx.fillStyle = '#334155';
+ctx.fillRect(-8, -12, 5, 24);
+for (let si = -6; si <= 6; si += 6) {
+ctx.fillStyle = '#22d3ee';
+ctx.fillRect(-7, si - 1, 2.5, 2);
+}
+ctx.fillStyle = '#64748b';
+ctx.fillRect(armSwing + 10, 11.5 + breathe, 6, 3.5);
+ctx.fillStyle = '#fef08a';
+ctx.beginPath(); ctx.arc(armSwing + 16.5, 13.2 + breathe, 2.2, 0, Math.PI * 2); ctx.fill();
+}
 this.drawRoundedRect(ctx, 4, -6.5, 6.5, 13, 2.5);
 ctx.fillStyle = '#38bdf8';
 ctx.fill();

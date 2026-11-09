@@ -157,7 +157,7 @@ this.closeModals(true);
 this.openMainMenu(true);
 },
 openPauseModal() {
-if (this.mainMenuOpen || this.introPlaying) return;
+if (this.mainMenuOpen || this.introPlaying || (this.cutscene && this.cutscene.active)) return;
 this.sfx.tick();
 const statusEl = document.getElementById('pause-status-line');
 if (statusEl) {
@@ -351,6 +351,7 @@ this.activeModal = id;
 }
 this.keys = {};
 if (this.updateMobileState) this.updateMobileState();
+if (this.resetGamepadFocus) this.resetGamepadFocus();
 },
 closeModals(force = false) {
 if (!force && (this.activeModal === 'modal-gameover' || this.activeModal === 'modal-day-complete')) return;
@@ -376,6 +377,7 @@ backdrop.querySelectorAll(':scope > div').forEach(m => m.classList.add('hidden')
 this.activeModal = null;
 this.keys = {};
 if (this.updateMobileState) this.updateMobileState();
+if (this.resetGamepadFocus) this.resetGamepadFocus();
 if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 this.updateHUD();
 this.enforceGameFocus();
@@ -472,7 +474,6 @@ this.lastHudCash = this.cash;
 document.getElementById('hud-quota').textContent = `$${this.quota.toLocaleString()}`;
 document.getElementById('hud-tokens').textContent = this.tokens;
 document.getElementById('hud-modifier-name').textContent = this.getLocalized(this.currentModifier.name).toUpperCase();
-document.getElementById('hud-modifier-desc').textContent = this.getLocalized(this.currentModifier.desc);
 const pct = Math.min(100, Math.round((this.cash / this.quota) * 100));
 document.getElementById('hud-quota-bar').style.width = `${pct}%`;
 const mins = Math.floor(this.timeLeft / 60);
@@ -495,10 +496,6 @@ timerLabel.textContent = this.t('hud_shift');
 timerEl.className = 'text-lg sm:text-xl font-extrabold tracking-wider text-amber-400 leading-none';
 timerBox.classList.remove('danger-pulse');
 }
-const dirText = document.getElementById('hud-directive-text');
-if (this.phase === 'PREP') dirText.textContent = this.t('dir_prep');
-else if (this.cash >= this.quota) dirText.textContent = this.t('dir_quota_met');
-else dirText.textContent = this.t('dir_shift', { quota: this.quota.toLocaleString() });
 if (this.currentChallenge) {
 document.getElementById('hud-challenge-text').textContent = this.getLocalized(this.currentChallenge.desc);
 const st = document.getElementById('hud-challenge-status');

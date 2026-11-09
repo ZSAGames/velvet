@@ -219,6 +219,34 @@ setTimeout(() => this.playTone(f, 'square', 0.14, 0.1), idx * 75);
 });
 }
 blood() { this.playTone(150, 'sawtooth', 0.35, 0.12, 55); }
+gunshot() {
+if (this.muted) return;
+this.init();
+if (!this.ctx) return;
+try {
+const now = this.ctx.currentTime;
+const bufLen = Math.floor(this.ctx.sampleRate * 0.11);
+const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+const data = buf.getChannelData(0);
+for (let i = 0; i < bufLen; i++) {
+data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.028));
+}
+const noise = this.ctx.createBufferSource();
+noise.buffer = buf;
+const filter = this.ctx.createBiquadFilter();
+filter.type = 'lowpass';
+filter.frequency.setValueAtTime(1800, now);
+filter.frequency.exponentialRampToValueAtTime(220, now + 0.1);
+const gain = this.ctx.createGain();
+gain.gain.setValueAtTime(0.22, now);
+gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+noise.connect(filter);
+filter.connect(gain);
+gain.connect(this.ctx.destination);
+noise.start(now);
+} catch (e) {}
+this.playTone(135, 'sawtooth', 0.09, 0.14, 38);
+}
 door() { this.playTone(190, 'sine', 0.14, 0.09, 280); }
 tick() { this.playTone(780, 'sine', 0.03, 0.04); }
 alarm() { this.playTone(880, 'square', 0.12, 0.08, 440); }

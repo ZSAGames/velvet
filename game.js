@@ -63,6 +63,26 @@ vx: (Math.random() - 0.5) * 14,
 vy: (Math.random() - 0.5) * 14,
 alpha: 0.15 + Math.random() * 0.35
 }));
+this.streetNpcs = [
+{ x: 205, y: 175, r: 15, facing: Math.PI / 2, coat: '#1e293b', trim: '#f472b6', hair: '#94a3b8', smoking: true },
+{ x: 775, y: 452, r: 15, facing: -Math.PI / 2, coat: '#27171c', trim: '#f59e0b', hair: '#475569' }
+];
+this.cutscene = {
+active: false,
+timer: 0,
+phase: 'NONE',
+reason: '',
+goons: [],
+tracers: [],
+bloodDrops: [],
+bloodPoolR: 0,
+flashAlpha: 0,
+blackAlpha: 0,
+shotCooldown: 0,
+playerDown: false,
+switchedToStreet: false,
+subtitle: ''
+};
 this.casinoNpcs = [
 { role: 'dealer', x: 275, y: 122, facing: Math.PI / 2, coat: '#450a0a', trim: '#fbbf24', hair: '#e2e8f0', name: 'KRUPIER VIP', barks: ['Postaw zakłady...', 'Kasyno zawsze wygrywa.', 'Dobierasz czy pas?', '21!'] },
 { role: 'dealer', x: 730, y: 122, facing: Math.PI / 2, coat: '#450a0a', trim: '#ef4444', hair: '#1e293b', name: 'KRUPIER RULETKI', barks: ['Koło się kręci!', 'Czerwone czy czarne?', 'Brak zakładów!'] },
@@ -125,16 +145,17 @@ ballAngle: 0,
 ballRadius: 82,
 lastNumber: null
 };
-this.slots = {
-bet: 0,
-spinning: false,
-symbols: ['🍒', '🔔', '💎', '7️⃣', '💀']
-};
-this.dice = {
-bet: 0,
-rolling: false,
-d1: 3,
-d2: 4
+this.slots = { bet: 0, spinning: false };
+this.dice = { bet: 0, rolling: false };
+this.smokePuffs = [];
+this.gamepad = {
+connected: false,
+type: 'XBOX',
+name: '',
+prevButtons: {},
+navCooldown: 0,
+focusIdx: -1,
+aimActive: false
 };
 this.crash = {
 bet: 0,
@@ -277,7 +298,7 @@ this.zones[2].interactables = [
 streetDoor,
 ...this.activeCasinoSlots.map(slot => ({
 box: slot.box,
-edgeDist: 54,
+edgeDist: 64,
 getPrompt: () => `${slot.title} — ${slot.variantText} (MIN: $${this.getMinBet()})`,
 action: () => slot.open()
 })),
@@ -337,13 +358,15 @@ return uaMobile || uaDataMobile || ipadOS || coarseNoHover;
 }
 updateMobileState() {
 this.isMobile = this.checkMobileDevice();
-document.body.classList.toggle('is-mobile', this.isMobile);
+const padConnected = !!(this.gamepad && this.gamepad.connected);
+const showMobileUI = this.isMobile && !padConnected;
+document.body.classList.toggle('is-mobile', showMobileUI);
 const ctrl = document.getElementById('mobile-controls');
 if (ctrl) {
-const showCtrl = this.isMobile && !this.mainMenuOpen && !this.activeModal && !this.isLoadingScreen;
+const showCtrl = showMobileUI && !this.mainMenuOpen && !this.activeModal && !this.isLoadingScreen && !(this.cutscene && this.cutscene.active);
 ctrl.classList.toggle('hidden', !showCtrl);
 }
-if (!this.isMobile && this.joy && this.joy.active) {
+if (!showMobileUI && this.joy && this.joy.active) {
 this.resetJoystick();
 }
 }
@@ -358,6 +381,215 @@ if (knob) {
 knob.style.transform = 'translate3d(0px, 0px, 0px)';
 knob.classList.remove('stick-active');
 }
+}
+getActionKeyLabel() {
+if (this.gamepad && this.gamepad.connected) {
+return this.gamepad.type === 'PS' ? '✕' : 'A';
+}
+return 'E';
+}
+updateGamepadStatusUI() {
+this.updateMobileState();
+const pill = document.getElementById('gamepad-status-pill');
+const txt = document.getElementById('gamepad-status-text');
+const keyBadge = document.getElementById('interact-prompt-key');
+const mobSub = document.getElementById('mobile-act-sub');
+const actLabel = this.getActionKeyLabel();
+if (keyBadge) keyBadge.textContent = actLabel;
+if (mobSub) mobSub.textContent = `[${actLabel}]`;
+if (pill && txt) {
+if (this.gamepad && this.gamepad.connected) {
+pill.classList.remove('hidden');
+txt.textContent = this.gamepad.type === 'PS' ? 'PS PAD [✕/◯]' : 'XBOX PAD [A/B]';
+} else {
+pill.classList.add('hidden');
+}
+}
+}
+detectGamepadBrand(idStr = '') {
+const s = idStr.toLowerCase();
+if (s.includes('dualsense') || s.includes('dualshock') || s.includes('054c') || s.includes('playstation') || s.includes('ps4') || s.includes('ps5') || s.includes('wireless controller')) {
+return 'PS';
+}
+return 'XBOX';
+}
+rumble(weak = 0.3, strong = 0.5, duration = 120) {
+if (!navigator.getGamepads) return;
+try {
+const pads = navigator.getGamepads();
+for (let i = 0; i < pads.length; i++) {
+const p = pads[i];
+if (p && p.connected && p.vibrationActuator && p.vibrationActuator.playEffect) {
+p.vibrationActuator.playEffect('dual-rumble', {
+startDelay: 0,
+duration,
+weakMagnitude: Math.min(1, Math.max(0, weak)),
+strongMagnitude: Math.min(1, Math.max(0, strong))
+}).catch(() => {});
+break;
+}
+}
+} catch (e) {}
+}
+resetGamepadFocus() {
+if (this.gamepad) this.gamepad.focusIdx = -1;
+document.querySelectorAll('.gp-focus').forEach(el => el.classList.remove('gp-focus'));
+}
+getNavigableButtons() {
+let container = null;
+if (this.activeModal) {
+container = document.getElementById(this.activeModal);
+} else if (this.mainMenuOpen && !this.introPlaying) {
+container = document.getElementById('main-menu-overlay');
+}
+if (!container) return [];
+return Array.from(container.querySelectorAll('button:not(:disabled)')).filter(el => el.offsetParent !== null);
+}
+moveGamepadFocus(step) {
+const btns = this.getNavigableButtons();
+document.querySelectorAll('.gp-focus').forEach(el => el.classList.remove('gp-focus'));
+if (!btns.length) {
+this.gamepad.focusIdx = -1;
+return;
+}
+if (this.gamepad.focusIdx < 0 || this.gamepad.focusIdx >= btns.length) {
+this.gamepad.focusIdx = 0;
+} else {
+this.gamepad.focusIdx = (this.gamepad.focusIdx + step + btns.length) % btns.length;
+}
+const target = btns[this.gamepad.focusIdx];
+if (target) {
+target.classList.add('gp-focus');
+target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+this.sfx.uiHover();
+}
+}
+pollGamepad(dt) {
+if (!navigator.getGamepads) return;
+const pads = navigator.getGamepads();
+let gp = null;
+for (let i = 0; i < pads.length; i++) {
+if (pads[i] && pads[i].connected) {
+gp = pads[i];
+break;
+}
+}
+if (!gp) {
+if (this.gamepad.connected) {
+this.gamepad.connected = false;
+this.resetGamepadFocus();
+this.updateGamepadStatusUI();
+}
+return;
+}
+if (!this.gamepad.connected || this.gamepad.name !== gp.id) {
+this.gamepad.connected = true;
+this.gamepad.name = gp.id;
+this.gamepad.type = this.detectGamepadBrand(gp.id);
+this.updateGamepadStatusUI();
+}
+if (this.gamepad.navCooldown > 0) this.gamepad.navCooldown = Math.max(0, this.gamepad.navCooldown - dt);
+const isPressed = (idx) => !!(gp.buttons[idx] && gp.buttons[idx].pressed);
+const justPressed = (idx) => isPressed(idx) && !this.gamepad.prevButtons[idx];
+if (!this.introPlaying) {
+if (justPressed(9)) {
+if (this.activeModal) {
+this.sfx.uiBack();
+this.closeModals();
+} else if (!this.mainMenuOpen) {
+this.openPauseModal();
+}
+}
+if (this.mainMenuOpen || this.activeModal) {
+const axX = gp.axes[0] || 0;
+const axY = gp.axes[1] || 0;
+if (this.gamepad.navCooldown <= 0) {
+if (isPressed(12) || isPressed(14) || axY < -0.55 || axX < -0.55) {
+this.moveGamepadFocus(-1);
+this.gamepad.navCooldown = 0.19;
+} else if (isPressed(13) || isPressed(15) || axY > 0.55 || axX > 0.55) {
+this.moveGamepadFocus(1);
+this.gamepad.navCooldown = 0.19;
+}
+}
+const activeGameMap = {
+'modal-blackjack': 'bj',
+'modal-slots': 'slots',
+'modal-dice': 'dice',
+'modal-crash': 'crash',
+'modal-mines': 'mines'
+};
+const gKey = activeGameMap[this.activeModal];
+if (gKey) {
+if (justPressed(4)) this.modifyGameBet(gKey, -50);
+if (justPressed(5)) this.modifyGameBet(gKey, 50);
+if (justPressed(2)) this.modifyGameBet(gKey, 'min');
+if (justPressed(3)) this.modifyGameBet(gKey, 'max');
+} else if (this.activeModal === 'modal-roulette') {
+if (justPressed(4)) this.setRoulChip(50);
+if (justPressed(5)) this.setRoulChip(150);
+if (justPressed(2)) this.clearRoulBets();
+if (justPressed(3)) this.spinRoulette();
+}
+if (justPressed(0)) {
+if (this.activeModal === 'modal-crash' && this.crash.active) {
+this.cashoutCrashRocket();
+} else {
+const btns = this.getNavigableButtons();
+if (btns.length > 0) {
+const idx = (this.gamepad.focusIdx >= 0 && this.gamepad.focusIdx < btns.length) ? this.gamepad.focusIdx : 0;
+this.sfx.uiClick();
+btns[idx].click();
+}
+}
+}
+if (justPressed(1) && this.activeModal) {
+this.sfx.uiBack();
+this.closeModals();
+}
+} else {
+if (justPressed(0)) {
+this.rumble(0.25, 0.4, 90);
+this.triggerContextInteraction();
+}
+if (justPressed(3)) {
+this.toggleClockSpeed();
+}
+}
+}
+for (let i = 0; i < gp.buttons.length; i++) {
+this.gamepad.prevButtons[i] = isPressed(i);
+}
+}
+getGamepadMoveVector() {
+if (!this.gamepad || !this.gamepad.connected || !navigator.getGamepads) return { x: 0, y: 0, mag: 0, aimX: 0, aimY: 0 };
+const pads = navigator.getGamepads();
+let gp = null;
+for (let i = 0; i < pads.length; i++) {
+if (pads[i] && pads[i].connected) { gp = pads[i]; break; }
+}
+if (!gp) return { x: 0, y: 0, mag: 0, aimX: 0, aimY: 0 };
+let gx = gp.axes[0] || 0;
+let gy = gp.axes[1] || 0;
+if (Math.hypot(gx, gy) < 0.16) {
+gx = 0;
+gy = 0;
+if (gp.buttons[14] && gp.buttons[14].pressed) gx -= 1;
+if (gp.buttons[15] && gp.buttons[15].pressed) gx += 1;
+if (gp.buttons[12] && gp.buttons[12].pressed) gy -= 1;
+if (gp.buttons[13] && gp.buttons[13].pressed) gy += 1;
+}
+const mag = Math.min(1, Math.hypot(gx, gy));
+const rx = gp.axes[2] || 0;
+const ry = gp.axes[3] || 0;
+const rMag = Math.hypot(rx, ry);
+return {
+x: mag > 0 ? gx / Math.hypot(gx, gy) : 0,
+y: mag > 0 ? gy / Math.hypot(gx, gy) : 0,
+mag,
+aimX: rMag > 0.22 ? rx : 0,
+aimY: rMag > 0.22 ? ry : 0
+};
 }
 bindInputs() {
 window.addEventListener('keydown', (e) => {
@@ -389,6 +621,22 @@ this.openPauseModal();
 });
 window.addEventListener('keyup', (e) => {
 this.keys[e.key.toLowerCase()] = false;
+});
+window.addEventListener('gamepadconnected', (e) => {
+const gp = e.gamepad;
+this.gamepad.connected = true;
+this.gamepad.name = gp.id;
+this.gamepad.type = this.detectGamepadBrand(gp.id);
+this.updateGamepadStatusUI();
+const brand = this.gamepad.type === 'PS' ? 'PlayStation' : 'Xbox / XInput';
+this.showToast(`🎮 Podłączono kontroler ${brand}!`, 'emerald');
+this.rumble(0.3, 0.6, 180);
+});
+window.addEventListener('gamepaddisconnected', () => {
+this.gamepad.connected = false;
+this.resetGamepadFocus();
+this.updateGamepadStatusUI();
+this.showToast('🎮 Kontroler odłączony', 'amber');
 });
 const zone = document.getElementById('joystick-zone');
 const base = document.getElementById('joystick-base');
@@ -502,8 +750,8 @@ this.zones = [
 getName: () => this.t('zone_0'),
 bounds: { x: 120, y: 110, w: 760, h: 410 },
 obstacles: [
-{ x: 185, y: 140, w: 120, h: 155 },
-{ x: 640, y: 135, w: 170, h: 90 },
+{ x: 185, y: 110, w: 120, h: 185 },
+{ x: 640, y: 110, w: 170, h: 115 },
 { x: 185, y: 375, w: 165, h: 90 }
 ],
 interactables: [
@@ -547,7 +795,7 @@ action: () => this.exitSafehouseToStreet()
 },
 {
 getName: () => this.t('zone_1'),
-bounds: { x: 60, y: 110, w: 880, h: 410 },
+bounds: { x: 60, y: 130, w: 880, h: 360 },
 obstacles: [
 { x: 310, y: 145, w: 120, h: 65 },
 { x: 560, y: 405, w: 165, h: 70 }
@@ -578,8 +826,8 @@ this.transitionToZone(2, 115, 310);
 getName: () => this.t('zone_2'),
 bounds: { x: 60, y: 110, w: 880, h: 410 },
 obstacles: [
-{ x: 185, y: 135, w: 180, h: 110 },
-{ x: 635, y: 135, w: 190, h: 110 },
+{ x: 185, y: 110, w: 180, h: 135 },
+{ x: 635, y: 110, w: 190, h: 135 },
 { x: 425, y: 265, w: 155, h: 95 },
 { x: 195, y: 385, w: 165, h: 85 },
 { x: 655, y: 385, w: 145, h: 80 }
@@ -592,30 +840,6 @@ getPrompt: () => this.t('prompt_door_exit'),
 action: () => {
 this.transitionToZone(1, 910, 320);
 }
-},
-{
-box: { x: 185, y: 135, w: 180, h: 110 },
-edgeDist: 54,
-getPrompt: () => this.t('prompt_Play_bj'),
-action: () => this.openBlackjackModal()
-},
-{
-box: { x: 635, y: 135, w: 190, h: 110 },
-edgeDist: 54,
-getPrompt: () => this.t('prompt_play_roul'),
-action: () => this.openRouletteModal()
-},
-{
-box: { x: 425, y: 265, w: 155, h: 95 },
-edgeDist: 54,
-getPrompt: () => this.t('prompt_play_dice'),
-action: () => this.openDiceModal()
-},
-{
-box: { x: 195, y: 385, w: 165, h: 85 },
-edgeDist: 54,
-getPrompt: () => this.t('prompt_play_slots'),
-action: () => this.openSlotsModal()
 },
 {
 box: { x: 655, y: 385, w: 145, h: 80 },
@@ -715,14 +939,257 @@ this.updateHUD();
 this.sfx.win();
 this.showToast(`☀ ${this.t('day_word')} ${this.day} — Min. zakład: $${this.getMinBet()} | Kwota: $${this.quota.toLocaleString()}`, 'emerald');
 }
+checkBankruptcy() {
+if (this.cutscene && this.cutscene.active) return;
+if (this.cash >= this.quota) return;
+const minBet = this.getMinBet();
+let roulTotal = 0;
+if (this.roul && this.roul.bets) {
+for (const k in this.roul.bets) roulTotal += this.roul.bets[k];
+}
+const anyRoundActive = this.bj.inProgress || this.roul.spinning || this.slots.spinning || this.dice.rolling || this.crash.active || this.mines.active || roulTotal > 0;
+if (!anyRoundActive && this.cash < minBet && this.tokens <= 0 && this.bloodPumpedThisNight) {
+if (this._bankruptTimeout) clearTimeout(this._bankruptTimeout);
+this._bankruptTimeout = setTimeout(() => {
+if (!this.cutscene.active && this.cash < this.quota && this.cash < this.getMinBet() && this.tokens <= 0 && this.bloodPumpedThisNight) {
+this.closeModals(true);
+this.triggerGameOver(this.lang === 'uk'
+? 'Ви програли всю готівку, жетони та кров — Mafia Синдикату прийшла за боргом!'
+: 'Straciłeś całą gotówkę, żetony i krew — Mafia Syndykatu przyszła po dług!');
+}
+}, 1100);
+}
+}
 triggerGameOver(reason) {
-this.sfx.lose();
-document.getElementById('gameover-reason').textContent = reason;
-document.getElementById('gameover-stats').innerHTML = `
-<div class="flex justify-between"><span>Przetrwane Dni:</span><strong class="text-white">${this.day - 1}</strong></div>
-<div class="flex justify-between"><span>Ostatnia Gotówka:</span><strong class="text-red-400">$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}</strong></div>
-`;
-this.openModal('modal-gameover');
+this.startMafiaCutscene(reason);
+}
+startMafiaCutscene(reason) {
+if (this.cutscene && this.cutscene.active) return;
+if (this._bankruptTimeout) {
+clearTimeout(this._bankruptTimeout);
+this._bankruptTimeout = null;
+}
+this.closeModals(true);
+this.keys = {};
+this.resetJoystick();
+this.player.vx = 0;
+this.player.vy = 0;
+this.player.moveAmount = 0;
+const hudHeader = document.getElementById('main-hud-header');
+if (hudHeader) hudHeader.classList.add('hidden');
+const promptEl = document.getElementById('interact-prompt');
+if (promptEl) promptEl.classList.add('hidden');
+let spawnPts = [
+{ x: 500, y: 480 },
+{ x: 465, y: 485 },
+{ x: 535, y: 485 }
+];
+if (this.zone === 1) {
+const dir = this.player.x > 500 ? -1 : 1;
+spawnPts = [
+{ x: this.player.x + dir * 210, y: 285 },
+{ x: this.player.x + dir * 230, y: 315 },
+{ x: this.player.x + dir * 210, y: 345 }
+];
+} else if (this.zone === 2) {
+spawnPts = [
+{ x: 95, y: 285 },
+{ x: 85, y: 310 },
+{ x: 95, y: 335 }
+];
+}
+this.cutscene = {
+active: true,
+timer: 0,
+phase: 'ARRIVAL',
+reason: reason || 'Nie udało Ci się zebrać wymaganej Kwoty dla Syndykatu!',
+goons: spawnPts.map((pt, i) => ({
+x: pt.x,
+y: pt.y,
+facing: Math.atan2(this.player.y - pt.y, this.player.x - pt.x),
+coat: '#09090b',
+trim: '#dc2626',
+hair: '#18181b',
+visor: '#ef4444',
+role: 'mafia',
+muzzleTimer: 0,
+offsetX: i === 0 ? -34 : (i === 1 ? -34 : 36),
+offsetY: i === 0 ? -24 : (i === 1 ? 24 : 0)
+})),
+tracers: [],
+bloodDrops: [],
+bloodPoolR: 0,
+flashAlpha: 0,
+blackAlpha: 0,
+shotCooldown: 0,
+playerDown: false,
+switchedToStreet: false,
+subtitle: this.lang === 'uk'
+? 'МАФІЯ СИНДИКАТУ: "Час вийшов! Ти не зібрав наші гроші. Пакуйте його!"'
+: 'MAFIA SYNDYKATU: "Czas minął! Nie zebrałeś naszej kasy. Bierzemy go!"'
+};
+this.updateMobileState();
+this.sfx.alarm();
+this.sfx.door();
+this.rumble(0.6, 0.85, 280);
+}
+updateCutscene(dt) {
+const cs = this.cutscene;
+if (!cs || !cs.active) return;
+cs.timer += dt;
+const t = cs.timer;
+if (cs.flashAlpha > 0) cs.flashAlpha = Math.max(0, cs.flashAlpha - dt * 3.2);
+for (let i = cs.tracers.length - 1; i >= 0; i--) {
+cs.tracers[i].alpha -= dt * 7.5;
+if (cs.tracers[i].alpha <= 0) cs.tracers.splice(i, 1);
+}
+if (t < 2.8) {
+cs.phase = 'ARRIVAL';
+cs.goons.forEach((g) => {
+const tx = this.player.x + g.offsetX;
+const ty = this.player.y + g.offsetY;
+const dx = tx - g.x;
+const dy = ty - g.y;
+const dist = Math.hypot(dx, dy);
+if (dist > 3) {
+const spd = Math.min(240, 110 + dist * 2.2);
+g.x += (dx / dist) * spd * dt;
+g.y += (dy / dist) * spd * dt;
+}
+g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+});
+this.player.facing = Math.atan2(cs.goons[0].y - this.player.y, cs.goons[0].x - this.player.x);
+this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 6 * dt);
+this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 6 * dt);
+} else if (t < 5.2) {
+if (cs.phase !== 'KIDNAP') {
+cs.phase = 'KIDNAP';
+this.sfx.blood();
+this.rumble(0.75, 0.95, 320);
+cs.subtitle = this.lang === 'uk'
+? 'ЕКЗЕКУТОР: "В машину його! Вивезіть на вулицю Блеквотер!"'
+: 'EGZEKUTOR: "Do wozu z nim! Wywieźć go na Ulicę Blackwater!"';
+}
+const dragTargetX = this.zone === 0 ? 500 : (this.zone === 2 ? 85 : 370);
+const dragTargetY = this.zone === 0 ? 485 : 315;
+const pdx = dragTargetX - this.player.x;
+const pdy = dragTargetY - this.player.y;
+const pDist = Math.hypot(pdx, pdy);
+if (pDist > 4) {
+this.player.x += (pdx / pDist) * 115 * dt;
+this.player.y += (pdy / pDist) * 115 * dt;
+}
+this.player.facing += Math.sin(this.animTime * 28) * 0.22;
+cs.goons.forEach((g, idx) => {
+const gx = this.player.x + (idx === 0 ? -16 : (idx === 1 ? -16 : 18));
+const gy = this.player.y + (idx === 0 ? -14 : (idx === 1 ? 14 : 0));
+g.x += (gx - g.x) * Math.min(1, 12 * dt);
+g.y += (gy - g.y) * Math.min(1, 12 * dt);
+g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+});
+this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 6 * dt);
+this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 6 * dt);
+const curtain = document.getElementById('zone-transition-curtain');
+if (t >= 4.2 && !cs.switchedToStreet) {
+if (curtain) curtain.style.opacity = '1';
+if (t >= 4.7) {
+cs.switchedToStreet = true;
+this.zone = 1;
+this.syncZoneMusic();
+this.player.x = 515;
+this.player.y = 315;
+this.player.facing = Math.PI;
+this.camera.x = 465;
+this.camera.y = 315;
+cs.goons = [
+{ x: 422, y: 282, facing: 0.28, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
+{ x: 414, y: 315, facing: 0, coat: '#09090b', trim: '#fbbf24', hair: '#e2e8f0', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
+{ x: 422, y: 348, facing: -0.28, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 }
+];
+}
+}
+} else if (t < 7.4) {
+if (cs.phase !== 'STREET_AIM') {
+cs.phase = 'STREET_AIM';
+const curtain = document.getElementById('zone-transition-curtain');
+if (curtain) curtain.style.opacity = '0';
+this.sfx.door();
+cs.subtitle = this.lang === 'uk'
+? 'ДОН СИНДИКАТУ: "Борги в Оксамитовій Безодні платять кров’ю. Вогонь!"'
+: 'DON SYNDYKATU: "Długi w Aksamitnej Otchłani spłaca się krwią. Ognia!"';
+}
+this.player.x = 515 + Math.sin(this.animTime * 22) * 0.8;
+this.player.y = 315;
+this.player.facing = Math.PI;
+this.camera.x += (470 - this.camera.x) * Math.min(1, 5 * dt);
+this.camera.y += (315 - this.camera.y) * Math.min(1, 5 * dt);
+} else if (t < 9.8) {
+if (cs.phase !== 'SHOOTING') {
+cs.phase = 'SHOOTING';
+cs.shotCooldown = 0;
+cs.subtitle = this.lang === 'uk'
+? 'КОНТРАКТ РОЗІРВАНО — БОРГ СТЯГНУТО'
+: 'KONTRAKT ZERWANY — DŁUG WYEGZEKWOWANY';
+}
+cs.shotCooldown -= dt;
+if (cs.shotCooldown <= 0 && t < 9.35) {
+cs.shotCooldown = 0.14;
+const shooter = cs.goons[Math.floor(Math.random() * cs.goons.length)];
+shooter.muzzleTimer = 0.09;
+const gunX = shooter.x + Math.cos(shooter.facing) * 16;
+const gunY = shooter.y + Math.sin(shooter.facing) * 16;
+const hitX = this.player.x + (Math.random() - 0.5) * 14;
+const hitY = this.player.y + (Math.random() - 0.5) * 14;
+cs.tracers.push({ x1: gunX, y1: gunY, x2: hitX, y2: hitY, alpha: 1.0 });
+for (let b = 0; b < 4; b++) {
+cs.bloodDrops.push({
+x: hitX + (Math.random() - 0.5) * 22,
+y: hitY + (Math.random() - 0.5) * 22,
+r: 2 + Math.random() * 4.5
+});
+}
+cs.bloodPoolR = Math.min(34, cs.bloodPoolR + 2.8);
+cs.flashAlpha = 0.38;
+cs.playerDown = true;
+if (this.sfx.gunshot) this.sfx.gunshot(); else this.sfx.blood();
+this.rumble(0.95, 1.0, 110);
+this.camera.x = 470 + (Math.random() - 0.5) * 14;
+this.camera.y = 315 + (Math.random() - 0.5) * 14;
+}
+cs.goons.forEach(g => {
+if (g.muzzleTimer > 0) g.muzzleTimer = Math.max(0, g.muzzleTimer - dt);
+});
+} else if (t < 12.4) {
+if (cs.phase !== 'BLACKOUT') {
+cs.phase = 'BLACKOUT';
+this.sfx.introBoom();
+}
+cs.blackAlpha = Math.min(1, (t - 9.8) / 0.75);
+} else {
+cs.active = false;
+const curtain = document.getElementById('zone-transition-curtain');
+if (curtain) curtain.style.opacity = '0';
+this.day = 1;
+this.phase = 'PREP';
+this.zone = 0;
+this.cash = 500;
+this.quota = 1000;
+this.tokens = 1;
+this.relics.clear();
+this.bloodPumpedThisNight = false;
+this.maxTime = 360;
+this.timeLeft = 360;
+this.player.x = 355;
+this.player.y = 235;
+this.player.vx = 0;
+this.player.vy = 0;
+this.camera.x = 355;
+this.camera.y = 235;
+this.assignNightlyModifier();
+this.assignDailyChallenge();
+this.randomizeNightlyCasinoFloor();
+this.openMainMenu(false);
+}
 }
 restartRun() {
 this.day = 1;
@@ -749,6 +1216,11 @@ this.syncZoneMusic();
 this.updateHUD();
 this.sfx.door();
 }
+getZoneNpcs(zoneIdx = this.zone) {
+if (zoneIdx === 1) return this.streetNpcs || [];
+if (zoneIdx === 2) return [...(this.casinoNpcs || []), this.casinoWaiter].filter(Boolean);
+return [];
+}
 checkCollision(nx, ny) {
 const z = this.zones[this.zone];
 const r = this.player.r;
@@ -766,17 +1238,43 @@ const closestY = Math.max(ob.y, Math.min(ny, ob.y + ob.h));
 const dist = Math.hypot(nx - closestX, ny - closestY);
 if (dist < r) return true;
 }
+const npcs = this.getZoneNpcs(this.zone);
+for (const npc of npcs) {
+const npcR = npc.r || 14;
+if (Math.hypot(nx - npc.x, ny - npc.y) < r + npcR) {
+return true;
+}
+}
 return false;
 }
 unstuckPlayer() {
 const z = this.zones[this.zone];
 const r = this.player.r;
+if (this.player.y - r < z.bounds.y) this.player.y = z.bounds.y + r + 2;
+if (this.player.y + r > z.bounds.y + z.bounds.h) this.player.y = z.bounds.y + z.bounds.h - r - 2;
 for (const ob of z.obstacles) {
 const closestX = Math.max(ob.x, Math.min(this.player.x, ob.x + ob.w));
 const closestY = Math.max(ob.y, Math.min(this.player.y, ob.y + ob.h));
 const dist = Math.hypot(this.player.x - closestX, this.player.y - closestY);
 if (dist < r) {
+if (this.player.y >= ob.y + ob.h * 0.5) {
+this.player.y = ob.y + ob.h + r + 4;
+} else {
 this.player.x = ob.x + ob.w + r + 8;
+}
+}
+}
+const npcs = this.getZoneNpcs(this.zone);
+for (const npc of npcs) {
+const npcR = npc.r || 14;
+const dx = this.player.x - npc.x;
+const dy = this.player.y - npc.y;
+const dist = Math.hypot(dx, dy);
+if (dist < r + npcR) {
+const push = (r + npcR - dist) + 2;
+const ang = dist > 0.01 ? Math.atan2(dy, dx) : Math.PI / 2;
+this.player.x += Math.cos(ang) * push;
+this.player.y += Math.sin(ang) * push;
 }
 }
 }
@@ -788,8 +1286,12 @@ return current + diff * Math.min(1, t);
 }
 update(dt) {
 this.animTime += dt;
-this.unstuckPlayer();
 if (this.mainMenuOpen) return;
+if (this.cutscene && this.cutscene.active) {
+this.updateCutscene(dt);
+return;
+}
+this.unstuckPlayer();
 if (this.activeModal === 'modal-crash' && this.crash.active) {
 this.updateCrashGame(dt);
 }
@@ -838,6 +1340,19 @@ const jLen = Math.hypot(this.joy.x, this.joy.y);
 inputMag = Math.min(1, jLen);
 ix = this.joy.x / jLen;
 iy = this.joy.y / jLen;
+} else if (this.gamepad && this.gamepad.connected) {
+const gpVec = this.getGamepadMoveVector();
+if (gpVec.mag > 0) {
+ix = gpVec.x;
+iy = gpVec.y;
+inputMag = gpVec.mag;
+}
+if (gpVec.aimX !== 0 || gpVec.aimY !== 0) {
+this.player.targetFacing = Math.atan2(gpVec.aimY, gpVec.aimX);
+this.gamepad.aimActive = true;
+} else {
+this.gamepad.aimActive = false;
+}
 }
 const speedMult = this.relics.has('loaded_boots') ? 1.35 : 1.0;
 const maxSpeed = this.player.speed * speedMult;
@@ -847,7 +1362,7 @@ const targetVy = iy * maxSpeed * inputMag;
 const accelRate = Math.min(1, this.player.accel * dt);
 this.player.vx += (targetVx - this.player.vx) * accelRate;
 this.player.vy += (targetVy - this.player.vy) * accelRate;
-this.player.targetFacing = Math.atan2(iy, ix);
+if (!this.gamepad || !this.gamepad.aimActive) this.player.targetFacing = Math.atan2(iy, ix);
 } else {
 const damping = Math.exp(-this.player.friction * dt);
 this.player.vx *= damping;
@@ -932,8 +1447,12 @@ if (dist < 6) {
 w.wpIdx = (w.wpIdx + 1) % w.waypoints.length;
 } else {
 const spd = 62;
-w.x += (dx / dist) * spd * dt;
-w.y += (dy / dist) * spd * dt;
+const nextWx = w.x + (dx / dist) * spd * dt;
+const nextWy = w.y + (dy / dist) * spd * dt;
+if (Math.hypot(nextWx - this.player.x, nextWy - this.player.y) >= this.player.r + 16) {
+w.x = nextWx;
+w.y = nextWy;
+}
 w.facing = this.lerpAngle(w.facing, Math.atan2(dy, dx), 8 * dt);
 }
 this.npcBubbleTimer -= dt;
@@ -961,6 +1480,28 @@ b.y -= dt * 11;
 b.life -= dt;
 b.alpha = Math.min(1, b.life / 0.6);
 if (b.life <= 0) this.npcBubbles.splice(i, 1);
+}
+}
+if (this.zone === 1 && !this.settings.lowEndMode) {
+if (Math.random() < 0.35 && this.smokePuffs.length < 22) {
+const isCarSmoke = Math.random() < 0.55;
+this.smokePuffs.push({
+x: isCarSmoke ? (575 + Math.random() * 18) : (214 + Math.random() * 4),
+y: isCarSmoke ? (418 + Math.random() * 20) : 178,
+r: isCarSmoke ? 4 : 2,
+vx: -10 - Math.random() * 12,
+vy: -16 - Math.random() * 14,
+alpha: isCarSmoke ? 0.32 : 0.45,
+color: isCarSmoke ? 'rgba(148, 163, 184,' : 'rgba(226, 232, 240,'
+});
+}
+for (let i = this.smokePuffs.length - 1; i >= 0; i--) {
+const sp = this.smokePuffs[i];
+sp.x += sp.vx * dt;
+sp.y += sp.vy * dt;
+sp.r += dt * 7;
+sp.alpha -= dt * 0.28;
+if (sp.alpha <= 0) this.smokePuffs.splice(i, 1);
 }
 }
 if (this.zone === 1 && this.settings.weather && !this.settings.lowEndMode) {
@@ -1024,6 +1565,7 @@ const fpsEl = document.getElementById('hud-fps');
 if (fpsEl) fpsEl.textContent = `${this.currentFps} FPS`;
 }
 }
+this.pollGamepad(dt);
 if (this.mainMenuOpen) {
 this.animTime += dt;
 this.updateAndRenderMenuCash(dt);

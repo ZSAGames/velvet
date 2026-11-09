@@ -15,7 +15,7 @@ let current = this[gameKey].bet || 0;
 if (action === 'clear') current = 0;
 else if (action === 'min') current = Math.min(this.cash, minBet);
 else if (action === 'max') current = this.cash;
-else if (typeof action === 'number') current = Math.min(this.cash, current + action);
+else if (typeof action === 'number') current = Math.max(0, Math.min(this.cash, current + action));
 this[gameKey].bet = Math.max(0, current);
 this.syncBetInputUI(gameKey);
 },
@@ -208,6 +208,7 @@ banner.className = 'text-center py-2 px-4 rounded-xl bg-red-950/90 border border
 }
 this.updateHUD();
 this.renderBlackjackUI();
+if (this.checkBankruptcy) this.checkBankruptcy();
 },
 renderBlackjackUI() {
 this.syncBetInputUI('bj');
@@ -466,6 +467,7 @@ banner.textContent = `WYPADŁO ${colName} — BRAK TRAFIENIA`;
 this.roul.bets = {};
 this.updateRoulBetTags();
 this.updateHUD();
+if (this.checkBankruptcy) this.checkBankruptcy();
 }
 };
 requestAnimationFrame(animateSpin);
@@ -524,6 +526,7 @@ this.sfx.lose();
 st.textContent = 'BRAK UKŁADU — SPRÓBUJ PONOWNIE';
 }
 this.updateHUD();
+if (this.checkBankruptcy) this.checkBankruptcy();
 }, 480);
 },
 openDiceModal() {
@@ -570,6 +573,7 @@ this.sfx.lose();
 st.textContent = `WYPADŁO ${sum} — PRZEGRANA -$${this.dice.bet}`;
 }
 this.updateHUD();
+if (this.checkBankruptcy) this.checkBankruptcy();
 }, 420);
 },
 openCrashModal() {
@@ -627,6 +631,7 @@ this.crash.active = false;
 this.crash.crashed = true;
 this.sfx.lose();
 this.sfx.blood();
+if (this.checkBankruptcy) this.checkBankruptcy();
 }
 this.updateCrashUI();
 this.renderCrashCanvas();
@@ -770,6 +775,7 @@ this.sfx.lose();
 this.sfx.blood();
 document.getElementById('mines-status').textContent = `💥 EKSPLOZJA MINY! PRZEGRANA -$${this.mines.bet}`;
 this.renderMinesUI();
+if (this.checkBankruptcy) this.checkBankruptcy();
 } else {
 this.mines.revealedCount++;
 const stepFactor = 1.18 + (this.mines.mineCount * 0.05);
@@ -857,6 +863,7 @@ return;
 const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0));
 this.bloodPumpedThisNight = true;
 this.timeLeft -= timeCost;
+if (this.rumble) this.rumble(0.8, 1.0, 380);
 this.cash += baseLoan;
 this.sfx.blood();
 this.showToast(`🩸 Oddano krew! +$${baseLoan} (-${timeCost}s)`, 'red');
@@ -877,6 +884,7 @@ const relicBonus = this.relics.has('golden_cufflinks') ? 1.2 : 1.0;
 const modBonus = this.currentModifier.payoutMult || 1.0;
 const total = Math.round(baseBetOrWin * multiplier * relicBonus * modBonus);
 this.cash += total;
+if (this.rumble) this.rumble(0.45, 0.75, 220);
 return total;
 },
 advanceChallenge(id, amount = 1) {

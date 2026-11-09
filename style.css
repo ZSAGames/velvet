@@ -49,8 +49,9 @@ body,html{margin:0;padding:0;width:100%;height:100%;width:100dvw;height:100dvh;o
 #rouletteWheelCanvas{display:block;aspect-ratio:1/1;object-fit:contain;margin:0 auto}
 #crashCanvas{display:block;width:100%;height:100%;object-fit:contain}
 #intro-overlay{pointer-events:all}
-#intro-logo-box{opacity:0;transform:scale(0.94);transition:opacity 1s ease-in-out,transform 3s cubic-bezier(0.16,1,0.3,1)}
-#intro-logo-box.intro-visible{opacity:1;transform:scale(1.04)}
+#intro-logo-box{opacity:0;transform:scale(0.92);transition:opacity 1s ease-in-out,transform 3s cubic-bezier(0.16,1,0.3,1);max-width:100vw}
+#intro-logo-box.intro-visible{opacity:1;transform:scale(1)}
+#intro-logo-title{font-size:clamp(1.35rem,6.8vw,4.5rem);letter-spacing:clamp(0.1em,1.8vw,0.36em);padding-left:clamp(0.1em,1.8vw,0.36em);line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden}
 #main-menu-overlay{opacity:0;transition:opacity 1s ease-in-out}
 #main-menu-overlay.menu-visible{opacity:1}
 body.is-mobile #interact-prompt{bottom:9.5rem;width:max-content;max-width:92vw}
@@ -63,3 +64,5 @@ body.is-mobile #interact-prompt{bottom:9.5rem;width:max-content;max-width:92vw}
 #mobile-act-btn.act-ready{background-color:#10b981;border-color:#a7f3d0;color:#052e16;box-shadow:0 0 28px rgba(16,185,129,0.75);animation:dangerPulse 1.1s infinite}
 #modal-backdrop{touch-action:pan-y}
 #modal-backdrop button,#modal-backdrop input,#main-hud-header button{touch-action:manipulation}
+.gp-focus{outline:3px solid #38bdf8!important;outline-offset:2px!important;box-shadow:0 0 22px rgba(56,189,248,0.85),inset 0 0 10px rgba(56,189,248,0.35)!important;transform:translateY(-2px) scale(1.03)!important;z-index:20}
+#gamepad-status-pill{transition:opacity 0.25s ease,transform 0.25s ease}
