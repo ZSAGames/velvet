@@ -843,6 +843,31 @@ ctx.fillRect(cx + 4, cy - 4, 15, 15);
 ctx.fillStyle = '#fde68a';
 ctx.fillRect(mx, cy - 14, 32, 24);
 });
+} else if (slot.type === 'tower') {
+for (let fl = 0; fl < 3; fl++) {
+ctx.fillStyle = '#0284c7';
+ctx.fillRect(cx - 32 + fl * 6, cy + 10 - fl * 13, 64 - fl * 12, 9);
+}
+} else if (slot.type === 'pulse') {
+ctx.fillStyle = '#134e4a';
+ctx.fillRect(bx + 22, cy - 6, bw - 44, 12);
+ctx.fillStyle = '#10b981';
+ctx.fillRect(cx - 16, cy - 6, 32, 12);
+const curX = bx + 26 + ((Math.sin(this.animTime * 5) * 0.5 + 0.5) * (bw - 52));
+ctx.fillStyle = '#fbbf24';
+ctx.fillRect(curX - 2, cy - 10, 4, 20);
+} else if (slot.type === 'hilo') {
+ctx.fillStyle = '#f472b6';
+ctx.fillRect(cx - 20, cy - 12, 16, 24);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(cx + 4, cy - 12, 16, 24);
+} else if (slot.type === 'cups') {
+[-26, 0, 26].forEach(ox => {
+ctx.fillStyle = '#c084fc';
+ctx.beginPath();
+ctx.arc(cx + ox, cy, 9, 0, Math.PI * 2);
+ctx.fill();
+});
 }
 if (this.settings.glows && !this.settings.lowEndMode) {
 for (let bi = 0; bi < 6; bi++) {
@@ -905,7 +930,7 @@ role: 'waiter'
 }
 ,
 drawTopDownNpc(ctx, npc, seed = 0) {
-const sway = Math.sin(this.animTime * 2.8 + seed * 1.7) * 0.14;
+const sway = npc.role === 'mafia' ? 0 : Math.sin(this.animTime * 2.8 + seed * 1.7) * 0.14;
 const breathe = Math.sin(this.animTime * 4 + seed) * 0.7;
 ctx.save();
 ctx.translate(npc.x, npc.y);
@@ -1096,25 +1121,37 @@ drawCutsceneWorldOverPlayer(ctx) {
 const cs = this.cutscene;
 if (!cs || !cs.active) return;
 cs.goons.forEach((g, idx) => {
+const aimAngle = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+g.facing = aimAngle;
 this.drawTopDownNpc(ctx, g, 70 + idx);
+const muzzleX = g.x + Math.cos(aimAngle) * 22;
+const muzzleY = g.y + Math.sin(aimAngle) * 22;
+// Wiązka lasera celująca bezpośrednio w środek gracza
+ctx.save();
+ctx.strokeStyle = cs.phase === 'SHOOTING' ? 'rgba(239, 68, 68, 0.85)' : 'rgba(239, 68, 68, 0.62)';
+ctx.lineWidth = 1.4;
+ctx.beginPath();
+ctx.moveTo(muzzleX, muzzleY);
+ctx.lineTo(this.player.x, this.player.y);
+ctx.stroke();
+ctx.fillStyle = '#ef4444';
+ctx.beginPath();
+ctx.arc(this.player.x, this.player.y, 2.8, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+// Broń wycelowana idealnie wzdłuż linii strzału
 ctx.save();
 ctx.translate(g.x, g.y);
-ctx.rotate(g.facing);
+ctx.rotate(aimAngle);
 ctx.fillStyle = '#18181b';
-ctx.strokeStyle = '#52525b';
+ctx.strokeStyle = '#71717a';
 ctx.lineWidth = 1.2;
-ctx.fillRect(6, 3, 14, 4);
-ctx.strokeRect(6, 3, 14, 4);
-ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
-ctx.lineWidth = 1.2;
-ctx.beginPath();
-ctx.moveTo(20, 5);
-ctx.lineTo(85, 5);
-ctx.stroke();
+ctx.fillRect(8, -2, 15, 4);
+ctx.strokeRect(8, -2, 15, 4);
 if (g.muzzleTimer > 0) {
 ctx.fillStyle = '#fef08a';
 ctx.beginPath();
-ctx.arc(23, 5, 6 + Math.random() * 4, 0, Math.PI * 2);
+ctx.arc(24, 0, 6 + Math.random() * 4, 0, Math.PI * 2);
 ctx.fill();
 }
 ctx.restore();
@@ -1133,6 +1170,8 @@ if (cs.phase === 'KIDNAP') {
 this.renderPropBadgeImmediate(ctx, this.player.x, this.player.y - 26, this.lang === 'uk' ? '⛓ ВИКРАДЕНО МАФІЄЮ!' : '⛓ PORWANY PRZEZ MAFIĘ!', '#fca5a5', '#450a0a');
 } else if (cs.phase === 'ARRIVAL') {
 this.renderPropBadgeImmediate(ctx, cs.goons[0].x, cs.goons[0].y - 24, '💀 MAFIA SYNDYKATU', '#fca5a5', '#450a0a');
+} else if (cs.phase === 'STREET_AIM') {
+this.renderPropBadgeImmediate(ctx, cs.goons[1].x, cs.goons[1].y - 26, '🎯 EGZEKUTORZY SYNDYKATU', '#fca5a5', '#450a0a');
 }
 },
 drawCutsceneScreenOverlay(ctx, cw, ch) {
@@ -1143,7 +1182,7 @@ if (cs.flashAlpha > 0) {
 ctx.fillStyle = `rgba(239, 68, 68, ${cs.flashAlpha})`;
 ctx.fillRect(0, 0, cw, ch);
 }
-const barH = Math.max(54, Math.round(ch * 0.12));
+const barH = Math.max(52, Math.round(ch * 0.12));
 ctx.fillStyle = 'rgba(3, 4, 7, 0.94)';
 ctx.fillRect(0, 0, cw, barH);
 ctx.fillRect(0, ch - barH, cw, barH);
@@ -1154,28 +1193,95 @@ ctx.moveTo(0, barH); ctx.lineTo(cw, barH);
 ctx.moveTo(0, ch - barH); ctx.lineTo(cw, ch - barH);
 ctx.stroke();
 ctx.fillStyle = '#ef4444';
-ctx.font = '800 11px "JetBrains Mono", monospace';
+const topFontPx = cw < 420 ? 9.5 : 11;
+ctx.font = `800 ${topFontPx}px "JetBrains Mono", monospace`;
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
-ctx.fillText('🎬 SYNDICATE_EXECUTION_PROTOCOL // CUTSCENE', cw / 2, barH / 2);
+ctx.fillText('🎬 SYNDICATE_EXECUTION_PROTOCOL // CUTSCENE', cw / 2, barH / 2, cw - 16);
 if (cs.subtitle) {
 ctx.fillStyle = '#fef3c7';
-const fontPx = cw < 500 ? 11 : 14;
-ctx.font = `800 ${fontPx}px "JetBrains Mono", monospace`;
-ctx.fillText(cs.subtitle, cw / 2, ch - barH / 2, cw - 24);
+const subFontPx = cw < 480 ? 10.5 : 13.5;
+ctx.font = `800 ${subFontPx}px "JetBrains Mono", monospace`;
+const maxSubW = cw - 24;
+const words = cs.subtitle.split(' ');
+const lines = [];
+let curLine = '';
+for (const w of words) {
+const test = curLine ? `${curLine} ${w}` : w;
+if (ctx.measureText(test).width > maxSubW && curLine) {
+lines.push(curLine);
+curLine = w;
+} else {
+curLine = test;
+}
+}
+if (curLine) lines.push(curLine);
+const lineH = subFontPx + 4;
+const startY = (ch - barH / 2) - ((lines.length - 1) * lineH) / 2;
+lines.forEach((ln, i) => {
+ctx.fillText(ln, cw / 2, startY + i * lineH, maxSubW);
+});
 }
 if (cs.blackAlpha > 0) {
 ctx.fillStyle = `rgba(0, 0, 0, ${cs.blackAlpha})`;
 ctx.fillRect(0, 0, cw, ch);
-if (cs.blackAlpha > 0.45) {
-const textAlpha = Math.min(1, (cs.blackAlpha - 0.45) / 0.4);
+if (cs.blackAlpha > 0.4) {
+const textAlpha = Math.min(1, (cs.blackAlpha - 0.4) / 0.45);
 ctx.globalAlpha = textAlpha;
+const badgeText = this.lang === 'uk' ? 'КОНТРАКТ РОЗІРВАНО' : 'KONTRAKT ZERWANY';
+const titleText = this.lang === 'uk' ? 'БОРГ СТЯГНУТО' : 'DŁUG WYEGZEKWOWANY';
+const maxAllowedW = Math.max(200, cw * 0.88);
+// Dopasowanie rozmiaru napisu głównego jak w intro ZSAGames (responsywne na telefonach i PC)
+let titlePx = Math.max(18, Math.min(48, Math.floor(cw * 0.068)));
+ctx.font = `800 ${titlePx}px "Syne", sans-serif`;
+const measuredW = ctx.measureText(titleText).width;
+if (measuredW > maxAllowedW) {
+titlePx = Math.max(15, Math.floor(titlePx * (maxAllowedW / measuredW)));
+ctx.font = `800 ${titlePx}px "Syne", sans-serif`;
+}
+// Mały nagłówek nad tytułem
+const badgePx = Math.max(10, Math.min(13, Math.floor(cw * 0.028)));
+ctx.font = `800 ${badgePx}px "JetBrains Mono", monospace`;
+ctx.fillStyle = '#f87171';
+ctx.fillText(badgeText, cw / 2, ch / 2 - titlePx * 0.95);
+// Główny tytuł w stylu ZSAGames Intro
+ctx.save();
+ctx.font = `800 ${titlePx}px "Syne", sans-serif`;
 ctx.fillStyle = '#dc2626';
-ctx.font = `800 ${cw < 500 ? 22 : 34}px "Syne", sans-serif`;
-ctx.fillText(this.lang === 'uk' ? 'БОРГ СТЯГНУТО' : 'DŁUG WYEGZEKWOWANY', cw / 2, ch / 2 - 14);
+ctx.shadowColor = 'rgba(220, 38, 38, 0.75)';
+ctx.shadowBlur = 28;
+ctx.fillText(titleText, cw / 2, ch / 2 - 4);
+ctx.restore();
+// Świecąca linia pod tytułem jak w intro ZSAGames
+const lineW = Math.min(160, cw * 0.42);
+const lineGrad = ctx.createLinearGradient(cw / 2 - lineW / 2, 0, cw / 2 + lineW / 2, 0);
+lineGrad.addColorStop(0, 'rgba(220, 38, 38, 0)');
+lineGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.9)');
+lineGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+ctx.fillStyle = lineGrad;
+ctx.fillRect(cw / 2 - lineW / 2, ch / 2 + titlePx * 0.45, lineW, 2);
+// Zawijanie tekstu przyczyny zgonu na ekranach mobilnych
+const reasonPx = cw < 480 ? 11 : 13;
+ctx.font = `700 ${reasonPx}px "JetBrains Mono", monospace`;
 ctx.fillStyle = '#fca5a5';
-ctx.font = `700 ${cw < 500 ? 11 : 13}px "JetBrains Mono", monospace`;
-ctx.fillText(cs.reason, cw / 2, ch / 2 + 18, cw - 32);
+const rWords = (cs.reason || '').split(' ');
+const rLines = [];
+let rCur = '';
+for (const w of rWords) {
+const test = rCur ? `${rCur} ${w}` : w;
+if (ctx.measureText(test).width > maxAllowedW && rCur) {
+rLines.push(rCur);
+rCur = w;
+} else {
+rCur = test;
+}
+}
+if (rCur) rLines.push(rCur);
+const rLineH = reasonPx + 5;
+const rStartY = ch / 2 + titlePx * 0.45 + 22;
+rLines.forEach((ln, idx) => {
+ctx.fillText(ln, cw / 2, rStartY + idx * rLineH, maxAllowedW);
+});
 }
 }
 ctx.restore();

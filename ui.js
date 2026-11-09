@@ -455,6 +455,18 @@ if (relic.id === 'adrenaline_shot' && this.phase === 'SHIFT') {
 this.timeLeft += 45;
 this.maxTime += 45;
 }
+if (relic.id === 'chrono_anchor' && this.phase === 'SHIFT') {
+this.timeLeft += 90;
+this.maxTime += 90;
+}
+if (relic.id === 'syndicate_seal') {
+this.quota = Math.max(500, Math.round((this.quota * 0.85) / 50) * 50);
+}
+if (relic.id === 'velvet_crown') {
+this.cash += 1000;
+this.bloodAvailableToday = true;
+this.tokenPawnAvailableToday = true;
+}
 this.sfx.win();
 this.showToast(`Odblokowano Relikt: ${this.getLocalized(relic.name)}!`, 'emerald');
 this.renderRelicShop();

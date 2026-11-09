@@ -889,7 +889,7 @@ this.transitionToZone(1, 95, 320);
 }
 startNightShift() {
 this.phase = 'SHIFT';
-const extraRelic = this.relics.has('adrenaline_shot') ? 45 : 0;
+const extraRelic = (this.relics.has('adrenaline_shot') ? 45 : 0) + (this.relics.has('chrono_anchor') ? 90 : 0);
 const extraMod = this.currentModifier.extraTime || 0;
 this.maxTime = Math.max(120, 360 + extraRelic + extraMod);
 this.timeLeft = this.maxTime;
@@ -900,7 +900,8 @@ this.updateHUD();
 completeDaySummary() {
 this.sfx.jackpot();
 const surplus = Math.max(0, this.cash - this.quota);
-const bonusTokens = 1 + (surplus >= 500 ? 1 : 0);
+const anchorBonus = this.relics.has('chrono_anchor') ? 1 : 0;
+const bonusTokens = 1 + (surplus >= 500 ? 1 : 0) + anchorBonus;
 this.tokens += bonusTokens;
 document.getElementById('summary-title').textContent = `${this.t('hud_cycle')} ${this.day} — ${this.t('completed_word')}`;
 document.getElementById('summary-details').innerHTML = `
@@ -980,22 +981,22 @@ if (hudHeader) hudHeader.classList.add('hidden');
 const promptEl = document.getElementById('interact-prompt');
 if (promptEl) promptEl.classList.add('hidden');
 let spawnPts = [
-{ x: 500, y: 480 },
-{ x: 465, y: 485 },
-{ x: 535, y: 485 }
+{ x: 500, y: 555 },
+{ x: 462, y: 575 },
+{ x: 538, y: 575 }
 ];
 if (this.zone === 1) {
 const dir = this.player.x > 500 ? -1 : 1;
 spawnPts = [
-{ x: this.player.x + dir * 210, y: 285 },
-{ x: this.player.x + dir * 230, y: 315 },
-{ x: this.player.x + dir * 210, y: 345 }
+{ x: this.player.x + dir * 340, y: 280 },
+{ x: this.player.x + dir * 370, y: 315 },
+{ x: this.player.x + dir * 340, y: 350 }
 ];
 } else if (this.zone === 2) {
 spawnPts = [
-{ x: 95, y: 285 },
-{ x: 85, y: 310 },
-{ x: 95, y: 335 }
+{ x: 15, y: 280 },
+{ x: -10, y: 310 },
+{ x: 15, y: 340 }
 ];
 }
 this.cutscene = {
@@ -1008,12 +1009,12 @@ x: pt.x,
 y: pt.y,
 facing: Math.atan2(this.player.y - pt.y, this.player.x - pt.x),
 coat: '#09090b',
-trim: '#dc2626',
-hair: '#18181b',
+trim: i === 1 ? '#fbbf24' : '#dc2626',
+hair: i === 1 ? '#e2e8f0' : '#18181b',
 visor: '#ef4444',
 role: 'mafia',
 muzzleTimer: 0,
-offsetX: i === 0 ? -34 : (i === 1 ? -34 : 36),
+offsetX: i === 0 ? -38 : (i === 1 ? -44 : 38),
 offsetY: i === 0 ? -24 : (i === 1 ? 24 : 0)
 })),
 tracers: [],
@@ -1043,7 +1044,7 @@ for (let i = cs.tracers.length - 1; i >= 0; i--) {
 cs.tracers[i].alpha -= dt * 7.5;
 if (cs.tracers[i].alpha <= 0) cs.tracers.splice(i, 1);
 }
-if (t < 2.8) {
+if (t < 3.1) {
 cs.phase = 'ARRIVAL';
 cs.goons.forEach((g) => {
 const tx = this.player.x + g.offsetX;
@@ -1052,16 +1053,16 @@ const dx = tx - g.x;
 const dy = ty - g.y;
 const dist = Math.hypot(dx, dy);
 if (dist > 3) {
-const spd = Math.min(240, 110 + dist * 2.2);
+const spd = Math.min(210, 95 + dist * 1.6);
 g.x += (dx / dist) * spd * dt;
 g.y += (dy / dist) * spd * dt;
 }
 g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
 });
-this.player.facing = Math.atan2(cs.goons[0].y - this.player.y, cs.goons[0].x - this.player.x);
+this.player.facing = Math.atan2(cs.goons[1].y - this.player.y, cs.goons[1].x - this.player.x);
 this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 6 * dt);
 this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 6 * dt);
-} else if (t < 5.2) {
+} else if (t < 5.5) {
 if (cs.phase !== 'KIDNAP') {
 cs.phase = 'KIDNAP';
 this.sfx.blood();
@@ -1081,7 +1082,7 @@ this.player.y += (pdy / pDist) * 115 * dt;
 }
 this.player.facing += Math.sin(this.animTime * 28) * 0.22;
 cs.goons.forEach((g, idx) => {
-const gx = this.player.x + (idx === 0 ? -16 : (idx === 1 ? -16 : 18));
+const gx = this.player.x + (idx === 0 ? -18 : (idx === 1 ? -18 : 18));
 const gy = this.player.y + (idx === 0 ? -14 : (idx === 1 ? 14 : 0));
 g.x += (gx - g.x) * Math.min(1, 12 * dt);
 g.y += (gy - g.y) * Math.min(1, 12 * dt);
@@ -1090,40 +1091,58 @@ g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
 this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 6 * dt);
 this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 6 * dt);
 const curtain = document.getElementById('zone-transition-curtain');
-if (t >= 4.2 && !cs.switchedToStreet) {
+if (t >= 4.5 && !cs.switchedToStreet) {
 if (curtain) curtain.style.opacity = '1';
-if (t >= 4.7) {
+if (t >= 5.0) {
 cs.switchedToStreet = true;
 this.zone = 1;
 this.syncZoneMusic();
-this.player.x = 515;
+this.player.x = 535;
 this.player.y = 315;
 this.player.facing = Math.PI;
-this.camera.x = 465;
+this.camera.x = 435;
 this.camera.y = 315;
+// Nie pojawiają się od razu obok gracza — idą z daleka zza limuzyny i celują prosto w gracza
 cs.goons = [
-{ x: 422, y: 282, facing: 0.28, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
-{ x: 414, y: 315, facing: 0, coat: '#09090b', trim: '#fbbf24', hair: '#e2e8f0', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
-{ x: 422, y: 348, facing: -0.28, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 }
+{ x: 225, y: 268, targetX: 418, targetY: 278, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
+{ x: 195, y: 315, targetX: 405, targetY: 315, facing: 0, coat: '#09090b', trim: '#fbbf24', hair: '#e2e8f0', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 },
+{ x: 225, y: 362, targetX: 418, targetY: 352, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'mafia', muzzleTimer: 0 }
 ];
+cs.goons.forEach(g => {
+g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+});
 }
 }
-} else if (t < 7.4) {
+} else if (t < 8.4) {
 if (cs.phase !== 'STREET_AIM') {
 cs.phase = 'STREET_AIM';
 const curtain = document.getElementById('zone-transition-curtain');
 if (curtain) curtain.style.opacity = '0';
 this.sfx.door();
 cs.subtitle = this.lang === 'uk'
-? 'ДОН СИНДИКАТУ: "Борги в Оксамитовій Безодні платять кров’ю. Вогонь!"'
-: 'DON SYNDYKATU: "Długi w Aksamitnej Otchłani spłaca się krwią. Ognia!"';
+? 'ДОН СИНДИКАТУ: "Борги в Оксамитовій Безодні платять кров’ю. Цілься!"'
+: 'DON SYNDYKATU: "Długi w Aksamitnej Otchłani spłaca się krwią. Celować w niego!"';
 }
-this.player.x = 515 + Math.sin(this.animTime * 22) * 0.8;
+// Egzekutorzy podchodzą ulicą do gracza i cały czas celują dokładnie w niego
+cs.goons.forEach((g) => {
+const tx = g.targetX || 415;
+const ty = g.targetY || 315;
+const dx = tx - g.x;
+const dy = ty - g.y;
+const dist = Math.hypot(dx, dy);
+if (dist > 2) {
+const walkSpd = Math.min(115, 45 + dist * 0.9);
+g.x += (dx / dist) * walkSpd * dt;
+g.y += (dy / dist) * walkSpd * dt;
+}
+g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+});
+this.player.x = 535 + Math.sin(this.animTime * 22) * 0.7;
 this.player.y = 315;
 this.player.facing = Math.PI;
-this.camera.x += (470 - this.camera.x) * Math.min(1, 5 * dt);
-this.camera.y += (315 - this.camera.y) * Math.min(1, 5 * dt);
-} else if (t < 9.8) {
+this.camera.x += (475 - this.camera.x) * Math.min(1, 4.5 * dt);
+this.camera.y += (315 - this.camera.y) * Math.min(1, 4.5 * dt);
+} else if (t < 10.8) {
 if (cs.phase !== 'SHOOTING') {
 cs.phase = 'SHOOTING';
 cs.shotCooldown = 0;
@@ -1131,15 +1150,20 @@ cs.subtitle = this.lang === 'uk'
 ? 'КОНТРАКТ РОЗІРВАНО — БОРГ СТЯГНУТО'
 : 'KONTRAKT ZERWANY — DŁUG WYEGZEKWOWANY';
 }
+cs.goons.forEach((g) => {
+g.facing = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+if (g.muzzleTimer > 0) g.muzzleTimer = Math.max(0, g.muzzleTimer - dt);
+});
 cs.shotCooldown -= dt;
-if (cs.shotCooldown <= 0 && t < 9.35) {
-cs.shotCooldown = 0.14;
+if (cs.shotCooldown <= 0 && t < 10.35) {
+cs.shotCooldown = 0.13;
 const shooter = cs.goons[Math.floor(Math.random() * cs.goons.length)];
+shooter.facing = Math.atan2(this.player.y - shooter.y, this.player.x - shooter.x);
 shooter.muzzleTimer = 0.09;
-const gunX = shooter.x + Math.cos(shooter.facing) * 16;
-const gunY = shooter.y + Math.sin(shooter.facing) * 16;
-const hitX = this.player.x + (Math.random() - 0.5) * 14;
-const hitY = this.player.y + (Math.random() - 0.5) * 14;
+const gunX = shooter.x + Math.cos(shooter.facing) * 22;
+const gunY = shooter.y + Math.sin(shooter.facing) * 22;
+const hitX = this.player.x + (Math.random() - 0.5) * 10;
+const hitY = this.player.y + (Math.random() - 0.5) * 10;
 cs.tracers.push({ x1: gunX, y1: gunY, x2: hitX, y2: hitY, alpha: 1.0 });
 for (let b = 0; b < 4; b++) {
 cs.bloodDrops.push({
@@ -1148,23 +1172,20 @@ y: hitY + (Math.random() - 0.5) * 22,
 r: 2 + Math.random() * 4.5
 });
 }
-cs.bloodPoolR = Math.min(34, cs.bloodPoolR + 2.8);
+cs.bloodPoolR = Math.min(36, cs.bloodPoolR + 2.8);
 cs.flashAlpha = 0.38;
 cs.playerDown = true;
 if (this.sfx.gunshot) this.sfx.gunshot(); else this.sfx.blood();
 this.rumble(0.95, 1.0, 110);
-this.camera.x = 470 + (Math.random() - 0.5) * 14;
+this.camera.x = 475 + (Math.random() - 0.5) * 14;
 this.camera.y = 315 + (Math.random() - 0.5) * 14;
 }
-cs.goons.forEach(g => {
-if (g.muzzleTimer > 0) g.muzzleTimer = Math.max(0, g.muzzleTimer - dt);
-});
-} else if (t < 12.4) {
+} else if (t < 13.8) {
 if (cs.phase !== 'BLACKOUT') {
 cs.phase = 'BLACKOUT';
 this.sfx.introBoom();
 }
-cs.blackAlpha = Math.min(1, (t - 9.8) / 0.75);
+cs.blackAlpha = Math.min(1, (t - 10.8) / 0.75);
 } else {
 cs.active = false;
 const curtain = document.getElementById('zone-transition-curtain');
@@ -1188,7 +1209,12 @@ this.camera.y = 235;
 this.assignNightlyModifier();
 this.assignDailyChallenge();
 this.randomizeNightlyCasinoFloor();
-this.openMainMenu(false);
+// Po egzekucji pokaż ekran ZSAGames i przejdź do Main Menu dokładnie jak z Pause Menu!
+if (this.returnToMainMenuFromPause) {
+this.returnToMainMenuFromPause();
+} else {
+this.openMainMenu(true);
+}
 }
 }
 restartRun() {
