@@ -554,6 +554,7 @@ const VelvetMinigames = {
 
   checkBankruptcy() {
     if (this.cutscene && this.cutscene.active) return;
+    if (this.mainMenuOpen || this.introPlaying || this.isLoadingScreen) return;
     if (this.cash >= this.quota) return;
     const minBet = this.getMinBet();
     let roulTotal = 0;
@@ -572,22 +573,23 @@ const VelvetMinigames = {
       (this.hilo && this.hilo.active) ||
       (this.cups && this.cups.active) ||
       roulTotal > 0;
+    if (anyRoundActive) return;
 
-    const canPumpBlood = this.bloodAvailableToday && !this.bloodPumpedThisNight;
-    const canPawnTokens = this.tokenPawnAvailableToday && this.tokens > 0;
+    const timeCost = Math.max(15, ((this.currentModifier && this.currentModifier.bloodCost) || 60) - (this.relics && this.relics.has('crimson_chalice') ? 20 : 0));
+    const bloodAvail = typeof this.bloodAvailableToday === 'boolean' ? this.bloodAvailableToday : true;
+    const pawnAvail = typeof this.tokenPawnAvailableToday === 'boolean' ? this.tokenPawnAvailableToday : true;
+    const canPumpBlood = bloodAvail && !this.bloodPumpedThisNight && !(this.phase === 'SHIFT' && this.timeLeft <= timeCost + 5);
+    const canPawnTokens = pawnAvail && this.tokens > 0;
 
-    if (!anyRoundActive && this.cash < minBet && !canPawnTokens && !canPumpBlood) {
-      if (this._bankruptTimeout) clearTimeout(this._bankruptTimeout);
-      this._bankruptTimeout = setTimeout(() => {
-        const stillCanPump = this.bloodAvailableToday && !this.bloodPumpedThisNight;
-        const stillCanPawn = this.tokenPawnAvailableToday && this.tokens > 0;
-        if (!this.cutscene.active && this.cash < this.quota && this.cash < this.getMinBet() && !stillCanPawn && !stillCanPump) {
-          this.closeModals(true);
-          this.triggerGameOver(this.lang === 'uk'
-            ? 'Ви програли всю готівку, а Банкомат сьогодні заблокований — Мафія прийшла за боргом!'
-            : 'Straciłeś gotówkę, a usługi Bankomatu są dziś niedostępne — Mafia przyszła po dług!');
-        }
-      }, 1100);
+    if (this.cash < minBet && !canPawnTokens && !canPumpBlood) {
+      if (this._bankruptTimeout) {
+        clearTimeout(this._bankruptTimeout);
+        this._bankruptTimeout = null;
+      }
+      this.closeModals(true);
+      this.triggerGameOver(this.lang === 'uk'
+        ? 'Ви програли всю готівку, не маєте жетонів і вже віддали кров — Мафія Синдикату прийшла за боргом!'
+        : 'Straciłeś całą gotówkę, nie masz żetonów i oddałeś już krew — Mafia Syndykatu przyszła po dług!');
     }
   },
 
@@ -1913,6 +1915,7 @@ const VelvetMinigames = {
     this.sfx.tick();
     this.refreshAtmModalUI();
     this.openModal('modal-atm');
+    if (this.checkBankruptcy) this.checkBankruptcy();
   },
   refreshAtmModalUI() {
     const chaliceMult = this.relics.has('crimson_chalice') ? 1.45 : 1.0;

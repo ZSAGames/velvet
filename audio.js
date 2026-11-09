@@ -20,7 +20,7 @@ audio.src = CUSTOM_MUSIC_CONFIG.tracks[key];
 audio.addEventListener('error', () => {
 const labelEl = document.getElementById('music-current-track-label');
 if (labelEl && !this.customBlobUrl && this.currentTrackKey === key) {
-labelEl.textContent = `Brak pliku: ${CUSTOM_MUSIC_CONFIG.tracks[key]}`;
+labelEl.textContent = 'Syntezator Cyberpunk Audio (Wbudowany)';
 }
 });
 this.audioDecks[key] = audio;
@@ -55,7 +55,7 @@ this.currentTrackKey = trackKey;
 const shouldRestart = forceRestart || trackKey === 'menu';
 const labelEl = document.getElementById('music-current-track-label');
 if (labelEl && !this.customBlobUrl) {
-labelEl.textContent = `🎵 [${trackKey.toUpperCase()}]: ${CUSTOM_MUSIC_CONFIG.tracks[trackKey]}`;
+labelEl.textContent = `🎵 Aktywny motyw: ${trackKey.toUpperCase()}`;
 }
 if (!this.musicEnabled) {
 Object.values(this.audioDecks).forEach(d => { if (d && !d.paused) d.pause(); });

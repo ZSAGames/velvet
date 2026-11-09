@@ -121,7 +121,7 @@ this.activeModal = null;
 this.hoveredInteractable = null;
 this.menuCashCanvas = document.getElementById('menuCashCanvas');
 this.menuCashCtx = this.menuCashCanvas ? this.menuCashCanvas.getContext('2d') : null;
-this.menuCashBills = Array.from({ length: 34 }, (_, idx) => this.spawnMenuCashBill(idx, true));
+this.menuCashBills = Array.from({ length: 72 }, (_, idx) => this.spawnMenuCashBill(idx, true));
 this.rain = Array.from({ length: 65 }, () => ({
 x: Math.random() * 1000,
 y: Math.random() * 600,
@@ -390,6 +390,7 @@ return 'E';
 }
 updateGamepadStatusUI() {
 this.updateMobileState();
+if (this.syncMenuStatsUI) this.syncMenuStatsUI();
 const pill = document.getElementById('gamepad-status-pill');
 const txt = document.getElementById('gamepad-status-text');
 const keyBadge = document.getElementById('interact-prompt-key');
@@ -530,6 +531,9 @@ if (justPressed(4)) this.setRoulChip(50);
 if (justPressed(5)) this.setRoulChip(150);
 if (justPressed(2)) this.clearRoulBets();
 if (justPressed(3)) this.spinRoulette();
+} else if (this.activeModal === 'modal-settings') {
+if (justPressed(4) && this.stepMusicVolume) this.stepMusicVolume(-10);
+if (justPressed(5) && this.stepMusicVolume) this.stepMusicVolume(10);
 }
 if (justPressed(0)) {
 if (this.activeModal === 'modal-crash' && this.crash.active) {
@@ -942,23 +946,40 @@ this.showToast(`☀ ${this.t('day_word')} ${this.day} — Min. zakład: $${this.
 }
 checkBankruptcy() {
 if (this.cutscene && this.cutscene.active) return;
+if (this.mainMenuOpen || this.introPlaying || this.isLoadingScreen) return;
 if (this.cash >= this.quota) return;
-const minBet = this.getMinBet();
+const minBet = this.getMinBet ? this.getMinBet() : (this.day * 50);
 let roulTotal = 0;
 if (this.roul && this.roul.bets) {
 for (const k in this.roul.bets) roulTotal += this.roul.bets[k];
 }
-const anyRoundActive = this.bj.inProgress || this.roul.spinning || this.slots.spinning || this.dice.rolling || this.crash.active || this.mines.active || roulTotal > 0;
-if (!anyRoundActive && this.cash < minBet && this.tokens <= 0 && this.bloodPumpedThisNight) {
-if (this._bankruptTimeout) clearTimeout(this._bankruptTimeout);
-this._bankruptTimeout = setTimeout(() => {
-if (!this.cutscene.active && this.cash < this.quota && this.cash < this.getMinBet() && this.tokens <= 0 && this.bloodPumpedThisNight) {
+const anyRoundActive =
+this.bj.inProgress ||
+this.roul.spinning ||
+this.slots.spinning ||
+this.dice.rolling ||
+this.crash.active ||
+this.mines.active ||
+(this.tower && this.tower.active) ||
+(this.pulse && this.pulse.active) ||
+(this.hilo && this.hilo.active) ||
+(this.cups && this.cups.active) ||
+roulTotal > 0;
+if (anyRoundActive) return;
+const timeCost = Math.max(15, ((this.currentModifier && this.currentModifier.bloodCost) || 60) - (this.relics && this.relics.has('crimson_chalice') ? 20 : 0));
+const bloodAvail = typeof this.bloodAvailableToday === 'boolean' ? this.bloodAvailableToday : true;
+const pawnAvail = typeof this.tokenPawnAvailableToday === 'boolean' ? this.tokenPawnAvailableToday : true;
+const canPumpBlood = bloodAvail && !this.bloodPumpedThisNight && !(this.phase === 'SHIFT' && this.timeLeft <= timeCost + 5);
+const canPawnTokens = pawnAvail && this.tokens > 0;
+if (this.cash < minBet && !canPawnTokens && !canPumpBlood) {
+if (this._bankruptTimeout) {
+clearTimeout(this._bankruptTimeout);
+this._bankruptTimeout = null;
+}
 this.closeModals(true);
 this.triggerGameOver(this.lang === 'uk'
-? 'Ви програли всю готівку, жетони та кров — Mafia Синдикату прийшла за боргом!'
-: 'Straciłeś całą gotówkę, żetony i krew — Mafia Syndykatu przyszła po dług!');
-}
-}, 1100);
+? 'Ви програли всю готівку, не маєте жетонів і вже віддали кров — Мафія Синдикату прийшла за боргом!'
+: 'Straciłeś całą gotówkę, nie masz żetonów i oddałeś już krew — Mafia Syndykatu przyszła po dług!');
 }
 }
 triggerGameOver(reason) {
@@ -1318,6 +1339,8 @@ this.updateCutscene(dt);
 return;
 }
 this.unstuckPlayer();
+if (this.checkBankruptcy) this.checkBankruptcy();
+if (this.cutscene && this.cutscene.active) return;
 if (this.activeModal === 'modal-crash' && this.crash.active) {
 this.updateCrashGame(dt);
 }

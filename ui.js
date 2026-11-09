@@ -90,24 +90,41 @@ loadOverlay.style.display = 'flex';
 void loadOverlay.offsetWidth;
 loadOverlay.style.opacity = '1';
 }
+const tipsPl = [
+'Rano w Kryjówce zegar stoi w miejscu. Sprawdź dzisiejszy kontrakt w Terminalu i kup Relikty przed wyjściem na ulicę.',
+'W Kasynie codziennie rotują stoły i warianty gier. Szukaj stołu oznaczonego jako ★ MINIGRA DNIA!',
+'Gdy brakuje Ci gotówki, sprawdź Bankomat Lichwiarza w Kasynie — ale pamiętaj, że nie każdej nocy jest otwarty.',
+'Po zebraniu wymaganej Kwoty musisz wrócić do Kryjówki i położyć się do Łóżka przed upływem czasu (00:00).'
+];
+const tipsUk = [
+'Вранці у Схованці таймер зупинено. Перевірте контракт у Терміналі та купіть Реліквії перед виходом.',
+'У Казино щодня змінюються столи та варіанти ігор. Шукайте стіл із позначкою ★ МІНІГРА ДНЯ!',
+'Якщо бракує грошей, перевірте Банкомат Лихваря в Казино — але він відкритий не кожної ночі.',
+'Зібравши Квоту, обов’язково поверніться у Схованку та ляжте в Ліжко до закінчення таймера (00:00).'
+];
+const tipEl = document.getElementById('loading-tip-text');
+if (tipEl) {
+const pool = this.lang === 'uk' ? tipsUk : tipsPl;
+tipEl.textContent = pool[(this.day - 1 + Math.floor(Math.random() * pool.length)) % pool.length];
+}
 const setProgress = (pct, mainMsg, subMsg) => {
 if (pctText) pctText.textContent = `${pct}%`;
 if (barFill) barFill.style.width = `${pct}%`;
 if (stepText && mainMsg) stepText.textContent = mainMsg;
 if (subStatus && subMsg) subStatus.textContent = subMsg;
 };
-setProgress(20, 'Pre-load ścieżek audio (.MP3) i syntezatora...', 'BUFOROWANIE AUDIO');
+setProgress(25, this.lang === 'uk' ? 'Підготовка звуку та музики...' : 'Przygotowywanie dźwięku i muzyki...', this.lang === 'uk' ? 'ЗАВАНТАЖЕННЯ' : 'WCZYTYWANIE GRY');
 this.sfx.init();
 this.sfx.initRainLoop();
 Object.values(this.sfx.audioDecks).forEach(deck => {
 if (deck && deck.preload !== 'auto') deck.preload = 'auto';
 });
 setTimeout(() => {
-setProgress(50, 'Generowanie tekstur podłóg i oświetlenia (Anti-Stutter)...', 'OPTYMALIZACJA GPU');
+setProgress(60, this.lang === 'uk' ? 'Завантаження локацій: Схованка, Вулиця, Казино...' : 'Wczytywanie lokacji: Kryjówka, Ulica, Kasyno...', this.lang === 'uk' ? 'ЛОКАЦІЇ' : 'ŚWIAT GRY');
 this.prebakeZoneFloors();
-}, 220);
+}, 180);
 setTimeout(() => {
-setProgress(80, 'Wstępne renderowanie stref: Kryjówka, Ulica, Kasyno...', 'WARM-UP SILNIKA 2D');
+setProgress(90, this.lang === 'uk' ? 'Роздача карт і запуск столів Казино...' : 'Rozkładanie stołów i żetonów w Kasynie...', this.lang === 'uk' ? 'КАЗИНО' : 'KASYNO');
 const savedZone = this.zone;
 const warmCanvas = document.createElement('canvas');
 warmCanvas.width = 400;
@@ -150,7 +167,7 @@ this.isLoadingScreen = false;
 if (this.updateMobileState) this.updateMobileState();
 this.enforceGameFocus();
 }
-}, 3100);
+}, 1850);
 },
 returnToMainMenuFromPause() {
 this.closeModals(true);
@@ -159,11 +176,21 @@ this.openMainMenu(true);
 openPauseModal() {
 if (this.mainMenuOpen || this.introPlaying || (this.cutscene && this.cutscene.active)) return;
 this.sfx.tick();
+const pDay = document.getElementById('pause-stat-day');
 const statusEl = document.getElementById('pause-status-line');
-if (statusEl) {
-statusEl.textContent = `${this.t('day_word')} ${this.day} • ${this.t('hud_cash_label')} $${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}`;
-}
+const pTok = document.getElementById('pause-stat-tokens');
+if (pDay) pDay.textContent = `${this.t('day_word')} ${this.day}`;
+if (statusEl) statusEl.textContent = `$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}`;
+if (pTok) pTok.textContent = `${this.tokens} 🪙`;
 this.openModal('modal-pause');
+},
+stepMusicVolume(delta) {
+const cur = Math.round((this.sfx.musicVolume || 0) * 100);
+const next = Math.max(0, Math.min(100, cur + delta));
+this.setMusicVolume(next);
+const slider = document.getElementById('set-music-volume');
+if (slider) slider.value = next;
+this.sfx.tick();
 },
 syncZoneMusic() {
 if (this.mainMenuOpen) {
@@ -260,6 +287,26 @@ const pct = Math.round(this.sfx.musicVolume * 100);
 volSlider.value = pct;
 volLabel.textContent = `${pct}%`;
 }
+this.syncMenuStatsUI();
+},
+syncMenuStatsUI() {
+const mDay = document.getElementById('menu-stat-day');
+const mCash = document.getElementById('menu-stat-cash');
+const mTok = document.getElementById('menu-stat-tokens');
+if (mDay) mDay.textContent = `${this.t('day_word')} ${this.day}`;
+if (mCash) mCash.textContent = `$${this.cash.toLocaleString()} / $${this.quota.toLocaleString()}`;
+if (mTok) mTok.textContent = `${this.tokens} 🪙`;
+const inpBadge = document.getElementById('menu-input-badge');
+const inpText = document.getElementById('menu-input-text');
+if (inpBadge && inpText) {
+if (this.gamepad && this.gamepad.connected) {
+inpBadge.innerHTML = `<span>🎮</span> <span id="menu-input-text">${this.gamepad.type === 'PS' ? 'PAD PLAYSTATION' : 'PAD XBOX / PC'}</span>`;
+} else if (this.isMobile) {
+inpBadge.innerHTML = `<span>📱</span> <span id="menu-input-text">${this.lang === 'uk' ? 'СЕНСОРНИЙ ЕКРАН' : 'EKRAN DOTYKOWY'}</span>`;
+} else {
+inpBadge.innerHTML = `<span>⌨️</span> <span id="menu-input-text">${this.lang === 'uk' ? 'КЛАВІАТУРА / МИША' : 'KLAWIATURA / MYSZ'}</span>`;
+}
+}
 },
 t(key, params = {}) {
 const dict = I18N[this.lang] || I18N.pl;
@@ -352,6 +399,9 @@ this.activeModal = id;
 this.keys = {};
 if (this.updateMobileState) this.updateMobileState();
 if (this.resetGamepadFocus) this.resetGamepadFocus();
+if (this.gamepad && this.gamepad.connected && this.moveGamepadFocus) {
+setTimeout(() => this.moveGamepadFocus(1), 30);
+}
 },
 closeModals(force = false) {
 if (!force && (this.activeModal === 'modal-gameover' || this.activeModal === 'modal-day-complete')) return;
@@ -471,8 +521,10 @@ this.sfx.win();
 this.showToast(`Odblokowano Relikt: ${this.getLocalized(relic.name)}!`, 'emerald');
 this.renderRelicShop();
 this.updateHUD();
+if (this.checkBankruptcy) this.checkBankruptcy();
 },
 updateHUD() {
+if (this.syncMenuStatsUI) this.syncMenuStatsUI();
 document.getElementById('hud-day').textContent = `${this.t('day_word')} ${this.day}`;
 document.getElementById('hud-zone').textContent = this.zones[this.zone].getName();
 const cashEl = document.getElementById('hud-cash');

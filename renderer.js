@@ -1,43 +1,237 @@
 Object.assign(VelvetPitGame.prototype, {
 spawnMenuCashBill(index = 0, randomY = false) {
-const side = index % 2 === 0 ? 'left' : 'right';
-const depth = 0.55 + Math.random() * 0.75;
+const lane = index % 5;
+let side = 'left';
+let xFrac = 0.04 + Math.random() * 0.22;
+if (lane === 1 || lane === 3) {
+side = 'right';
+xFrac = 0.74 + Math.random() * 0.22;
+} else if (lane === 4) {
+side = 'center';
+xFrac = 0.22 + Math.random() * 0.56;
+}
+const depth = side === 'center' ? (0.42 + Math.random() * 0.52) : (0.55 + Math.random() * 0.78);
 return {
 side,
-xFrac: side === 'left'
-? 0.05 + Math.random() * 0.19
-: 0.76 + Math.random() * 0.19,
-y: randomY ? Math.random() * window.innerHeight : -100 - Math.random() * 180,
+xFrac,
+y: randomY ? Math.random() * window.innerHeight : -90 - Math.random() * 240,
 z: depth,
-vy: (105 + Math.random() * 115) * depth,
+vy: (100 + Math.random() * 125) * depth,
 rx: Math.random() * Math.PI * 2,
 ry: Math.random() * Math.PI * 2,
 rz: Math.random() * Math.PI * 2,
 vrx: (1.6 + Math.random() * 2.4) * (Math.random() < 0.5 ? 1 : -1),
 vry: (1.8 + Math.random() * 2.8) * (Math.random() < 0.5 ? 1 : -1),
 vrz: (0.8 + Math.random() * 1.6) * (Math.random() < 0.5 ? 1 : -1),
-thickness: 12 + Math.floor(Math.random() * 10)
+thickness: 11 + Math.floor(Math.random() * 10)
 };
+},
+drawMenuNeonNoirSkyline(ctx, w, h) {
+// 1. Nocne niebo i neonowa łuna nad horyzontem
+const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+skyGrad.addColorStop(0, '#020306');
+skyGrad.addColorStop(0.52, '#070913');
+skyGrad.addColorStop(0.82, '#13091c');
+skyGrad.addColorStop(1, '#05060a');
+ctx.fillStyle = skyGrad;
+ctx.fillRect(0, 0, w, h);
+
+// 2. Szperacze (searchlights) przecinające nocne niebo
+ctx.save();
+for (let s = 0; s < 3; s++) {
+const sx = w * (0.18 + s * 0.32);
+const sy = h * 0.88;
+const swing = Math.sin(this.animTime * (0.45 + s * 0.18) + s * 2.1) * 0.42;
+const ang = -Math.PI / 2 + swing;
+const len = Math.max(w, h) * 0.95;
+const beamGrad = ctx.createLinearGradient(sx, sy, sx + Math.cos(ang) * len, sy + Math.sin(ang) * len);
+const col = s === 0 ? 'rgba(34, 211, 238, 0.08)' : (s === 1 ? 'rgba(236, 72, 153, 0.08)' : 'rgba(245, 158, 11, 0.08)');
+beamGrad.addColorStop(0, col);
+beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = beamGrad;
+ctx.beginPath();
+ctx.moveTo(sx - 12, sy);
+ctx.lineTo(sx + Math.cos(ang - 0.09) * len, sy + Math.sin(ang - 0.09) * len);
+ctx.lineTo(sx + Math.cos(ang + 0.09) * len, sy + Math.sin(ang + 0.09) * len);
+ctx.lineTo(sx + 12, sy);
+ctx.closePath();
+ctx.fill();
 }
-,
+ctx.restore();
+
+// 3. Poświaty neonowe po bokach i w centrum horyzontu
+const leftGlow = ctx.createRadialGradient(w * 0.15, h * 0.62, 20, w * 0.15, h * 0.62, w * 0.34);
+leftGlow.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+leftGlow.addColorStop(0.6, 'rgba(6, 182, 212, 0.08)');
+leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = leftGlow;
+ctx.fillRect(0, 0, w, h);
+
+const rightGlow = ctx.createRadialGradient(w * 0.85, h * 0.62, 20, w * 0.85, h * 0.62, w * 0.34);
+rightGlow.addColorStop(0, 'rgba(245, 158, 11, 0.18)');
+rightGlow.addColorStop(0.6, 'rgba(239, 68, 68, 0.08)');
+rightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = rightGlow;
+ctx.fillRect(0, 0, w, h);
+
+// 4. Dalszy plan wieżowców (tło)
+const backBuildings = [
+{ xf: 0.00, wf: 0.09, hf: 0.44, col: '#070a12', neon: '#06b6d4' },
+{ xf: 0.08, wf: 0.08, hf: 0.56, col: '#080b14', neon: '#ec4899' },
+{ xf: 0.15, wf: 0.09, hf: 0.48, col: '#070a12', neon: '#f59e0b' },
+{ xf: 0.23, wf: 0.08, hf: 0.39, col: '#060911', neon: '#a855f7' },
+{ xf: 0.69, wf: 0.09, hf: 0.42, col: '#060911', neon: '#22d3ee' },
+{ xf: 0.77, wf: 0.08, hf: 0.58, col: '#080b14', neon: '#ef4444' },
+{ xf: 0.84, wf: 0.09, hf: 0.50, col: '#070a12', neon: '#f59e0b' },
+{ xf: 0.92, wf: 0.09, hf: 0.45, col: '#070a12', neon: '#10b981' }
+];
+backBuildings.forEach((b, idx) => {
+const bx = Math.floor(b.xf * w);
+const bw = Math.ceil(b.wf * w);
+const bh = Math.floor(b.hf * h);
+const by = h - bh;
+ctx.fillStyle = b.col;
+ctx.fillRect(bx, by, bw, bh);
+ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
+ctx.lineWidth = 1;
+ctx.strokeRect(bx, by, bw, bh);
+// Iglica na dachu
+const spireX = bx + bw * 0.5;
+ctx.strokeStyle = '#1e293b';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(spireX, by);
+ctx.lineTo(spireX, by - 26);
+ctx.stroke();
+if (Math.sin(this.animTime * 4 + idx * 1.7) > -0.2) {
+ctx.fillStyle = '#ef4444';
+ctx.beginPath();
+ctx.arc(spireX, by - 26, 2.2, 0, Math.PI * 2);
+ctx.fill();
+}
+});
+
+// 5. Pierwszy plan wieżowców Neon Noir ze świecącymi oknami i szyldami
+const frontBuildings = [
+{ xf: -0.01, wf: 0.075, hf: 0.36, neon: '#22d3ee', sign: 'SYNDICATE' },
+{ xf: 0.06,  wf: 0.085, hf: 0.49, neon: '#ec4899', sign: 'VELVET PIT' },
+{ xf: 0.14,  wf: 0.075, hf: 0.38, neon: '#f59e0b', sign: 'CASINO 777' },
+{ xf: 0.21,  wf: 0.070, hf: 0.30, neon: '#10b981', sign: '' },
+{ xf: 0.275, wf: 0.070, hf: 0.24, neon: '#a855f7', sign: '' },
+{ xf: 0.655, wf: 0.070, hf: 0.25, neon: '#38bdf8', sign: '' },
+{ xf: 0.72,  wf: 0.075, hf: 0.32, neon: '#f43f5e', sign: '' },
+{ xf: 0.79,  wf: 0.085, hf: 0.48, neon: '#f59e0b', sign: 'BLACKWATER' },
+{ xf: 0.87,  wf: 0.075, hf: 0.40, neon: '#10b981', sign: 'LICHWA 24H' },
+{ xf: 0.94,  wf: 0.075, hf: 0.34, neon: '#c084fc', sign: 'VIP CLUB' }
+];
+
+frontBuildings.forEach((b, bIdx) => {
+const bx = Math.floor(b.xf * w);
+const bw = Math.ceil(b.wf * w);
+const bh = Math.floor(b.hf * h);
+const by = h - bh;
+
+// Bryła budynku
+ctx.fillStyle = '#05070d';
+ctx.fillRect(bx, by, bw, bh);
+
+// Świecąca neonowa krawędź dachu i obrys
+ctx.strokeStyle = b.neon;
+ctx.globalAlpha = 0.45 + 0.15 * Math.sin(this.animTime * 2.5 + bIdx);
+ctx.lineWidth = 1.6;
+ctx.strokeRect(bx, by, bw, bh);
+ctx.globalAlpha = 1;
+
+// Neonowy szyld na dachu wybranych wieżowców
+if (b.sign && bw >= 48) {
+const pulse = Math.sin(this.animTime * 6 + bIdx * 2.3) > -0.85 ? 1 : 0.25;
+ctx.save();
+ctx.globalAlpha = pulse;
+const signW = Math.min(bw - 6, 86);
+const signH = 15;
+const sx = bx + (bw - signW) * 0.5;
+const sy = by - signH - 4;
+ctx.fillStyle = '#04050a';
+ctx.fillRect(sx, sy, signW, signH);
+ctx.strokeStyle = b.neon;
+ctx.lineWidth = 1.4;
+ctx.strokeRect(sx, sy, signW, signH);
+ctx.fillStyle = b.neon;
+ctx.font = '800 8.5px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(b.sign, sx + signW * 0.5, sy + signH * 0.5, signW - 4);
+ctx.restore();
+}
+
+// Siatka świecących okien w stylu Neon Noir
+const cols = Math.max(2, Math.floor((bw - 12) / 11));
+const rows = Math.max(4, Math.floor((bh - 24) / 14));
+const padX = Math.max(5, Math.floor((bw - cols * 7) / (cols + 1)));
+for (let r = 0; r < rows; r++) {
+const wy = by + 12 + r * 13;
+if (wy > h - 18) break;
+for (let c = 0; c < cols; c++) {
+const seed = (bIdx * 31 + r * 17 + c * 13) % 19;
+if (seed < 7) continue; // Część okien wygaszona dla klimatu noir
+const wx = bx + padX + c * (7 + padX * 0.5);
+if (wx + 6 > bx + bw - 3) continue;
+const flick = Math.sin(this.animTime * (1.5 + (seed % 4)) + seed) > -0.75;
+if (!flick) continue;
+if (seed % 5 === 0) ctx.fillStyle = b.neon;
+else if (seed % 3 === 0) ctx.fillStyle = 'rgba(251, 191, 36, 0.78)';
+else ctx.fillStyle = 'rgba(56, 189, 248, 0.62)';
+ctx.fillRect(wx, wy, 5, 7);
+}
+}
+});
+
+// 6. Dolna mgła uliczna (neon mist)
+const mistGrad = ctx.createLinearGradient(0, h * 0.82, 0, h);
+mistGrad.addColorStop(0, 'rgba(4, 5, 8, 0)');
+mistGrad.addColorStop(0.65, 'rgba(15, 23, 42, 0.55)');
+mistGrad.addColorStop(1, 'rgba(3, 4, 8, 0.92)');
+ctx.fillStyle = mistGrad;
+ctx.fillRect(0, h * 0.82, w, h * 0.18);
+},
 updateAndRenderMenuCash(dt) {
 if (!this.mainMenuOpen || !this.menuCashCtx || !this.menuCashCanvas) return;
 const ctx = this.menuCashCtx;
 const w = this.menuCashCanvas.width;
 const h = this.menuCashCanvas.height;
 ctx.clearRect(0, 0, w, h);
-if (!this.settings.lowEndMode) {
-const leftGlow = ctx.createRadialGradient(w * 0.14, h * 0.5, 20, w * 0.14, h * 0.5, w * 0.28);
-leftGlow.addColorStop(0, 'rgba(16, 185, 129, 0.16)');
-leftGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = leftGlow;
-ctx.fillRect(0, 0, w * 0.4, h);
-const rightGlow = ctx.createRadialGradient(w * 0.86, h * 0.5, 20, w * 0.86, h * 0.5, w * 0.28);
-rightGlow.addColorStop(0, 'rgba(245, 158, 11, 0.16)');
-rightGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = rightGlow;
-ctx.fillRect(w * 0.6, 0, w * 0.4, h);
+
+// TRYB DLA SŁABYCH PC (LOW-END MODE): tylko mniej spadających banknotów 2D bez skyline i bez 3D
+if (this.settings.lowEndMode) {
+const lowEndCount = Math.min(18, this.menuCashBills.length);
+ctx.font = '800 11px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+for (let i = 0; i < lowEndCount; i++) {
+const b = this.menuCashBills[i];
+b.y += b.vy * dt;
+if (b.y > h + 60) {
+this.menuCashBills[i] = this.spawnMenuCashBill(i, false);
+continue;
 }
+const bx = b.xFrac * w;
+const by = b.y;
+const bw = 40;
+const bh = 20;
+ctx.fillStyle = '#059669';
+ctx.fillRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
+ctx.strokeStyle = '#6ee7b7';
+ctx.lineWidth = 1.5;
+ctx.strokeRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
+ctx.fillStyle = '#fbbf24';
+ctx.fillText('$', bx, by);
+}
+return;
+}
+
+// TRYB NORMALNY / WYSOKA JAKOŚĆ: Neon Noir Skyline + gęsty deszcz banknotów 3D
+this.drawMenuNeonNoirSkyline(ctx, w, h);
+
 const fov = 320;
 const rot3D = (vx, vy, vz, rx, ry, rz) => {
 const cy1 = vy * Math.cos(rx) - vz * Math.sin(rx);

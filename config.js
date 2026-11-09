@@ -10,11 +10,11 @@ casino: 'music/casino.mp3'
 };
 const I18N = {
 pl: {
-lang_label: 'JĘZYK:', game_title: 'AKSAMITNA OTCHŁAŃ', menu_subtitle: '// PROTOTYP CYKLU DŁUGU //',
-menu_play: '▶ WEJDŹ DO KRYJÓWKI (START / WZNÓW)', menu_settings: '⚙ USTAWIENIA / FPS', menu_guide: '? PORADNIK GRACZA',
-menu_lowend_label: '⚡ TRYB DLA SŁABYCH PC (FPS BOOST):', lowend_on: 'WŁ. (MAKS. FPS)', lowend_off: 'WYŁ. (WYSOKA JAKOŚĆ)',
-pause_badge: 'ZEGAR ZATRZYMANY', pause_title: 'PAUZA', pause_resume: '▶ WZNÓW GRĘ [ESC]', pause_settings: '⚙ USTAWIENIA / MUZYKA .MP3',
-pause_guide: '? PORADNIK GRACZA', pause_restart: '↻ ZRESTARTUJ OD DNIA 1', pause_mainmenu: '🏠 WYJDŹ DO MENU GŁÓWNEGO',
+lang_label: 'JĘZYK:', game_title: 'AKSAMITNA OTCHŁAŃ', menu_subtitle: 'CYBERPUNK CASINO ROGUELITE',
+menu_play: '▶ GRAJ', menu_settings: '⚙ USTAWIENIA', menu_guide: '? JAK GRAĆ',
+menu_lowend_label: '⚡ FPS BOOST (TRYB WYDAJNOŚCI)', lowend_on: 'WŁĄCZONY', lowend_off: 'WYŁĄCZONY',
+pause_badge: 'ZEGAR ZATRZYMANY', pause_title: 'PAUZA', pause_resume: '▶ WZNÓW GRĘ', pause_settings: '⚙ USTAWIENIA',
+pause_guide: '? ZASADY GRY', pause_restart: '↻ RESTART (DZIEŃ 1)', pause_mainmenu: '🏠 MENU GŁÓWNE',
 hud_cycle: 'CYKL', day_word: 'DZIEŃ', hud_prep: 'PORANEK', hud_shift: 'ZEGAR ZMIANY', hud_hurry: 'WRACAJ DO DOMU!',
 hud_cash_label: 'GOTÓWKA:', hud_no_relics: 'Brak Reliktów',
 completed_word: 'UKOŃCZONO ✓',
@@ -67,20 +67,20 @@ guide_p1: '1. PORANEK (KRYJÓWKA): Każdy cykl zaczyna się w mieszkaniu przy za
 guide_p2: '2. ROZPOCZĘCIE ZMIANY: Podejdź do Łóżka i naciśnij [E] (lub wyjdź przez drzwi), aby uruchomić 6-minutowy zegar.',
 guide_p3: '3. KASYNO: Idź na wschód ulicą Blackwater do Kasyna. Graj w Blackjacka (z Trenerem), Cyber Kości (Poniżej/Powyżej 7), Ruletkę lub Automaty.',
 guide_p4: '4. POMPA KRWI I SEN: Bankomat Lichwiarza pozwala oddać krew tylko RAZ na noc. Gdy uzbierasz Kwotę, wróć do mieszkania i użyj Łóżka [E]!',
-guide_ok: 'ZROZUMIAŁEM', set_title: 'USTAWIENIA I WYDAJNOŚĆ', set_music_title: '🎵 WŁASNA MUZYKA (.MP3)',
-set_music_vol: 'Głośność:', set_music_upload_hint: 'Lub wybierz plik .mp3 z dysku:', set_music_upload_btn: '📂 Wgraj .MP3',
-set_lowend_title: '⚡ TRYB DLA SŁABYCH PC (FPS BOOST)',
-set_lowend_desc: 'Wyłącza poświaty, przeplot CRT i deszcz dla maksymalnej płynności.',
-set_glows: 'Dynamiczne Oświetlenie i Poświaty', set_weather: 'Efekty Pogodowe i Deszcz', set_crt: 'Filtr Monitora CRT',
-set_coach: 'Trener Hazardu dla Początkujących', set_fps: 'Pokaż Licznik FPS', set_audio: 'Efekty Dźwiękowe (SFX)',
-set_reset_run: 'Zresetuj grę do Dnia 1', set_save_close: 'ZAPISZ I ZAMKNIJ'
+guide_ok: 'ZROZUMIAŁEM', set_title: 'USTAWIENIA', set_music_title: '🎵 MUZYKA W TLE',
+set_music_vol: 'Głośność:', set_music_upload_hint: 'Własny utwór (.mp3):', set_music_upload_btn: '📂 Wgraj .MP3',
+set_lowend_title: '⚡ FPS BOOST (MAKSYMALNA PŁYNNOŚĆ)',
+set_lowend_desc: 'Wyłącza ciężkie efekty (poświaty, deszcz, CRT) na słabszych PC i telefonach.',
+set_glows: 'Poświaty Neonów', set_weather: 'Deszcz na Ulicy', set_crt: 'Ekran Retro CRT',
+set_coach: 'Podpowiedzi w Blackjacku', set_fps: 'Licznik FPS', set_audio: 'Efekty Dźwiękowe (SFX)',
+set_reset_run: 'Zresetuj grę do Dnia 1', set_save_close: '✓ GOTOWE'
 },
 uk: {
-lang_label: 'МОВА:', game_title: 'ОКСАМИТОВА БЕЗОДНЯ', menu_subtitle: '// ПРОТОТИП ЦИКЛУ БОРГУ //',
-menu_play: '▶ УВІЙТИ У СХОВАНКУ (СТАРТ / ПРОДОВЖИТИ)', menu_settings: '⚙ НАЛАШТУВАННЯ / FPS', menu_guide: '? ПОРАДНИК ГРАВЦЯ',
-menu_lowend_label: '⚡ РЕЖИМ ДЛЯ СЛАБКИХ ПК (FPS BOOST):', lowend_on: 'УВІМК. (МАКС. FPS)', lowend_off: 'ВИМК. (ВИСОКА ЯКІСТЬ)',
-pause_badge: 'ТАЙМЕР ЗУПИНЕНО', pause_title: 'ПАУЗА', pause_resume: '▶ ПРОДОВЖИТИ ГРУ [ESC]', pause_settings: '⚙ НАЛАШТУВАННЯ / МУЗИКА .MP3',
-pause_guide: '? ПОРАДНИК ГРАВЦЯ', pause_restart: '↻ ПОЧАТИ З ДНЯ 1', pause_mainmenu: '🏠 ВИЙТИ В ГОЛОВНЕ МЕНЮ',
+lang_label: 'МОВА:', game_title: 'ОКСАМИТОВА БЕЗОДНЯ', menu_subtitle: 'CYBERPUNK CASINO ROGUELITE',
+menu_play: '▶ ГРАТИ', menu_settings: '⚙ НАЛАШТУВАННЯ', menu_guide: '? ЯК ГРАТИ',
+menu_lowend_label: '⚡ FPS BOOST (ПРОДУКТИВНІСТЬ)', lowend_on: 'УВІМКНЕНО', lowend_off: 'ВИМКНЕНО',
+pause_badge: 'ТАЙМЕР ЗУПИНЕНО', pause_title: 'ПАУЗА', pause_resume: '▶ ПРОДОВЖИТИ ГРУ', pause_settings: '⚙ НАЛАШТУВАННЯ',
+pause_guide: '? ПРАВИЛА ГРИ', pause_restart: '↻ РЕСТАРТ (ДЕНЬ 1)', pause_mainmenu: '🏠 ГОЛОВНЕ МЕНЮ',
 hud_cycle: 'ЦИКЛ', day_word: 'ДЕНЬ', hud_prep: 'РАНОК', hud_shift: 'ТАЙМЕР ЗМІНИ', hud_hurry: 'БІЖІТЬ ДОДОМУ!',
 hud_cash_label: 'ГОТІВКА:', hud_no_relics: 'Немає Реліквій',
 completed_word: 'ВИКОНАНО ✓',
@@ -133,13 +133,13 @@ guide_p1: '1. РАНОК (СХОВАНКА): Кожен цикл починає�
 guide_p2: '2. ПОЧАТОК ЗМІНИ: Підійдіть до Ліжка та натисніть [E] (або вийдіть у двері), щоб запустити 6-хвилинний таймер.',
 guide_p3: '3. КАЗИНО: Ідіть на схід вулицею Блеквотер до Казино. Грайте у Блекджек (з Тренером), Кістки, Рулетку або Слоти.',
 guide_p4: '4. НАСОС КРОВІ ТА СОН: Банкомат Лихваря качає кров лише РАЗ за ніч. Коли зберете Квоту, поверніться у Ліжко [E]!',
-guide_ok: 'ЗРОЗУМІЛО', set_title: 'НАЛАШТУВАННЯ ТА ПРОДУКТИВність', set_music_title: '🎵 ВЛАСНА МУЗИКА (.MP3)',
-set_music_vol: 'Гучність:', set_music_upload_hint: 'Або оберіть .mp3 файл з диска:', set_music_upload_btn: '📂 Завантажити .MP3',
-set_lowend_title: '⚡ РЕЖИМ ДЛЯ СЛАБКИХ ПК (FPS BOOST)',
+guide_ok: 'ЗРОЗУМІЛО', set_title: 'НАЛАШТУВАННЯ', set_music_title: '🎵 МУЗИКА У ГРІ',
+set_music_vol: 'Гучність:', set_music_upload_hint: 'Власний трек (.mp3):', set_music_upload_btn: '📂 Завантажити .MP3',
+set_lowend_title: '⚡ FPS BOOST (МАКС. FPS)',
 set_lowend_desc: 'Вимикає світіння, CRT-ефект та дощ для максимальної частоти кадрів.',
-set_glows: 'Динамічне Освітлення та Світіння', set_weather: 'Погодні Ефекти та Дощ', set_crt: 'Ефект Кінескопа CRT',
-set_coach: 'Тренер Азартних Ігор для Новачків', set_fps: 'Показувати Лічильник FPS', set_audio: 'Звукові Ефекти (SFX)',
-set_reset_run: 'Скинути гру до Дня 1', set_save_close: 'ЗБЕРЕГТИ Й ЗАКРИТИ'
+set_glows: 'Неонове Світіння', set_weather: 'Дощ на Вулиці', set_crt: 'Ефект Екрана CRT',
+set_coach: 'Підказки у Блекджеку', set_fps: 'Лічильник FPS', set_audio: 'Звукові Ефекти (SFX)',
+set_reset_run: 'Скинути гру до Дня 1', set_save_close: '✓ ГОТОВО'
 }
 };
 const RELIC_CATALOG = [

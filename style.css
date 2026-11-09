@@ -66,3 +66,6 @@ body.is-mobile #interact-prompt{bottom:9.5rem;width:max-content;max-width:92vw}
 #modal-backdrop button,#modal-backdrop input,#main-hud-header button{touch-action:manipulation}
 .gp-focus{outline:3px solid #38bdf8!important;outline-offset:2px!important;box-shadow:0 0 22px rgba(56,189,248,0.85),inset 0 0 10px rgba(56,189,248,0.35)!important;transform:translateY(-2px) scale(1.03)!important;z-index:20}
 #gamepad-status-pill{transition:opacity 0.25s ease,transform 0.25s ease}
+
+.cyber-clip-sm{clip-path:polygon(0 6px,6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%)}
+.cyber-panel::before{content:'';position:absolute;top:0;left:24px;right:24px;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,#f59e0b,transparent);opacity:0.85;pointer-events:none}
