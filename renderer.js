@@ -448,6 +448,9 @@ ctx.translate(-this.camera.x, -this.camera.y);
 if (this.zone === 0) this.drawSafehouse(ctx);
 else if (this.zone === 1) this.drawStreet(ctx);
 else if (this.zone === 2) this.drawCasino(ctx);
+if (!this.settings.lowEndMode && this.settings.glows) {
+this.drawRaytracedSceneLighting(ctx);
+}
 if (!this.settings.lowEndMode) {
 for (const fp of this.footsteps) {
 ctx.save();
@@ -1585,6 +1588,25 @@ ctx.beginPath();
 ctx.arc(cx + ox, cy, 9, 0, Math.PI * 2);
 ctx.fill();
 });
+} else if (slot.type === 'wheel') {
+ctx.save();
+ctx.translate(cx, cy);
+ctx.rotate(this.animTime * 2.8);
+ctx.strokeStyle = '#facc15';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.arc(0, 0, 24, 0, Math.PI * 2);
+ctx.stroke();
+for (let a = 0; a < 4; a++) {
+ctx.rotate(Math.PI / 4);
+ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(22, 0); ctx.stroke();
+}
+ctx.restore();
+} else if (slot.type === 'poker') {
+[-22, 0, 22].forEach((ox, idx) => {
+ctx.fillStyle = idx === 1 ? '#fb7185' : '#f8fafc';
+ctx.fillRect(cx + ox - 7, cy - 11, 14, 22);
+});
 }
 if (this.settings.glows && !this.settings.lowEndMode) {
 for (let bi = 0; bi < 6; bi++) {
@@ -1837,6 +1859,32 @@ ctx.restore();
 drawCutsceneWorldOverPlayer(ctx) {
 const cs = this.cutscene;
 if (!cs || !cs.active) return;
+if (cs.type === 'VICTORY') {
+cs.goons.forEach((g, idx) => {
+g.facing = 0;
+this.drawTopDownNpc(ctx, g, 70 + idx);
+});
+// Złota walizka z $1,000,000 przekazywana Mafii
+const bx = cs.briefcaseX || (this.player.x - 18);
+const by = cs.briefcaseY || this.player.y;
+this.drawNeonGlow(ctx, bx, by, 55, '#fbbf24', 0.45);
+ctx.save();
+this.drawRoundedRect(ctx, bx - 11, by - 8, 22, 16, 3);
+ctx.fillStyle = '#f59e0b';
+ctx.fill();
+ctx.strokeStyle = '#fef08a';
+ctx.lineWidth = 2;
+ctx.stroke();
+ctx.fillStyle = '#09090b';
+ctx.font = '800 8px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('$1M', bx, by);
+ctx.restore();
+this.renderPropBadgeImmediate(ctx, bx, by - 22, '💼 $1,000,000 DLA SYNDYKATU', '#fde047', '#451a03');
+this.renderPropBadgeImmediate(ctx, cs.goons[1].x, cs.goons[1].y - 26, '👑 DON SYNDYKATU', '#6ee7b7', '#064e3b');
+return;
+}
 cs.goons.forEach((g, idx) => {
 const aimAngle = Math.atan2(this.player.y - g.y, this.player.x - g.x);
 g.facing = aimAngle;
@@ -1891,9 +1939,245 @@ this.renderPropBadgeImmediate(ctx, cs.goons[0].x, cs.goons[0].y - 24, '💀 MAFI
 this.renderPropBadgeImmediate(ctx, cs.goons[1].x, cs.goons[1].y - 26, '🎯 EGZEKUTORZY SYNDYKATU', '#fca5a5', '#450a0a');
 }
 },
+drawEndlessHorizonHighway(ctx, cw, ch, cs) {
+const horizonY = Math.floor(ch * 0.52);
+
+// 1. Niebo o wschodzie słońca na horyzoncie (Synthwave / Cyberpunk Dawn)
+const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+skyGrad.addColorStop(0, '#040611');
+skyGrad.addColorStop(0.45, '#1e1b4b');
+skyGrad.addColorStop(0.78, '#701a75');
+skyGrad.addColorStop(1, '#f59e0b');
+ctx.fillStyle = skyGrad;
+ctx.fillRect(0, 0, cw, horizonY);
+
+// Gwiazdy wysoko na niebie
+ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+for (let s = 0; s < 36; s++) {
+const sx = ((s * 97) % cw);
+const sy = ((s * 43) % Math.floor(horizonY * 0.65));
+ctx.fillRect(sx, sy, (s % 2) + 1, (s % 2) + 1);
+}
+
+// 2. Wielkie Złote Słońce Wolności na horyzoncie (z pasami synthwave)
+const sunR = Math.min(cw, ch) * 0.19;
+const sunX = cw * 0.5;
+const sunY = horizonY - sunR * 0.15;
+const sunGlow = ctx.createRadialGradient(sunX, sunY, sunR * 0.2, sunX, sunY, sunR * 2.2);
+sunGlow.addColorStop(0, 'rgba(253, 224, 71, 0.65)');
+sunGlow.addColorStop(0.45, 'rgba(244, 63, 94, 0.30)');
+sunGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = sunGlow;
+ctx.fillRect(0, 0, cw, horizonY);
+
+ctx.save();
+ctx.beginPath();
+ctx.arc(sunX, sunY, sunR, Math.PI, 0, false);
+ctx.closePath();
+const sunFill = ctx.createLinearGradient(0, sunY - sunR, 0, horizonY);
+sunFill.addColorStop(0, '#fef08a');
+sunFill.addColorStop(0.55, '#f59e0b');
+sunFill.addColorStop(1, '#e11d48');
+ctx.fillStyle = sunFill;
+ctx.fill();
+// Poziome wycięcia w słońcu
+ctx.fillStyle = '#3b0764';
+for (let sl = 0; sl < 5; sl++) {
+const ly = horizonY - 6 - sl * 9;
+ctx.fillRect(sunX - sunR, ly, sunR * 2, 2 + sl * 0.6);
+}
+ctx.restore();
+
+// 3. Sylwetki gór na horyzoncie
+ctx.fillStyle = '#090514';
+ctx.beginPath();
+ctx.moveTo(0, horizonY);
+for (let mx = 0; mx <= cw; mx += 45) {
+const mh = 14 + Math.sin(mx * 0.025) * 12 + Math.cos(mx * 0.06) * 8;
+ctx.lineTo(mx, horizonY - Math.max(2, mh));
+}
+ctx.lineTo(cw, horizonY);
+ctx.closePath();
+ctx.fill();
+
+// 4. Ziemia i nieskończona perspektywiczna autostrada prowadząca w horyzont
+const groundGrad = ctx.createLinearGradient(0, horizonY, 0, ch);
+groundGrad.addColorStop(0, '#090414');
+groundGrad.addColorStop(1, '#020308');
+ctx.fillStyle = groundGrad;
+ctx.fillRect(0, horizonY, cw, ch - horizonY);
+
+// Siatka perspektywiczna pobocza
+ctx.strokeStyle = 'rgba(217, 70, 239, 0.22)';
+ctx.lineWidth = 1;
+for (let gx = -8; gx <= 8; gx++) {
+ctx.beginPath();
+ctx.moveTo(sunX + gx * 18, horizonY);
+ctx.lineTo(sunX + gx * (cw * 0.18), ch);
+ctx.stroke();
+}
+
+// Asfalt drogi w perspektywie
+const roadTopW = 26;
+const roadBotW = Math.min(cw * 0.78, 680);
+ctx.fillStyle = '#0f131d';
+ctx.beginPath();
+ctx.moveTo(sunX - roadTopW, horizonY);
+ctx.lineTo(sunX + roadTopW, horizonY);
+ctx.lineTo(sunX + roadBotW * 0.5, ch);
+ctx.lineTo(sunX - roadBotW * 0.5, ch);
+ctx.closePath();
+ctx.fill();
+
+// Świecące krawędzie drogi
+ctx.strokeStyle = '#22d3ee';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.moveTo(sunX - roadTopW, horizonY);
+ctx.lineTo(sunX - roadBotW * 0.5, ch);
+ctx.moveTo(sunX + roadTopW, horizonY);
+ctx.lineTo(sunX + roadBotW * 0.5, ch);
+ctx.stroke();
+
+// Animowane pasy ruchu uciekające w dół (efekt jazdy w stronę horyzontu!)
+const speedPhase = (this.animTime * 1.85) % 1;
+for (let i = 0; i < 8; i++) {
+const p0 = ((i + speedPhase) / 8);
+const p1 = Math.min(1, p0 + 0.055);
+const ease0 = Math.pow(p0, 2.4);
+const ease1 = Math.pow(p1, 2.4);
+const y0 = horizonY + ease0 * (ch - horizonY);
+const y1 = horizonY + ease1 * (ch - horizonY);
+const w0 = Math.max(1.5, ease0 * 10);
+const w1 = Math.max(2, ease1 * 12);
+ctx.fillStyle = '#fbbf24';
+ctx.beginPath();
+ctx.moveTo(sunX - w0, y0);
+ctx.lineTo(sunX + w0, y0);
+ctx.lineTo(sunX + w1, y1);
+ctx.lineTo(sunX - w1, y1);
+ctx.closePath();
+ctx.fill();
+}
+
+// Mijane latarnie przydrożne po obu stronach szosy
+for (let l = 0; l < 6; l++) {
+const lp = ((l + (this.animTime * 0.95) % 1) / 6);
+const easeL = Math.pow(lp, 2.3);
+const ly = horizonY + easeL * (ch - horizonY);
+const spread = (roadTopW + easeL * (roadBotW * 0.5 - roadTopW)) * 1.18;
+const poleH = 8 + easeL * 85;
+[-1, 1].forEach(dir => {
+const lx = sunX + dir * spread;
+ctx.strokeStyle = '#334155';
+ctx.lineWidth = Math.max(1, easeL * 3.5);
+ctx.beginPath();
+ctx.moveTo(lx, ly);
+ctx.lineTo(lx, ly - poleH);
+ctx.lineTo(lx - dir * (4 + easeL * 16), ly - poleH);
+ctx.stroke();
+ctx.fillStyle = '#38bdf8';
+ctx.beginPath();
+ctx.arc(lx - dir * (4 + easeL * 16), ly - poleH, Math.max(1.5, easeL * 4.5), 0, Math.PI * 2);
+ctx.fill();
+});
+}
+
+// 5. Samochód gracza jadący w stronę horyzontu (widok od tyłu z neonowymi światłami)
+const carX = sunX + Math.sin(this.animTime * 1.6) * 14;
+const carY = ch - Math.max(92, ch * 0.19) + Math.sin(this.animTime * 9) * 1.2;
+const carW = Math.min(150, cw * 0.28);
+const carH = carW * 0.48;
+
+ctx.save();
+ctx.translate(carX, carY);
+// Cień pod autem
+ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+ctx.beginPath();
+ctx.ellipse(0, carH * 0.42, carW * 0.58, carH * 0.22, 0, 0, Math.PI * 2);
+ctx.fill();
+
+// Opony
+ctx.fillStyle = '#09090b';
+ctx.fillRect(-carW * 0.48, carH * 0.1, carW * 0.16, carH * 0.32);
+ctx.fillRect(carW * 0.32, carH * 0.1, carW * 0.16, carH * 0.32);
+
+// Nadwozie Cyber-Coupe
+this.drawRoundedRect(ctx, -carW * 0.46, -carH * 0.15, carW * 0.92, carH * 0.45, 8);
+ctx.fillStyle = '#111827';
+ctx.fill();
+ctx.strokeStyle = '#38bdf8';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+// Dach i tylna szyba odbijająca zachód słońca
+ctx.beginPath();
+ctx.moveTo(-carW * 0.30, -carH * 0.48);
+ctx.lineTo(carW * 0.30, -carH * 0.48);
+ctx.lineTo(carW * 0.40, -carH * 0.12);
+ctx.lineTo(-carW * 0.40, -carH * 0.12);
+ctx.closePath();
+ctx.fillStyle = '#1e1b4b';
+ctx.fill();
+ctx.strokeStyle = '#f59e0b';
+ctx.lineWidth = 1.5;
+ctx.stroke();
+
+// Tylny pas świetlny (czerwono-złote neony i tablica "FREE-1M")
+ctx.fillStyle = '#ef4444';
+ctx.shadowColor = '#ef4444';
+ctx.shadowBlur = 16;
+ctx.fillRect(-carW * 0.42, -carH * 0.02, carW * 0.24, carH * 0.12);
+ctx.fillRect(carW * 0.18, -carH * 0.02, carW * 0.24, carH * 0.12);
+ctx.shadowBlur = 0;
+
+ctx.fillStyle = '#09090b';
+ctx.fillRect(-carW * 0.14, 0, carW * 0.28, carH * 0.16);
+ctx.fillStyle = '#fbbf24';
+ctx.font = '800 9px "JetBrains Mono", monospace';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('FREE $1M', 0, carH * 0.08);
+ctx.restore();
+},
 drawCutsceneScreenOverlay(ctx, cw, ch) {
 const cs = this.cutscene;
 if (!cs || !cs.active) return;
+if (cs.type === 'VICTORY' && cs.phase === 'HIGHWAY_LOOP') {
+ctx.save();
+this.drawEndlessHorizonHighway(ctx, cw, ch, cs);
+const barH = Math.max(54, Math.round(ch * 0.12));
+ctx.fillStyle = 'rgba(3, 4, 7, 0.88)';
+ctx.fillRect(0, 0, cw, barH);
+ctx.fillRect(0, ch - barH, cw, barH);
+ctx.strokeStyle = '#fbbf24';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(0, barH); ctx.lineTo(cw, barH);
+ctx.moveTo(0, ch - barH); ctx.lineTo(cw, ch - barH);
+ctx.stroke();
+
+ctx.fillStyle = '#fbbf24';
+ctx.font = `800 ${cw < 450 ? 11 : 14}px "Syne", sans-serif`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('☀ DŁUG SPŁACONY ($1,000,000) // WOLNOŚĆ OSIĄGNIĘTA', cw / 2, barH * 0.42, cw - 20);
+ctx.fillStyle = '#6ee7b7';
+ctx.font = `700 ${cw < 450 ? 9.5 : 11}px "JetBrains Mono", monospace`;
+ctx.fillText('[ESC / ENTER] WRÓĆ DO MENU GŁÓWNEGO', cw / 2, barH * 0.76, cw - 20);
+
+if (cs.subtitle) {
+ctx.fillStyle = '#fef3c7';
+ctx.font = `800 ${cw < 480 ? 10.5 : 13}px "JetBrains Mono", monospace`;
+ctx.fillText(cs.subtitle, cw / 2, ch - barH / 2, cw - 24);
+}
+if (cs.blackAlpha > 0) {
+ctx.fillStyle = `rgba(0, 0, 0, ${cs.blackAlpha})`;
+ctx.fillRect(0, 0, cw, ch);
+}
+ctx.restore();
+return;
+}
 ctx.save();
 if (cs.flashAlpha > 0) {
 ctx.fillStyle = `rgba(239, 68, 68, ${cs.flashAlpha})`;
@@ -2042,17 +2326,13 @@ ctx.arc(0, 0, p.r + 4 + Math.sin(this.animTime * 5) * 1.2, 0, Math.PI * 2);
 ctx.stroke();
 ctx.rotate(p.facing);
 if (this.settings.glows && !this.settings.lowEndMode) {
-const coneGrad = ctx.createLinearGradient(8, 0, 175, 0);
-coneGrad.addColorStop(0, 'rgba(254, 243, 199, 0.26)');
-coneGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.09)');
-coneGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-ctx.fillStyle = coneGrad;
+const lensGrad = ctx.createRadialGradient(14, 12, 1, 14, 12, 22);
+lensGrad.addColorStop(0, 'rgba(254, 249, 195, 0.85)');
+lensGrad.addColorStop(0.4, 'rgba(56, 189, 248, 0.32)');
+lensGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = lensGrad;
 ctx.beginPath();
-ctx.moveTo(6, -4);
-ctx.lineTo(175, -62);
-ctx.arc(0, 0, 185, -0.34, 0.34);
-ctx.lineTo(6, 4);
-ctx.closePath();
+ctx.arc(14, 12, 22, 0, Math.PI * 2);
 ctx.fill();
 }
 const stride = Math.sin(p.walkCycle) * 7 * p.moveAmount;
@@ -2110,9 +2390,319 @@ ctx.fillRect(6, -4, 3, 8);
 ctx.restore();
 }
 ,
+raySegmentIntersect(ox, oy, dx, dy, x1, y1, x2, y2) {
+const sx = x2 - x1;
+const sy = y2 - y1;
+const denom = dx * sy - dy * sx;
+if (Math.abs(denom) < 1e-7) return null;
+const qpx = x1 - ox;
+const qpy = y1 - oy;
+const t = (qpx * sy - qpy * sx) / denom;
+const u = (qpx * dy - qpy * dx) / denom;
+if (t >= 0 && u >= 0 && u <= 1) return t;
+return null;
+},
+castRayInZone(ox, oy, angle, maxDist = 250) {
+const z = this.zones[this.zone];
+const dx = Math.cos(angle);
+const dy = Math.sin(angle);
+let bestT = maxDist;
+let hit = false;
+let hitNormalX = -dx;
+let hitNormalY = -dy;
+if (z) {
+const b = z.bounds;
+const wallSegs = [
+[b.x, b.y, b.x + b.w, b.y, 0, 1],
+[b.x + b.w, b.y, b.x + b.w, b.y + b.h, -1, 0],
+[b.x, b.y + b.h, b.x + b.w, b.y + b.h, 0, -1],
+[b.x, b.y, b.x, b.y + b.h, 1, 0]
+];
+for (let i = 0; i < wallSegs.length; i++) {
+const s = wallSegs[i];
+const t = this.raySegmentIntersect(ox, oy, dx, dy, s[0], s[1], s[2], s[3]);
+if (t !== null && t < bestT) {
+bestT = t;
+hit = true;
+hitNormalX = s[4];
+hitNormalY = s[5];
+}
+}
+if (z.obstacles) {
+for (let i = 0; i < z.obstacles.length; i++) {
+const ob = z.obstacles[i];
+const segs = [
+[ob.x, ob.y, ob.x + ob.w, ob.y, 0, -1],
+[ob.x + ob.w, ob.y, ob.x + ob.w, ob.y + ob.h, 1, 0],
+[ob.x, ob.y + ob.h, ob.x + ob.w, ob.y + ob.h, 0, 1],
+[ob.x, ob.y, ob.x, ob.y + ob.h, -1, 0]
+];
+for (let j = 0; j < segs.length; j++) {
+const s = segs[j];
+const t = this.raySegmentIntersect(ox, oy, dx, dy, s[0], s[1], s[2], s[3]);
+if (t !== null && t < bestT) {
+bestT = t;
+hit = true;
+hitNormalX = s[4];
+hitNormalY = s[5];
+}
+}
+}
+}
+}
+return {
+x: ox + dx * bestT,
+y: oy + dy * bestT,
+dist: bestT,
+hit,
+nx: hitNormalX,
+ny: hitNormalY
+};
+},
+getZonePointLights() {
+const p = this.player;
+const fx = p.x + Math.cos(p.facing) * 12;
+const fy = p.y + Math.sin(p.facing) * 12;
+const lights = [
+{ x: fx, y: fy, r: 280, color: '#38bdf8', intensity: 0.95, isPlayer: true }
+];
+if (this.zone === 0) {
+lights.push(
+{ x: 485, y: 285, r: 260, color: '#fef08a', intensity: 0.55 },
+{ x: 725, y: 185, r: 190, color: '#10b981', intensity: 0.65 },
+{ x: 267, y: 420, r: 195, color: '#f59e0b', intensity: 0.65 },
+{ x: 500, y: 485, r: 160, color: '#f59e0b', intensity: 0.50 }
+);
+} else if (this.zone === 1) {
+lights.push(
+{ x: -10, y: 155, r: 240, color: '#f59e0b', intensity: 0.55 },
+{ x: 280, y: 155, r: 240, color: '#f59e0b', intensity: 0.55 },
+{ x: 610, y: 155, r: 240, color: '#a855f7', intensity: 0.65 },
+{ x: 940, y: 155, r: 240, color: '#f59e0b', intensity: 0.55 },
+{ x: 1220, y: 155, r: 250, color: '#ef4444', intensity: 0.65 },
+{ x: 468, y: 492, r: 190, color: '#f97316', intensity: 0.72 }
+);
+} else if (this.zone === 2) {
+lights.push(
+{ x: 502, y: 312, r: 310, color: '#f59e0b', intensity: 0.68 },
+{ x: 275, y: 190, r: 210, color: '#10b981', intensity: 0.55 },
+{ x: 730, y: 190, r: 210, color: '#ef4444', intensity: 0.55 },
+{ x: 727, y: 425, r: 190, color: '#dc2626', intensity: 0.60 }
+);
+}
+return lights;
+},
+drawBoxShadowVolume(ctx, lx, ly, ob, maxLen, alpha) {
+const cx = ob.x + ob.w * 0.5;
+const cy = ob.y + ob.h * 0.5;
+const distToCenter = Math.hypot(cx - lx, cy - ly);
+if (distToCenter > maxLen + 140 || distToCenter < 4) return;
+const corners = [
+{ x: ob.x, y: ob.y },
+{ x: ob.x + ob.w, y: ob.y },
+{ x: ob.x + ob.w, y: ob.y + ob.h },
+{ x: ob.x, y: ob.y + ob.h }
+];
+let minAng = Infinity;
+let maxAng = -Infinity;
+let cMin = corners[0];
+let cMax = corners[0];
+const baseAng = Math.atan2(cy - ly, cx - lx);
+for (let i = 0; i < 4; i++) {
+const c = corners[i];
+let diff = Math.atan2(c.y - ly, c.x - lx) - baseAng;
+while (diff < -Math.PI) diff += Math.PI * 2;
+while (diff > Math.PI) diff -= Math.PI * 2;
+if (diff < minAng) { minAng = diff; cMin = c; }
+if (diff > maxAng) { maxAng = diff; cMax = c; }
+}
+const shadowLen = Math.max(95, maxLen - distToCenter * 0.35);
+const angMin = Math.atan2(cMin.y - ly, cMin.x - lx);
+const angMax = Math.atan2(cMax.y - ly, cMax.x - lx);
+const farMinX = cMin.x + Math.cos(angMin - 0.05) * shadowLen;
+const farMinY = cMin.y + Math.sin(angMin - 0.05) * shadowLen;
+const farMaxX = cMax.x + Math.cos(angMax + 0.05) * shadowLen;
+const farMaxY = cMax.y + Math.sin(angMax + 0.05) * shadowLen;
+
+const grad = ctx.createLinearGradient(cx, cy, (farMinX + farMaxX) * 0.5, (farMinY + farMaxY) * 0.5);
+const atten = Math.max(0.15, 1 - distToCenter / (maxLen + 140));
+grad.addColorStop(0, `rgba(1, 2, 6, ${(alpha * atten).toFixed(3)})`);
+grad.addColorStop(0.55, `rgba(2, 4, 10, ${(alpha * atten * 0.55).toFixed(3)})`);
+grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+ctx.save();
+ctx.fillStyle = grad;
+ctx.beginPath();
+ctx.moveTo(cMin.x, cMin.y);
+ctx.lineTo(farMinX, farMinY);
+ctx.lineTo(farMaxX, farMaxY);
+ctx.lineTo(cMax.x, cMax.y);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+},
+drawRaytracedSceneLighting(ctx) {
+// Działa TYLKO na High Graphics (wyłączone w Low-End Mode!)
+if (this.settings.lowEndMode || !this.settings.glows) return;
+const z = this.zones[this.zone];
+if (!z) return;
+const lights = this.getZonePointLights();
+const npcs = this.getZoneNpcs ? this.getZoneNpcs(this.zone) : [];
+
+// 1. Raytraced Specular Floor Reflections (odbicia neonów i świateł w podłodze/asfalcie)
+ctx.save();
+ctx.globalCompositeOperation = 'screen';
+for (let i = 0; i < lights.length; i++) {
+const l = lights[i];
+if (Math.abs(l.x - this.camera.x) > 720) continue;
+const specR = l.r * 0.72;
+const grad = ctx.createRadialGradient(l.x, l.y, 2, l.x, l.y, specR);
+grad.addColorStop(0, l.color);
+grad.addColorStop(0.35, l.color);
+grad.addColorStop(1, 'rgba(0,0,0,0)');
+ctx.globalAlpha = l.isPlayer ? 0.14 : 0.11 * l.intensity;
+ctx.fillStyle = grad;
+ctx.beginPath();
+ctx.ellipse(l.x, l.y + 8, specR * 0.85, specR * 0.52, 0, 0, Math.PI * 2);
+ctx.fill();
+}
+ctx.restore();
+
+// 2. Dynamiczne cienie rzucane przez przeszkody (stoły, łóżko, auta, kontenery) oraz NPC
+for (let li = 0; li < lights.length; li++) {
+const l = lights[li];
+if (!l.isPlayer && Math.hypot(l.x - this.player.x, l.y - this.player.y) > 620) continue;
+const shadowAlpha = l.isPlayer ? 0.62 : 0.34 * l.intensity;
+if (z.obstacles) {
+for (let oi = 0; oi < z.obstacles.length; oi++) {
+this.drawBoxShadowVolume(ctx, l.x, l.y, z.obstacles[oi], l.r * 1.15, shadowAlpha);
+}
+}
+for (let ni = 0; ni < npcs.length; ni++) {
+const npc = npcs[ni];
+const dx = npc.x - l.x;
+const dy = npc.y - l.y;
+const dist = Math.hypot(dx, dy);
+if (dist > l.r || dist < 4) continue;
+const ang = Math.atan2(dy, dx);
+const len = (1 - dist / l.r) * (l.isPlayer ? 68 : 44) + 18;
+const nr = npc.r || 13;
+const sx = npc.x + Math.cos(ang) * len;
+const sy = npc.y + Math.sin(ang) * len;
+const nGrad = ctx.createLinearGradient(npc.x, npc.y, sx, sy);
+const nAlpha = (1 - dist / l.r) * (l.isPlayer ? 0.58 : 0.32);
+nGrad.addColorStop(0, `rgba(1, 2, 6, ${nAlpha.toFixed(3)})`);
+nGrad.addColorStop(1, 'rgba(1, 2, 6, 0)');
+ctx.save();
+ctx.fillStyle = nGrad;
+ctx.beginPath();
+ctx.moveTo(npc.x + Math.cos(ang + Math.PI * 0.5) * nr * 0.85, npc.y + Math.sin(ang + Math.PI * 0.5) * nr * 0.85);
+ctx.lineTo(sx + Math.cos(ang + Math.PI * 0.5) * nr * 1.65, sy + Math.sin(ang + Math.PI * 0.5) * nr * 1.65);
+ctx.lineTo(sx + Math.cos(ang - Math.PI * 0.5) * nr * 1.65, sy + Math.sin(ang - Math.PI * 0.5) * nr * 1.65);
+ctx.lineTo(npc.x + Math.cos(ang - Math.PI * 0.5) * nr * 0.85, npc.y + Math.sin(ang - Math.PI * 0.5) * nr * 0.85);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+}
+}
+
+// 3. Raytraced Specular Rim Highlights (podświetlenie krawędzi obiektów zwróconych w stronę gracza)
+if (z.obstacles) {
+ctx.save();
+ctx.globalCompositeOperation = 'lighter';
+const px = this.player.x;
+const py = this.player.y;
+for (let i = 0; i < z.obstacles.length; i++) {
+const ob = z.obstacles[i];
+const cx = ob.x + ob.w * 0.5;
+const cy = ob.y + ob.h * 0.5;
+const d = Math.hypot(cx - px, cy - py);
+if (d > 290) continue;
+const rimAlpha = Math.max(0, (1 - d / 290) * 0.42);
+ctx.strokeStyle = `rgba(125, 211, 252, ${rimAlpha.toFixed(3)})`;
+ctx.lineWidth = 2.2;
+ctx.beginPath();
+if (py < ob.y) { ctx.moveTo(ob.x + 4, ob.y); ctx.lineTo(ob.x + ob.w - 4, ob.y); }
+if (py > ob.y + ob.h) { ctx.moveTo(ob.x + 4, ob.y + ob.h); ctx.lineTo(ob.x + ob.w - 4, ob.y + ob.h); }
+if (px < ob.x) { ctx.moveTo(ob.x, ob.y + 4); ctx.lineTo(ob.x, ob.y + ob.h - 4); }
+if (px > ob.x + ob.w) { ctx.moveTo(ob.x + ob.w, ob.y + 4); ctx.lineTo(ob.x + ob.w, ob.y + ob.h - 4); }
+ctx.stroke();
+}
+ctx.restore();
+}
+
+// 4. Prawdziwy Raytracing Latarki Gracza (64-promieniowy wielokąt widoczności zatrzymujący się na przeszkodach + odbicia fotonów)
+const p = this.player;
+const originX = p.x + Math.cos(p.facing) * 8;
+const originY = p.y + Math.sin(p.facing) * 8;
+const rayCount = 64;
+const halfSpread = 0.44;
+const maxBeamDist = 245;
+const hits = [];
+for (let i = 0; i <= rayCount; i++) {
+const frac = (i / rayCount) * 2 - 1;
+const ang = p.facing + frac * halfSpread;
+hits.push(this.castRayInZone(originX, originY, ang, maxBeamDist));
+}
+
+ctx.save();
+ctx.globalCompositeOperation = 'lighter';
+const beamGrad = ctx.createRadialGradient(originX, originY, 4, originX, originY, maxBeamDist);
+beamGrad.addColorStop(0, 'rgba(254, 249, 195, 0.34)');
+beamGrad.addColorStop(0.38, 'rgba(56, 189, 248, 0.16)');
+beamGrad.addColorStop(0.78, 'rgba(14, 165, 233, 0.06)');
+beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = beamGrad;
+ctx.beginPath();
+ctx.moveTo(originX, originY);
+for (let i = 0; i < hits.length; i++) {
+ctx.lineTo(hits[i].x, hits[i].y);
+}
+ctx.closePath();
+ctx.fill();
+
+// Subtelne odbicia światła (Raytraced Bounce Highlights) w miejscach uderzenia promieni o przeszkody
+for (let i = 0; i < hits.length; i += 2) {
+const h = hits[i];
+if (h.hit && h.dist < maxBeamDist - 2) {
+const bounceAlpha = (1 - h.dist / maxBeamDist) * 0.28;
+ctx.fillStyle = `rgba(186, 230, 253, ${bounceAlpha.toFixed(3)})`;
+ctx.beginPath();
+ctx.arc(h.x, h.y, 4.5, 0, Math.PI * 2);
+ctx.fill();
+}
+}
+ctx.restore();
+},
 drawNoirLightingOverlay(ctx) {
 ctx.save();
 const p = this.player;
+if (!this.settings.lowEndMode && this.settings.glows) {
+// Wieloźródłowe cieniowanie Ambient Occlusion + Global Illumination (Raytraced High Graphics)
+const grad = ctx.createRadialGradient(p.x, p.y, 85, p.x, p.y, 350);
+grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+grad.addColorStop(0.58, 'rgba(2, 4, 11, 0.32)');
+grad.addColorStop(0.86, 'rgba(2, 3, 8, 0.65)');
+grad.addColorStop(1, 'rgba(1, 2, 5, 0.80)');
+ctx.fillStyle = grad;
+ctx.fillRect(p.x - 1000, p.y - 1000, 2000, 2000);
+
+// Dodatkowy blask wolumetryczny wokół głównych źródeł światła w strefie
+ctx.globalCompositeOperation = 'lighter';
+const lights = this.getZonePointLights();
+for (let i = 0; i < lights.length; i++) {
+const l = lights[i];
+if (l.isPlayer || Math.abs(l.x - this.camera.x) > 720) continue;
+const lg = ctx.createRadialGradient(l.x, l.y, 2, l.x, l.y, l.r * 0.65);
+lg.addColorStop(0, l.color);
+lg.addColorStop(1, 'rgba(0,0,0,0)');
+ctx.globalAlpha = 0.075 * l.intensity;
+ctx.fillStyle = lg;
+ctx.beginPath();
+ctx.arc(l.x, l.y, l.r * 0.65, 0, Math.PI * 2);
+ctx.fill();
+}
+} else {
 const grad = ctx.createRadialGradient(p.x, p.y, 75, p.x, p.y, 310);
 grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
 grad.addColorStop(0.60, 'rgba(3, 5, 10, 0.34)');
@@ -2120,6 +2710,7 @@ grad.addColorStop(0.88, 'rgba(2, 3, 7, 0.68)');
 grad.addColorStop(1, 'rgba(1, 2, 5, 0.82)');
 ctx.fillStyle = grad;
 ctx.fillRect(p.x - 1000, p.y - 1000, 2000, 2000);
+}
 ctx.restore();
 },
 drawRain(ctx) {

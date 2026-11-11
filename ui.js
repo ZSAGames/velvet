@@ -520,7 +520,6 @@ if (relic.id === 'syndicate_seal') {
 this.quota = Math.max(500, Math.round((this.quota * 0.85) / 50) * 50);
 }
 if (relic.id === 'velvet_crown') {
-this.cash += 1000;
 this.bloodAvailableToday = true;
 this.tokenPawnAvailableToday = true;
 }
@@ -547,6 +546,13 @@ document.getElementById('hud-tokens').textContent = this.tokens;
 document.getElementById('hud-modifier-name').textContent = this.getLocalized(this.currentModifier.name).toUpperCase();
 const pct = Math.min(100, Math.round((this.cash / this.quota) * 100));
 document.getElementById('hud-quota-bar').style.width = `${pct}%`;
+const millionGoal = 1000000;
+const curMillionProg = Math.max(this.cash, this.totalCollectedCash || 0);
+const mPct = Math.min(100, Math.max(1, Math.round((curMillionProg / millionGoal) * 100)));
+const mLbl = document.getElementById('hud-million-label');
+const mBar = document.getElementById('hud-million-bar');
+if (mLbl) mLbl.textContent = `$${curMillionProg.toLocaleString()} / $1,000,000`;
+if (mBar) mBar.style.width = `${mPct}%`;
 const mins = Math.floor(this.timeLeft / 60);
 const secs = Math.floor(this.timeLeft % 60);
 const timerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;

@@ -45,6 +45,20 @@ const VelvetMinigames = {
       round: 0,
       items: []
     };
+    this.wheel = {
+      bet: 0,
+      active: false,
+      angle: 0,
+      lastMult: 0
+    };
+    this.poker = {
+      bet: 0,
+      active: false,
+      cards: [],
+      handName: '',
+      mult: 0
+    };
+    this.totalCollectedCash = this.totalCollectedCash || this.cash || 500;
 
     if (typeof this.bloodAvailableToday === 'undefined') {
       this.bloodAvailableToday = true;
@@ -203,7 +217,59 @@ const VelvetMinigames = {
         </div>
       </div>
 
-      <!-- 5. CZARNY RYNEK SYNDYKATU (BLACK MARKET ON THE STREET) -->
+      <!-- 5. KOŁO FORTUNY VIP (WHEEL) -->
+      <div id="modal-wheel" class="hidden w-full max-w-xl bg-zinc-950 border-2 border-amber-400 rounded-2xl shadow-[0_0_65px_rgba(251,191,36,0.3)] max-h-[92dvh] overflow-y-auto my-auto">
+        <div class="bg-amber-950 border-b border-amber-700 px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🎡</span>
+            <div>
+              <h2 class="text-amber-200 font-bold tracking-wider text-sm sm:text-base uppercase">KOŁO FORTUNY VIP // MEGA SPIN</h2>
+              <p id="wheel-variant-sub" class="text-[11px] text-amber-300/80">Zakręć złotym kołem mnożników (od 0x do 15x)!</p>
+            </div>
+          </div>
+          <button onclick="window.game.closeModals()" class="text-amber-200 hover:text-white font-bold text-xs px-3 py-1.5 rounded bg-amber-900/80 border border-amber-600">ODEJDŹ [ESC]</button>
+        </div>
+        <div class="p-5 sm:p-6 space-y-4">
+          <div class="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-center text-xs font-extrabold" id="wheel-sectors-bar">
+            <div class="p-2 rounded bg-zinc-900 border border-zinc-700 text-zinc-400">0x</div>
+            <div class="p-2 rounded bg-emerald-950 border border-emerald-500 text-emerald-300">1.5x</div>
+            <div class="p-2 rounded bg-zinc-900 border border-zinc-700 text-zinc-400">0.5x</div>
+            <div class="p-2 rounded bg-sky-950 border border-sky-500 text-sky-300">2.5x</div>
+            <div class="p-2 rounded bg-zinc-900 border border-zinc-700 text-zinc-400">0x</div>
+            <div class="p-2 rounded bg-purple-950 border border-purple-500 text-purple-300">4.0x</div>
+            <div class="p-2 rounded bg-amber-950 border border-amber-500 text-amber-300">8.0x</div>
+            <div class="p-2 rounded bg-red-950 border border-red-500 text-yellow-300">15x</div>
+          </div>
+          <div id="wheel-result-box" class="py-5 bg-zinc-900/90 border-2 border-amber-500/40 rounded-xl text-center space-y-1">
+            <div id="wheel-big-mult" class="text-4xl font-extrabold text-amber-400 font-display">GOTOWY</div>
+            <div id="wheel-status" class="text-xs sm:text-sm font-extrabold text-zinc-300">USTAW STAWKĘ I ZAKRĘĆ KOŁEM FORTUNY</div>
+          </div>
+          ${betBarHTML('wheel', 'amber')}
+          <button id="wheel-spin-btn" onclick="window.game.spinFortuneWheel()" class="btn-gritty w-full bg-amber-500 hover:bg-amber-400 border-amber-800 text-zinc-950 font-extrabold py-3.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider">🎡 ZAKRĘĆ KOŁEM FORTUNY</button>
+        </div>
+      </div>
+
+      <!-- 6. CYBER POKER // 3 KARTY (POKER) -->
+      <div id="modal-poker" class="hidden w-full max-w-xl bg-zinc-950 border-2 border-rose-500 rounded-2xl shadow-[0_0_65px_rgba(244,63,94,0.3)] max-h-[92dvh] overflow-y-auto my-auto">
+        <div class="bg-rose-950 border-b border-rose-700 px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">🃏</span>
+            <div>
+              <h2 class="text-rose-200 font-bold tracking-wider text-sm sm:text-base uppercase">ZŁOTY CYBER POKER // 3 KARTY</h2>
+              <p id="poker-variant-sub" class="text-[11px] text-rose-300/80">Dobierz 3 karty: Para (2x), Kolor (3.5x), Strit (5x), Trójka (10x), Poker (25x)!</p>
+            </div>
+          </div>
+          <button onclick="window.game.closeModals()" class="text-rose-200 hover:text-white font-bold text-xs px-3 py-1.5 rounded bg-rose-900/80 border border-rose-600">ODEJDŹ [ESC]</button>
+        </div>
+        <div class="p-5 sm:p-6 space-y-4">
+          <div id="poker-cards-row" class="flex items-center justify-center gap-4 min-h-[120px] py-3 bg-zinc-900/80 border border-zinc-800 rounded-xl"></div>
+          <div id="poker-status" class="text-center font-extrabold text-xs sm:text-sm text-amber-300">WPISZ STAWKĘ I ROZDAJ 3 KARTY POKEROWE</div>
+          ${betBarHTML('poker', 'rose')}
+          <button id="poker-deal-btn" onclick="window.game.dealCyberPoker()" class="btn-gritty w-full bg-rose-500 hover:bg-rose-400 border-rose-800 text-white font-extrabold py-3.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider">🃏 ROZDAJ 3 KARTY</button>
+        </div>
+      </div>
+
+      <!-- 7. CZARNY RYNEK SYNDYKATU (BLACK MARKET ON THE STREET) -->
       <div id="modal-blackmarket" class="hidden w-full max-w-2xl cyber-panel p-5 sm:p-6 space-y-4 max-h-[92dvh] overflow-y-auto my-auto">
         <div class="flex items-center justify-between border-b border-purple-500/40 pb-3">
           <div class="flex items-center gap-2.5">
@@ -434,6 +500,34 @@ const VelvetMinigames = {
           'WARIANT: KRWAWE PARY (KAŻDA PARA PŁACI 2.2x)'
         ],
         open: () => this.openSlotsModal()
+      },
+      {
+        type: 'wheel',
+        icon: '🎡',
+        title: '🎡 KOŁO FORTUNY VIP',
+        color: '#facc15',
+        bg: '#422006',
+        variants: [
+          'WARIANT: ZŁOTE KOŁO (JACKPOT 15x)',
+          'WARIANT: PODWÓJNE SZCZĘŚCIE (WIĘCEJ SEKTORÓW 4x)',
+          'WARIANT: SUPER FORTUNA (GŁÓWNY SEKTOR 20x)',
+          'WARIANT: BEZPIECZNA OBRĘCZ (MNIEJ PUSTYCH POL)'
+        ],
+        open: () => this.openWheelModal()
+      },
+      {
+        type: 'poker',
+        icon: '🃏',
+        title: '🃏 ZŁOTY CYBER POKER',
+        color: '#fb7185',
+        bg: '#4c0519',
+        variants: [
+          'WARIANT: 3-KARTOWY KLASYK (POKER PŁACI 25x)',
+          'WARIANT: GORĄCE PARY (PARA PŁACI 2.4x)',
+          'WARIANT: KRÓLEWSKI KOLOR (KOLOR PŁACI 4.5x)',
+          'WARIANT: WYSOKA TALIA (TYLKO KARTY 8–AS!)'
+        ],
+        open: () => this.openPokerModal()
       }
     ];
 
@@ -602,8 +696,8 @@ const VelvetMinigames = {
       {
         id: 'quota_hack',
         icon: '💻',
-        title: '🔥 [NOC 5+] Exploit Rejestru Długu',
-        desc: 'Hakuje serwer Syndykatu i obniża dzisiejszą wymaganą Kwotę Długu o -20%!',
+        title: '🔥 [NOC 5+] Redukcja Długu VIP',
+        desc: 'Przekupuje audytora i obniża dzisiejszą wymaganą Kwotę Długu o -20%!',
         costCash: Math.round((450 + (this.day - 1) * 90) * priceMult),
         minDay: 5
       },
@@ -691,7 +785,7 @@ const VelvetMinigames = {
     } else if (it.id === 'quota_hack') {
       this.quota = Math.max(500, Math.round((this.quota * 0.80) / 50) * 50);
       this.sfx.jackpot();
-      this.showToast(`💻 Zhakowano rejestr! Nowa Kwota Długu: $${this.quota.toLocaleString()}!`, 'emerald');
+      this.showToast(`💼 Obniżono Kwotę Długu do: $${this.quota.toLocaleString()}!`, 'emerald');
     } else if (it.id === 'overdrive_chip') {
       this.overdriveChipActive = true;
       this.sfx.jackpot();
@@ -741,11 +835,11 @@ const VelvetMinigames = {
         return;
       }
     }
-    if (roll < 0.45) {
-      const tokGain = (isOverdrive ? 2 : 1) * kingpinMult;
+    if (roll < 0.55) {
+      const tokGain = Math.ceil((isOverdrive ? 3 : 2) * kingpinMult * 1.5);
       this.tokens += tokGain;
       this.sfx.jackpot();
-      this.showToast(`📦 Zrzut Kuriera: Znaleziono +${tokGain} 🪙 w ukrytej skrytce!`, 'amber');
+      this.showToast(`📦 Zrzut Kuriera (+50% 🪙): Znaleziono +${tokGain} 🪙 w ukrytej skrytce!`, 'amber');
     } else if (roll < 0.80) {
       const cashGain = Math.round((150 + this.day * 75) * (isOverdrive ? 1.6 : 1.0) * kingpinMult);
       this.cash += cashGain;
@@ -770,18 +864,14 @@ const VelvetMinigames = {
     this.smugglerUsedThisNight = false;
     this.bmBoughtThisNight = {};
     this.overdriveChipActive = false;
-    if (this.relics && this.relics.has('infinity_vault')) {
-      this.tokens += 2;
-    }
     this.rollDailyAtmAvailability();
     const rank = this.getSyndicateRank();
-    const surplusCarry = (this.relics && this.relics.has('infinity_vault'))
-      ? Math.floor(Math.max(0, this.cash - this.quota) * 0.60)
-      : Math.min(400, Math.floor(Math.max(0, this.cash - this.quota) * 0.25));
-    const relicFund = (this.relics.has('trust_fund') ? 350 : 0) + (this.relics.has('velvet_crown') ? 1000 : 0) + rank.startCash;
-    this.cash = 500 + (this.day - 1) * 150 + surplusCarry + relicFund;
-    const rawQuota = 1000 * Math.pow(1.45, this.day - 1) * (this.relics.has('syndicate_seal') ? 0.85 : 1.0);
-    this.quota = Math.round(rawQuota / 50) * 50;
+    // Brak darmowej dodatkowej kasy za przejście dnia — nadwyżka daje dodatkowe Żetony 🪙, a nowy Gol (Quota) rośnie względem Twojej obecnej kasy (np. $5K -> $12K)!
+    this.cash = Math.max(500, this.cash);
+    this.totalCollectedCash = Math.max(this.totalCollectedCash || 0, this.cash);
+    this.quota = this.calculateNextQuota
+      ? this.calculateNextQuota(this.day, this.cash)
+      : Math.min(1000000, Math.round((this.cash * 2.4) / 100) * 100);
     this.assignNightlyModifier();
     this.assignDailyChallenge();
     this.randomizeNightlyCasinoFloor();
@@ -799,6 +889,7 @@ const VelvetMinigames = {
     this.syncZoneMusic();
     this.updateHUD();
     this.sfx.win();
+    if (this.checkVictoryCondition && this.checkVictoryCondition()) return;
     if (this.day === 5) {
       this.sfx.jackpot();
       this.showToast('🔥 NOC 5 — ODBLOKOWANO TRYB OVERDRIVE: 5. Stół VIP w Kasynie, Nowe Towary na Czarnym Rynku i Kontrakty Wysokiej Stawki!', 'amber');
@@ -814,6 +905,7 @@ const VelvetMinigames = {
     this.phase = 'PREP';
     this.zone = 0;
     this.cash = 500;
+    this.totalCollectedCash = 500;
     this.quota = 1000;
     this.tokens = 1;
     this.relics.clear();
@@ -910,6 +1002,8 @@ const VelvetMinigames = {
     if (gameKey === 'pulse') return this.pulse && this.pulse.active;
     if (gameKey === 'hilo') return this.hilo && this.hilo.active;
     if (gameKey === 'cups') return this.cups && this.cups.active;
+    if (gameKey === 'wheel') return this.wheel && this.wheel.active;
+    if (gameKey === 'poker') return this.poker && this.poker.active;
     return false;
   },
   syncBetInputUI(gameKey) {
@@ -2206,7 +2300,8 @@ const VelvetMinigames = {
   },
   refreshAtmModalUI() {
     const chaliceMult = (this.relics.has('crimson_chalice') ? 1.45 : 1.0) * (this.relics.has('blood_emperor') ? 2.0 : 1.0);
-    const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
+    const rawBaseLoan = Math.max(300 + (this.day - 1) * 75, Math.round(this.quota * 0.18));
+    const baseLoan = Math.round(rawBaseLoan * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
     const timeCost = this.relics.has('blood_emperor') ? 0 : Math.max(15, (this.currentModifier.bloodCost || 60) - (this.relics.has('crimson_chalice') ? 20 : 0));
     const badge = document.getElementById('atm-usage-badge');
     const costLbl = document.getElementById('atm-cost-label');
@@ -2241,7 +2336,8 @@ const VelvetMinigames = {
         pawnBtn.disabled = true;
         pawnBtn.textContent = 'SKUP ŻETONÓW NIECZYNNY DZIŚ';
       } else {
-        const tokenVal = this.relics.has('syndicate_seal') ? 550 : 350;
+        const baseTokVal = Math.max(350, Math.round((this.quota * 0.14) / 50) * 50);
+    const tokenVal = this.relics.has('syndicate_seal') ? Math.round(baseTokVal * 1.5) : baseTokVal;
         pawnBtn.disabled = this.tokens <= 0;
         pawnBtn.innerHTML = `<span data-i18n="atm_pawn_btn">SPRZEDAJ 1 🪙</span> (+$<span id="atm-token-amount">${tokenVal}</span>)`;
       }
@@ -2261,7 +2357,8 @@ const VelvetMinigames = {
       return;
     }
     const chaliceMult = (this.relics.has('crimson_chalice') ? 1.45 : 1.0) * (this.relics.has('blood_emperor') ? 2.0 : 1.0);
-    const baseLoan = Math.round((300 + (this.day - 1) * 75) * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
+    const rawBaseLoan = Math.max(300 + (this.day - 1) * 75, Math.round(this.quota * 0.18));
+    const baseLoan = Math.round(rawBaseLoan * (this.currentModifier.bloodBonus || 1.0) * chaliceMult);
     this.bloodPumpedThisNight = true;
     this.timeLeft -= timeCost;
     if (this.rumble) this.rumble(0.8, 1.0, 380);
@@ -2278,7 +2375,8 @@ const VelvetMinigames = {
       return;
     }
     if (this.tokens <= 0) return;
-    const tokenVal = this.relics.has('syndicate_seal') ? 550 : 350;
+    const baseTokVal = Math.max(350, Math.round((this.quota * 0.14) / 50) * 50);
+    const tokenVal = this.relics.has('syndicate_seal') ? Math.round(baseTokVal * 1.5) : baseTokVal;
     this.tokens -= 1;
     this.cash += tokenVal;
     this.sfx.chip();
@@ -2286,11 +2384,181 @@ const VelvetMinigames = {
     this.refreshAtmModalUI();
     this.updateHUD();
   },
+  openWheelModal() {
+    this.ensureExtraMinigamesInitialized();
+    this.sfx.chip();
+    this.wheel.bet = 0;
+    this.wheel.active = false;
+    const slot = this.activeCasinoSlots.find(s => s.type === 'wheel');
+    const subEl = document.getElementById('wheel-variant-sub');
+    if (subEl && slot) subEl.textContent = `${slot.variantText} • Min. zakład: $${this.getMinBet()}`;
+    this.syncBetInputUI('wheel');
+    document.getElementById('wheel-big-mult').textContent = '🎡 GOTOWY';
+    document.getElementById('wheel-status').textContent = 'USTAW STAWKĘ I ZAKRĘĆ KOŁEM FORTUNY';
+    document.getElementById('wheel-spin-btn').disabled = false;
+    this.openModal('modal-wheel');
+  },
+
+  spinFortuneWheel() {
+    if (this.wheel.active || !this.validateGameWager('wheel')) return;
+    this.cash -= this.wheel.bet;
+    this.wheel.active = true;
+    document.getElementById('wheel-spin-btn').disabled = true;
+    this.updateHUD();
+
+    const slot = this.activeCasinoSlots.find(s => s.type === 'wheel');
+    const vIdx = slot ? slot.variantIdx : 0;
+    const pools = [
+      [0, 1.5, 0.5, 2.5, 0, 4.0, 8.0, 15.0],
+      [0, 1.8, 1.2, 4.0, 0, 4.0, 8.0, 12.0],
+      [0, 1.5, 0,   2.5, 0, 4.5, 9.0, 20.0],
+      [0.5, 1.5, 1.2, 2.2, 0.5, 3.5, 7.0, 14.0]
+    ];
+    const sectors = pools[vIdx % pools.length];
+    const chosenIdx = Math.floor(Math.random() * sectors.length);
+    let mult = sectors[chosenIdx];
+    if (this.relics.has('royal_monocle') && mult > 0) mult = +(mult * 1.35).toFixed(2);
+
+    const bigEl = document.getElementById('wheel-big-mult');
+    const stEl = document.getElementById('wheel-status');
+    let ticks = 0;
+    const maxTicks = 12;
+    const stepMs = Math.max(25, Math.round(55 / (this.clockMultiplier || 1)));
+    const anim = setInterval(() => {
+      ticks++;
+      const preview = sectors[(ticks + chosenIdx) % sectors.length];
+      if (bigEl) bigEl.textContent = `🎡 ${preview}x`;
+      this.sfx.tick();
+      if (ticks >= maxTicks) {
+        clearInterval(anim);
+        this.wheel.active = false;
+        document.getElementById('wheel-spin-btn').disabled = false;
+        if (mult > 0) {
+          const payout = this.recordWinPayout(this.wheel.bet, mult);
+          if (mult >= 8) this.sfx.jackpot(); else this.sfx.win();
+          if (bigEl) bigEl.textContent = `★ ${mult}x!`;
+          if (stEl) stEl.textContent = `TRAFIONO SEKTOR ${mult}x! WYGRANA +$${payout.toLocaleString()}!`;
+          this.advanceChallenge('vault_reactor_win', 1);
+        } else {
+          this.sfx.lose();
+          if (bigEl) bigEl.textContent = '0x';
+          if (stEl) stEl.textContent = `PUSTY SEKTOR — PRZEGRANA -$${this.wheel.bet}`;
+        }
+        this.updateHUD();
+        if (this.checkBankruptcy) this.checkBankruptcy();
+      }
+    }, stepMs);
+  },
+
+  openPokerModal() {
+    this.ensureExtraMinigamesInitialized();
+    this.sfx.card();
+    this.poker.bet = 0;
+    this.poker.active = false;
+    const slot = this.activeCasinoSlots.find(s => s.type === 'poker');
+    const subEl = document.getElementById('poker-variant-sub');
+    if (subEl && slot) subEl.textContent = `${slot.variantText} • Min. zakład: $${this.getMinBet()}`;
+    this.syncBetInputUI('poker');
+    const row = document.getElementById('poker-cards-row');
+    if (row) {
+      row.innerHTML = [0, 1, 2].map(() => `<div class="playing-card hidden-card items-center justify-center"><span class="text-amber-400 text-2xl font-extrabold">?</span></div>`).join('');
+    }
+    document.getElementById('poker-status').textContent = 'WPISZ STAWKĘ I ROZDAJ 3 KARTY POKEROWE';
+    document.getElementById('poker-deal-btn').disabled = false;
+    this.openModal('modal-poker');
+  },
+
+  dealCyberPoker() {
+    if (this.poker.active || !this.validateGameWager('poker')) return;
+    this.cash -= this.poker.bet;
+    this.poker.active = true;
+    document.getElementById('poker-deal-btn').disabled = true;
+    this.sfx.card();
+    this.updateHUD();
+
+    const slot = this.activeCasinoSlots.find(s => s.type === 'poker');
+    const vIdx = slot ? slot.variantIdx : 0;
+    const suits = ['♠', '♥', '♦', '♣'];
+    const allRanks = [
+      { r: '2', v: 2 }, { r: '3', v: 3 }, { r: '4', v: 4 }, { r: '5', v: 5 },
+      { r: '6', v: 6 }, { r: '7', v: 7 }, { r: '8', v: 8 }, { r: '9', v: 9 },
+      { r: '10', v: 10 }, { r: 'J', v: 11 }, { r: 'Q', v: 12 }, { r: 'K', v: 13 }, { r: 'A', v: 14 }
+    ];
+    const rankPool = vIdx === 3 ? allRanks.slice(6) : allRanks;
+    const deck = [];
+    for (const s of suits) {
+      for (const rk of rankPool) deck.push({ rank: rk.r, val: rk.v, suit: s });
+    }
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    const hand = [deck.pop(), deck.pop(), deck.pop()].sort((a, b) => a.val - b.val);
+
+    setTimeout(() => {
+      this.poker.active = false;
+      document.getElementById('poker-deal-btn').disabled = false;
+      const row = document.getElementById('poker-cards-row');
+      if (row) {
+        row.innerHTML = hand.map(c => {
+          const isRed = c.suit === '♥' || c.suit === '♦';
+          return `<div class="playing-card ${isRed ? 'text-red-600' : 'text-zinc-900'}"><div class="text-xs leading-none">${c.rank}${c.suit}</div><div class="text-2xl self-center">${c.suit}</div><div class="text-xs leading-none self-end rotate-180">${c.rank}${c.suit}</div></div>`;
+        }).join('');
+      }
+
+      const isFlush = hand[0].suit === hand[1].suit && hand[1].suit === hand[2].suit;
+      const isStraight = (hand[2].val - hand[1].val === 1 && hand[1].val - hand[0].val === 1);
+      const isThree = hand[0].val === hand[1].val && hand[1].val === hand[2].val;
+      const isPair = hand[0].val === hand[1].val || hand[1].val === hand[2].val || hand[0].val === hand[2].val;
+      const isHighAce = hand[2].val === 14 && hand[1].val >= 12;
+
+      let mult = 0;
+      let handName = 'BRAK UKŁADU';
+      if (isFlush && isStraight) { mult = 25.0; handName = '★ POKER KRÓLEWSKI (25x)'; }
+      else if (isThree) { mult = 10.0; handName = '★ TRÓJKA (10x)'; }
+      else if (isStraight) { mult = 5.0; handName = '★ STRIT (5x)'; }
+      else if (isFlush) { mult = vIdx === 2 ? 4.5 : 3.5; handName = '★ KOLOR'; }
+      else if (isPair) { mult = vIdx === 1 ? 2.4 : 2.0; handName = '★ PARA'; }
+      else if (isHighAce) { mult = 1.5; handName = 'WYSOKI AS (1.5x)'; }
+
+      if (mult > 0 && this.relics.has('royal_monocle')) mult = +(mult * 1.35).toFixed(2);
+      const stEl = document.getElementById('poker-status');
+      if (mult > 0) {
+        const payout = this.recordWinPayout(this.poker.bet, mult);
+        if (mult >= 5) this.sfx.jackpot(); else this.sfx.win();
+        if (stEl) stEl.textContent = `${handName}! WYGRANA +$${payout.toLocaleString()}!`;
+        this.advanceChallenge('vault_reactor_win', 1);
+      } else {
+        this.sfx.lose();
+        if (stEl) stEl.textContent = `BRAK UKŁADU — PRZEGRANA -$${this.poker.bet}`;
+      }
+      this.updateHUD();
+      if (this.checkBankruptcy) this.checkBankruptcy();
+    }, Math.round(360 / (this.clockMultiplier || 1)));
+  },
+
+  checkVictoryCondition() {
+    if (this.cutscene && this.cutscene.active) return false;
+    this.totalCollectedCash = Math.max(this.totalCollectedCash || 0, this.cash);
+    if (this.cash >= 1000000 || this.totalCollectedCash >= 1000000) {
+      if (this.startVictoryCutscene) {
+        this.startVictoryCutscene();
+        return true;
+      }
+    }
+    return false;
+  },
+
   recordWinPayout(baseBetOrWin, multiplier = 1.0) {
     let relicBonus = 1.0;
     if (this.relics.has('golden_cufflinks')) relicBonus *= 1.20;
     if (this.relics.has('diamond_magnet')) relicBonus *= 1.35;
     if (this.relics.has('velvet_crown')) relicBonus *= 1.50;
+    if (this.relics.has('golden_briefcase')) relicBonus *= 1.25;
+    if (this.relics.has('compound_ledger')) relicBonus *= 1.25;
+    if (this.relics.has('platinum_chip')) relicBonus *= 1.40;
+    if (this.relics.has('syndicate_ledger')) relicBonus *= 1.30;
+    if (this.relics.has('horizon_keys')) relicBonus *= 2.00;
     if (this.relics.has('overdrive_core') && this.day >= 5) {
       relicBonus *= (1 + (this.day - 4) * 0.10);
     }
@@ -2298,7 +2566,6 @@ const VelvetMinigames = {
     const rankObj = this.getSyndicateRank ? this.getSyndicateRank() : { winBonus: 1.0 };
     relicBonus *= (rankObj.winBonus || 1.0);
 
-    // Sprawdź czy aktualnie otwarta gra to 5. Stół Overdrive (+25% wypłaty)
     const modalToType = {
       'modal-blackjack': 'bj',
       'modal-roulette': 'roul',
@@ -2309,7 +2576,9 @@ const VelvetMinigames = {
       'modal-tower': 'tower',
       'modal-pulse': 'pulse',
       'modal-hilo': 'hilo',
-      'modal-cups': 'cups'
+      'modal-cups': 'cups',
+      'modal-wheel': 'wheel',
+      'modal-poker': 'poker'
     };
     const activeType = modalToType[this.activeModal];
     if (activeType && this.activeOverdriveTableType === activeType) {
@@ -2319,13 +2588,17 @@ const VelvetMinigames = {
     const modBonus = this.currentModifier.payoutMult || 1.0;
     const total = Math.round(baseBetOrWin * multiplier * relicBonus * modBonus);
     this.cash += total;
+    this.totalCollectedCash = Math.max(this.totalCollectedCash || 0, this.cash);
     if (this.rumble) this.rumble(0.45, 0.75, 220);
 
-    // Postęp kontraktów ogólnych i Overdrive (Noc 5+)
     this.advanceChallenge('overdrive_streak_3', 1);
     if (total >= 1200) this.advanceChallenge('overdrive_big_win', 1);
     if (activeType === 'tower' || activeType === 'pulse') this.advanceChallenge('tower_win_1', 1);
     if (activeType === 'crash' || activeType === 'mines') this.advanceChallenge('crash_mines_win', 1);
+
+    setTimeout(() => {
+      if (this.checkVictoryCondition) this.checkVictoryCondition();
+    }, 350);
 
     return total;
   },

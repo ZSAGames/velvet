@@ -522,7 +522,9 @@ const activeGameMap = {
 'modal-slots': 'slots',
 'modal-dice': 'dice',
 'modal-crash': 'crash',
-'modal-mines': 'mines'
+'modal-mines': 'mines',
+'modal-wheel': 'wheel',
+'modal-poker': 'poker'
 };
 const gKey = activeGameMap[this.activeModal];
 if (gKey) {
@@ -603,6 +605,15 @@ bindInputs() {
 window.addEventListener('keydown', (e) => {
 const k = e.key.toLowerCase();
 this.keys[k] = true;
+if (this.cutscene && this.cutscene.active && this.cutscene.type === 'VICTORY' && this.cutscene.phase === 'HIGHWAY_LOOP') {
+if (k === 'escape' || k === 'enter') {
+e.preventDefault();
+this.cutscene.active = false;
+this.restartRun();
+this.returnToMainMenuFromPause();
+return;
+}
+}
 if (this.introPlaying) {
 e.preventDefault();
 return;
@@ -943,17 +954,48 @@ this.sfx.alarm();
 this.showToast(`NOCNA ZMIANA ROZPOCZĘTA! Zdobądź $${this.quota.toLocaleString()} przed 00:00!`, 'amber');
 this.updateHUD();
 }
+calculateNextQuota(nextDay, currentCash) {
+// Nowy gol skaluje się od posiadanej kasy (2.4x — np. masz $5,000 -> nowy gol to $12,000!)
+let factor = 2.4;
+if (this.relics && this.relics.has('golden_briefcase')) factor = 2.1;
+if (this.relics && this.relics.has('syndicate_seal')) factor *= 0.85;
+const minFloorQuota = 1000 * Math.pow(1.5, nextDay - 1);
+const raw = Math.max(minFloorQuota, currentCash * factor);
+let rounded;
+if (raw >= 10000) {
+rounded = Math.round(raw / 500) * 500;
+} else if (raw >= 1000) {
+rounded = Math.round(raw / 100) * 100;
+} else {
+rounded = Math.round(raw / 50) * 50;
+}
+// Upewnij się, że nowy gol jest zawsze wyższy od obecnej kasy i nie przekracza finałowego $1,000,000
+return Math.min(1000000, Math.max(currentCash + 500, rounded));
+}
 completeDaySummary() {
 this.sfx.jackpot();
 const surplus = Math.max(0, this.cash - this.quota);
-const anchorBonus = this.relics.has('chrono_anchor') ? 1 : 0;
-const bonusTokens = 1 + (surplus >= 500 ? 1 : 0) + anchorBonus;
+const surplusPct = Math.floor((surplus / Math.max(1, this.quota)) * 100);
+// Zwiększono zdobywanie dodatkowych żetonów o +50% (niższy próg % oraz mnożnik 1.5x do dodatkowych żetonów!)
+const pctStep = (this.relics && this.relics.has('infinity_vault')) ? 6 : ((this.relics && this.relics.has('trust_fund')) ? 8 : 10);
+const rawPctTokens = Math.floor(surplusPct / pctStep);
+const pctBonusTokens = Math.ceil(rawPctTokens * 1.5);
+const relicNightTokens = Math.ceil((
+((this.relics && this.relics.has('chrono_anchor')) ? 1 : 0) +
+((this.relics && this.relics.has('velvet_crown')) ? 1 : 0) +
+((this.relics && this.relics.has('infinity_vault')) ? 2 : 0)
+) * 1.5);
+const baseToken = 2; // Zwiększono bazową nagrodę za przetrwanie nocy (+50% więcej żetonów)
+const bonusTokens = baseToken + pctBonusTokens + relicNightTokens;
 this.tokens += bonusTokens;
+const nextGoal = this.calculateNextQuota(this.day + 1, this.cash);
 document.getElementById('summary-title').textContent = `${this.t('hud_cycle')} ${this.day} — ${this.t('completed_word')}`;
 document.getElementById('summary-details').innerHTML = `
-<div class="flex justify-between"><span>Zebrana Gotówka:</span><strong class="text-emerald-400">$${this.cash.toLocaleString()}</strong></div>
-<div class="flex justify-between"><span>Wymagana Kwota:</span><strong class="text-amber-400">$${this.quota.toLocaleString()}</strong></div>
-<div class="flex justify-between"><span>Nagroda za przetrwanie:</span><strong class="text-amber-300">+${bonusTokens} 🪙</strong></div>
+<div class="flex justify-between"><span>Posiadana Gotówka (bez zmian):</span><strong class="text-emerald-400">$${this.cash.toLocaleString()}</strong></div>
+<div class="flex justify-between"><span>Wymagana Kwota Cyklu:</span><strong class="text-amber-400">$${this.quota.toLocaleString()}</strong></div>
+<div class="flex justify-between"><span>Nadwyżka (+${surplusPct}% ponad cel):</span><strong class="text-cyan-300">+${pctBonusTokens} 🪙 (Bonus +50% 🪙!)</strong></div>
+<div class="flex justify-between border-t border-zinc-800 pt-1.5"><span>Łączna nagroda Żetonów:</span><strong class="text-amber-300">+${bonusTokens} 🪙 (Brak dodatkowej kasy)</strong></div>
+<div class="flex justify-between border-t border-zinc-800 pt-1.5"><span>Nowy Gol na Dzień ${this.day + 1}:</span><strong class="text-rose-400">$${nextGoal.toLocaleString()}</strong></div>
 `;
 this.openModal('modal-day-complete');
 }
@@ -1026,6 +1068,113 @@ this.triggerGameOver(this.lang === 'uk'
 }
 triggerGameOver(reason) {
 this.startMafiaCutscene(reason);
+}
+startVictoryCutscene() {
+if (this.cutscene && this.cutscene.active) return;
+if (this._bankruptTimeout) {
+clearTimeout(this._bankruptTimeout);
+this._bankruptTimeout = null;
+}
+this.closeModals(true);
+this.keys = {};
+this.resetJoystick();
+this.player.vx = 0;
+this.player.vy = 0;
+this.player.moveAmount = 0;
+const hudHeader = document.getElementById('main-hud-header');
+if (hudHeader) hudHeader.classList.add('hidden');
+const promptEl = document.getElementById('interact-prompt');
+if (promptEl) promptEl.classList.add('hidden');
+
+this.zone = 1;
+this.syncZoneMusic();
+this.player.x = 640;
+this.player.y = 315;
+this.player.facing = Math.PI;
+this.camera.x = 485;
+this.camera.y = 315;
+
+this.cutscene = {
+active: true,
+type: 'VICTORY',
+timer: 0,
+phase: 'HANDOVER_WALK',
+switchedToStreet: true,
+briefcaseX: 620,
+briefcaseY: 315,
+roadOffset: 0,
+goons: [
+{ x: 420, y: 275, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'guard' },
+{ x: 405, y: 315, facing: 0, coat: '#09090b', trim: '#fbbf24', hair: '#e2e8f0', visor: '#fbbf24', role: 'dealer' },
+{ x: 420, y: 355, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'guard' }
+],
+tracers: [],
+bloodDrops: [],
+bloodPoolR: 0,
+flashAlpha: 0,
+blackAlpha: 0,
+playerDown: false,
+subtitle: this.lang === 'uk'
+? 'ТИ: "Тут рівно $1,000,000. Мій борг перед Синдикатом сплачено повністю."'
+: 'TY: "Tu jest dokładnie $1,000,000. Mój dług wobec Syndykatu został spłacony w całości."'
+};
+this.updateMobileState();
+this.sfx.jackpot();
+this.rumble(0.4, 0.7, 300);
+}
+updateVictoryCutscene(dt) {
+const cs = this.cutscene;
+if (!cs || !cs.active) return;
+cs.timer += dt;
+const t = cs.timer;
+cs.roadOffset = (cs.roadOffset || 0) + dt * 240;
+
+if (t < 3.4) {
+cs.phase = 'HANDOVER_WALK';
+if (this.player.x > 505) {
+this.player.x -= 44 * dt;
+this.player.walkCycle += dt * 9;
+this.player.moveAmount = 0.7;
+} else {
+this.player.moveAmount = 0;
+}
+this.player.facing = Math.PI;
+cs.briefcaseX = this.player.x - 18;
+cs.briefcaseY = this.player.y;
+this.camera.x += (465 - this.camera.x) * Math.min(1, 4 * dt);
+this.camera.y += (315 - this.camera.y) * Math.min(1, 4 * dt);
+} else if (t < 7.2) {
+if (cs.phase !== 'HANDOVER_GIVE') {
+cs.phase = 'HANDOVER_GIVE';
+this.player.moveAmount = 0;
+this.sfx.win();
+this.rumble(0.3, 0.5, 220);
+cs.subtitle = this.lang === 'uk'
+? 'ДОН СИНДИКАТУ: "Мільйон доларів... Твій контракт закрито. Ти вільний — їдь з цього міста."'
+: 'DON SYNDYKATU: "Milion dolarów... Twój kontrakt jest zamknięty. Jesteś wolny — wyjeżdżaj z miasta."';
+}
+// Walizka z $1,000,000 przesuwa się do Dona Syndykatu
+cs.briefcaseX += (435 - cs.briefcaseX) * Math.min(1, 3.5 * dt);
+cs.briefcaseY = 315;
+} else if (t < 9.2) {
+if (cs.phase !== 'FADE_TO_HIGHWAY') {
+cs.phase = 'FADE_TO_HIGHWAY';
+this.sfx.introBoom();
+cs.subtitle = this.lang === 'uk'
+? 'Оксамитова Безодня залишилась позаду...'
+: 'Aksamitna Otchłań została za Tobą...';
+}
+cs.blackAlpha = Math.min(1, (t - 7.2) / 1.6);
+} else {
+if (cs.phase !== 'HIGHWAY_LOOP') {
+cs.phase = 'HIGHWAY_LOOP';
+this.sfx.win();
+cs.subtitle = this.lang === 'uk'
+? '★ СВОБОДА ($1,000,000) — ПОПЕРЕДУ ЛИШЕ НЕСКІНЧЕННИЙ ГОРИЗОНТ ★'
+: '★ WOLNOŚĆ ($1,000,000) — PRZED TOBĄ JUŻ TYLKO NIESKOŃCZONY HORYZONT ★';
+}
+cs.blackAlpha = Math.max(0, 1 - (t - 9.2) / 1.8);
+}
 }
 startMafiaCutscene(reason) {
 if (this.cutscene && this.cutscene.active) return;
@@ -1100,6 +1249,10 @@ this.rumble(0.6, 0.85, 280);
 updateCutscene(dt) {
 const cs = this.cutscene;
 if (!cs || !cs.active) return;
+if (cs.type === 'VICTORY') {
+this.updateVictoryCutscene(dt);
+return;
+}
 cs.timer += dt;
 const t = cs.timer;
 if (cs.flashAlpha > 0) cs.flashAlpha = Math.max(0, cs.flashAlpha - dt * 3.2);
