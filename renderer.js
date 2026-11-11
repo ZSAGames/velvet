@@ -2732,5 +2732,1008 @@ ctx.lineTo(d.x - 4, d.y + d.len);
 ctx.stroke();
 ctx.restore();
 }
+
+
 });
+
+// ============================================================================
+// 1. SYSTEM ZAPISU I WCZYTYWANIA STANU GRY (LOCALSTORAGE AUTO-SAVE & LOAD)
+// 2. FILMOWA CUTSCENKA KOŃCOWA ($1M) + PRZEJAZD 3D NA HORYZONT (OUTRUN / CYBERPUNK)
+// ============================================================================
+(function () {
+  const SAVE_KEY = 'velvet_pit_save_state_v1';
+
+  Object.assign(VelvetPitGame.prototype, {
+    // ------------------------------------------------------------------------
+    // SYSTEM ZAPISU STANU GRY (DZIEŃ, KASA, RELIKTY, LOKACJA, POZYCJA, CZAS)
+    // ------------------------------------------------------------------------
+    saveGameState(silent = true) {
+      if (this.cutscene && this.cutscene.active) return;
+      try {
+        const state = {
+          version: 1,
+          savedAt: Date.now(),
+          day: this.day,
+          phase: this.phase,
+          cash: this.cash,
+          totalCollectedCash: Math.max(this.cash, this.totalCollectedCash || 0),
+          quota: this.quota,
+          tokens: this.tokens,
+          relics: Array.from(this.relics || []),
+          zone: this.zone,
+          playerX: Math.round(this.player.x),
+          playerY: Math.round(this.player.y),
+          playerFacing: this.player.facing || 0,
+          timeLeft: Math.round(this.timeLeft * 10) / 10,
+          maxTime: this.maxTime,
+          bloodPumpedThisNight: !!this.bloodPumpedThisNight,
+          bloodAvailableToday: typeof this.bloodAvailableToday === 'boolean' ? this.bloodAvailableToday : true,
+          tokenPawnAvailableToday: typeof this.tokenPawnAvailableToday === 'boolean' ? this.tokenPawnAvailableToday : true,
+          smugglerUsedThisNight: !!this.smugglerUsedThisNight,
+          bmBoughtThisNight: this.bmBoughtThisNight || {},
+          overdriveChipActive: !!this.overdriveChipActive,
+          modifierId: this.currentModifier ? this.currentModifier.id : null,
+          challenge: this.currentChallenge ? {
+            id: this.currentChallenge.id,
+            progress: this.currentChallenge.progress,
+            target: this.currentChallenge.target,
+            reward: this.currentChallenge.reward,
+            completed: !!this.currentChallenge.completed
+          } : null,
+          casinoSlots: (this.activeCasinoSlots || []).map(s => ({
+            type: s.type,
+            variantIdx: s.variantIdx,
+            isOverdriveTable: !!s.isOverdriveTable
+          })),
+          settings: this.settings,
+          lang: this.lang
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+        this.updateSaveBadgesUI(state);
+        if (!silent) {
+          if (this.sfx) this.sfx.win();
+          this.showToast(`💾 Zapisano stan gry (Dzień ${this.day}, $${this.cash.toLocaleString()}, ${this.zones[this.zone].getName()})!`, 'emerald');
+        }
+      } catch (e) {}
+    },
+
+    loadGameState(showNotification = false) {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (!s || typeof s.day !== 'number' || typeof s.cash !== 'number') return false;
+
+        this.day = Math.max(1, s.day);
+        this.phase = s.phase === 'SHIFT' ? 'SHIFT' : 'PREP';
+        this.cash = Math.max(0, s.cash);
+        this.totalCollectedCash = Math.max(this.cash, s.totalCollectedCash || this.cash);
+        this.quota = Math.max(500, s.quota || 1000);
+        this.tokens = Math.max(0, s.tokens || 0);
+        this.relics = new Set(Array.isArray(s.relics) ? s.relics : []);
+
+        this.zone = [0, 1, 2].includes(s.zone) ? s.zone : 0;
+        if (typeof s.playerX === 'number' && typeof s.playerY === 'number') {
+          this.player.x = s.playerX;
+          this.player.y = s.playerY;
+          this.camera.x = s.playerX;
+          this.camera.y = s.playerY;
+        }
+        this.player.facing = s.playerFacing || 0;
+        this.maxTime = Math.max(120, s.maxTime || 360);
+        this.timeLeft = Math.max(5, Math.min(this.maxTime + 300, s.timeLeft || this.maxTime));
+
+        this.bloodPumpedThisNight = !!s.bloodPumpedThisNight;
+        this.bloodAvailableToday = typeof s.bloodAvailableToday === 'boolean' ? s.bloodAvailableToday : true;
+        this.tokenPawnAvailableToday = typeof s.tokenPawnAvailableToday === 'boolean' ? s.tokenPawnAvailableToday : true;
+        this.smugglerUsedThisNight = !!s.smugglerUsedThisNight;
+        this.bmBoughtThisNight = s.bmBoughtThisNight || {};
+        this.overdriveChipActive = !!s.overdriveChipActive;
+
+        if (s.settings && typeof s.settings === 'object') {
+          this.settings = { ...this.settings, ...s.settings };
+        }
+        if (s.lang && (s.lang === 'pl' || s.lang === 'uk')) {
+          this.lang = s.lang;
+        }
+
+        if (s.modifierId && typeof NIGHTLY_MODIFIERS !== 'undefined') {
+          const foundMod = NIGHTLY_MODIFIERS.find(m => m.id === s.modifierId);
+          if (foundMod) this.currentModifier = foundMod;
+        }
+        if (s.challenge && typeof DAILY_CHALLENGES !== 'undefined') {
+          const foundChal = DAILY_CHALLENGES.find(c => c.id === s.challenge.id);
+          if (foundChal) {
+            this.currentChallenge = {
+              ...foundChal,
+              progress: s.challenge.progress || 0,
+              reward: s.challenge.reward || foundChal.reward,
+              completed: !!s.challenge.completed
+            };
+          }
+        }
+
+        // Odtwórz stoły w Kasynie na dany dzień
+        this.randomizeNightlyCasinoFloor();
+
+        this.applyTranslations();
+        this.syncSettingsUI();
+        this.updateHUD();
+        this.updateSaveBadgesUI(s);
+
+        if (showNotification) {
+          this.showToast(`📂 Wczytano zapis: Dzień ${this.day} • $${this.cash.toLocaleString()} • ${this.zones[this.zone].getName()}`, 'emerald');
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    clearSavedGameState(andRestart = false) {
+      try {
+        localStorage.removeItem(SAVE_KEY);
+      } catch (e) {}
+      if (andRestart) {
+        this._skipSaveOnRestart = true;
+        this.restartRun();
+        this._skipSaveOnRestart = false;
+        this.saveGameState(true);
+        this.showToast('🗑 Zresetowano postęp — rozpoczęto Nową Grę od Dnia 1!', 'amber');
+      }
+      this.updateSaveBadgesUI(null);
+    },
+
+    updateSaveBadgesUI(stateObj) {
+      let s = stateObj;
+      if (!s) {
+        try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          if (raw) s = JSON.parse(raw);
+        } catch (e) {}
+      }
+      const zoneNames = { 0: 'Kryjówka', 1: 'Ulica Blackwater', 2: 'Kasyno' };
+      const mins = s ? Math.floor((s.timeLeft || 0) / 60) : 6;
+      const secs = s ? Math.floor((s.timeLeft || 0) % 60) : 0;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const infoText = s
+        ? `💾 ZAPIS: DZIEŃ ${s.day} • $${(s.cash || 0).toLocaleString()} • ${zoneNames[s.zone] || 'Kryjówka'} • ⏱ ${timeStr} • 🕯 ${(s.relics || []).length} Rel.`
+        : '💾 BRAK ZAPISU (NOWA GRA OD DNIA 1)';
+
+      // Wstrzyknij lub zaktualizuj pasek zapisu w Menu Głównym i w Menu Pauzy
+      const playBtn = document.getElementById('menu-btn-play');
+      if (playBtn) {
+        let menuSaveBar = document.getElementById('menu-save-info-bar');
+        if (!menuSaveBar) {
+          menuSaveBar = document.createElement('div');
+          menuSaveBar.id = 'menu-save-info-bar';
+          menuSaveBar.className = 'bg-emerald-950/40 border border-emerald-500/40 rounded-lg p-2.5 text-center space-y-2';
+          playBtn.parentNode.insertBefore(menuSaveBar, playBtn.nextSibling);
+        }
+        menuSaveBar.innerHTML = `
+          <div class="text-[10px] font-extrabold text-emerald-300 tracking-wide">${infoText}</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="window.game.saveGameState(false)" class="cyber-btn-sec py-1.5 px-2 text-[10px] font-extrabold text-emerald-300 hover:text-white">💾 ZAPISZ STAN</button>
+            <button type="button" onclick="window.game.clearSavedGameState(true)" class="cyber-btn-sec py-1.5 px-2 text-[10px] font-extrabold text-red-300 hover:text-white">🗑 NOWA GRA (RESET)</button>
+          </div>
+        `;
+      }
+
+      const pauseModal = document.getElementById('modal-pause');
+      if (pauseModal) {
+        let pauseSaveBar = document.getElementById('pause-save-info-bar');
+        if (!pauseSaveBar) {
+          pauseSaveBar = document.createElement('div');
+          pauseSaveBar.id = 'pause-save-info-bar';
+          pauseSaveBar.className = 'bg-emerald-950/35 border border-emerald-500/40 rounded-lg p-2.5 text-center space-y-2';
+          const statusGrid = pauseModal.querySelector('.grid.grid-cols-3');
+          if (statusGrid && statusGrid.parentNode) {
+            statusGrid.parentNode.insertBefore(pauseSaveBar, statusGrid.nextSibling);
+          }
+        }
+        pauseSaveBar.innerHTML = `
+          <div class="text-[10px] font-extrabold text-emerald-300">${infoText}</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="window.game.saveGameState(false)" class="cyber-btn-sec py-1.5 px-2 text-[10px] font-extrabold text-emerald-300 hover:text-white">💾 ZAPISZ TERAZ</button>
+            <button type="button" onclick="window.game.loadGameState(true); window.game.closeModals();" class="cyber-btn-sec py-1.5 px-2 text-[10px] font-extrabold text-cyan-300 hover:text-white">📂 WCZYTAJ ZAPIS</button>
+          </div>
+        `;
+      }
+    },
+
+    // ------------------------------------------------------------------------
+    // NOWA FILMOWA CUTSCENKA KOŃCOWA ($1,000,000) I PRZEJAZD 3D NA HORYZONT
+    // ------------------------------------------------------------------------
+    startVictoryCutscene() {
+      if (this.cutscene && this.cutscene.active) return;
+      if (this._bankruptTimeout) {
+        clearTimeout(this._bankruptTimeout);
+        this._bankruptTimeout = null;
+      }
+      this.closeModals(true);
+      this.keys = {};
+      this.resetJoystick();
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.moveAmount = 0;
+
+      const hudHeader = document.getElementById('main-hud-header');
+      if (hudHeader) hudHeader.classList.add('hidden');
+      const promptEl = document.getElementById('interact-prompt');
+      if (promptEl) promptEl.classList.add('hidden');
+
+      this.zone = 1;
+      this.syncZoneMusic();
+      this.player.x = 610;
+      this.player.y = 315;
+      this.player.facing = Math.PI;
+      this.camera.x = 490;
+      this.camera.y = 315;
+
+      this.cutscene = {
+        active: true,
+        type: 'VICTORY',
+        timer: 0,
+        phase: 'HANDOVER_WALK',
+        switchedToStreet: true,
+        briefcaseX: 590,
+        briefcaseY: 315,
+        briefcaseOpen: 0,
+        playerInCar: false,
+        escapeCarX: 685,
+        escapeCarY: 355,
+        escapeCarSpeed: 0,
+        roadDist: 0,
+        cashParticles: [],
+        goons: [
+          { x: 418, y: 270, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'guard' },
+          { x: 405, y: 315, facing: 0, coat: '#18181b', trim: '#fbbf24', hair: '#f8fafc', visor: '#fbbf24', role: 'dealer' },
+          { x: 418, y: 360, facing: 0, coat: '#09090b', trim: '#dc2626', hair: '#18181b', visor: '#ef4444', role: 'guard' }
+        ],
+        tracers: [],
+        bloodDrops: [],
+        bloodPoolR: 0,
+        flashAlpha: 0,
+        blackAlpha: 0,
+        playerDown: false,
+        subtitle: this.lang === 'uk'
+          ? 'ТИ: "Рівно $1,000,000 готівкою. Контракт виконано до останнього цента."'
+          : 'TY: "Równo $1,000,000 w gotówce. Kontrakt spłacony co do ostatniego centa."'
+      };
+      this.updateMobileState();
+      this.sfx.jackpot();
+      this.rumble(0.4, 0.7, 300);
+    },
+
+    updateVictoryCutscene(dt) {
+      const cs = this.cutscene;
+      if (!cs || !cs.active) return;
+      cs.timer += dt;
+      const t = cs.timer;
+      cs.roadDist = (cs.roadDist || 0) + dt * 420;
+      if (cs.flashAlpha > 0) cs.flashAlpha = Math.max(0, cs.flashAlpha - dt * 2.2);
+
+      // Aktualizacja złotych cząsteczek banknotów nad otwartą walizką
+      if (cs.cashParticles) {
+        for (let i = cs.cashParticles.length - 1; i >= 0; i--) {
+          const p = cs.cashParticles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life -= dt;
+          if (p.life <= 0) cs.cashParticles.splice(i, 1);
+        }
+      }
+
+      if (t < 3.0) {
+        // FAZA 1: Gracz podchodzi z walizką do stołu rozliczeniowego przed Donem Syndykatu
+        cs.phase = 'HANDOVER_WALK';
+        if (this.player.x > 495) {
+          this.player.x -= 40 * dt;
+          this.player.walkCycle += dt * 9;
+          this.player.moveAmount = 0.75;
+        } else {
+          this.player.moveAmount = 0;
+        }
+        this.player.facing = Math.PI;
+        cs.briefcaseX = this.player.x - 18;
+        cs.briefcaseY = this.player.y;
+        this.camera.x += (475 - this.camera.x) * Math.min(1, 4.5 * dt);
+        this.camera.y += (315 - this.camera.y) * Math.min(1, 4.5 * dt);
+      } else if (t < 6.8) {
+        // FAZA 2: Walizka ląduje na stole, otwiera się ze złotym blaskiem, a Syndykat zatwierdza spłatę $1,000,000
+        if (cs.phase !== 'HANDOVER_OPEN') {
+          cs.phase = 'HANDOVER_OPEN';
+          this.player.moveAmount = 0;
+          cs.flashAlpha = 0.35;
+          this.sfx.jackpot();
+          this.rumble(0.5, 0.8, 260);
+          cs.subtitle = this.lang === 'uk'
+            ? 'ДОН СИНДИКАТУ: "Мільйон доларів перевірено. Реєстр боргу видалено — ти вільна людина."'
+            : 'DON SYNDYKATU: "Milion dolarów zweryfikowany. Rejestr długu skasowany — jesteś wolnym człowiekiem."';
+        }
+        cs.briefcaseX += (452 - cs.briefcaseX) * Math.min(1, 6 * dt);
+        cs.briefcaseY = 315;
+        cs.briefcaseOpen = Math.min(1, cs.briefcaseOpen + dt * 2.2);
+        if (Math.random() < 0.45 && cs.cashParticles.length < 28) {
+          cs.cashParticles.push({
+            x: cs.briefcaseX + (Math.random() - 0.5) * 18,
+            y: cs.briefcaseY - 4,
+            vx: (Math.random() - 0.5) * 26,
+            vy: -22 - Math.random() * 28,
+            life: 0.8 + Math.random() * 0.6
+          });
+        }
+        this.camera.x += (465 - this.camera.x) * Math.min(1, 4 * dt);
+      } else if (t < 10.6) {
+        // FAZA 3: Gracz odwraca się, idzie do swojego sportowego Cyber-Interceptora, wsiada i rusza w stronę autostrady!
+        if (cs.phase !== 'WALK_TO_CAR') {
+          cs.phase = 'WALK_TO_CAR';
+          this.sfx.win();
+          cs.subtitle = this.lang === 'uk'
+            ? 'ТИ: "Час залишити Блеквотер назавжди. Попереду лише горизонт."'
+            : 'TY: "Czas zostawić Blackwater na zawsze. Przede mną już tylko horyzont."';
+        }
+        if (!cs.playerInCar) {
+          const dx = (cs.escapeCarX - 10) - this.player.x;
+          const dy = (cs.escapeCarY - 6) - this.player.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 8) {
+            this.player.facing = Math.atan2(dy, dx);
+            this.player.x += (dx / dist) * 95 * dt;
+            this.player.y += (dy / dist) * 95 * dt;
+            this.player.walkCycle += dt * 11;
+            this.player.moveAmount = 0.85;
+            this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 5 * dt);
+            this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 5 * dt);
+          } else {
+            cs.playerInCar = true;
+            this.player.moveAmount = 0;
+            this.sfx.door();
+            this.rumble(0.7, 0.9, 320);
+          }
+        } else {
+          cs.escapeCarSpeed = Math.min(540, cs.escapeCarSpeed + 460 * dt);
+          cs.escapeCarX += cs.escapeCarSpeed * dt;
+          this.player.x = cs.escapeCarX;
+          this.player.y = cs.escapeCarY;
+          this.camera.x += (Math.min(920, cs.escapeCarX - 60) - this.camera.x) * Math.min(1, 5 * dt);
+        }
+      } else if (t < 12.2) {
+        // FAZA 4: Płynne przejście kamerą na autostradę prowadzącą w horyzont
+        if (cs.phase !== 'FADE_TO_HIGHWAY') {
+          cs.phase = 'FADE_TO_HIGHWAY';
+          this.sfx.introBoom();
+          cs.subtitle = this.lang === 'uk'
+            ? 'Виїзд на магістраль Свободи...'
+            : 'Wjazd na Autostradę Wolności...';
+        }
+        if (cs.playerInCar) {
+          cs.escapeCarX += 520 * dt;
+        }
+        cs.blackAlpha = Math.min(1, (t - 10.6) / 1.3);
+      } else {
+        // FAZA 5: Nieskończony przejazd 3D w stronę zachodzącego słońca na horyzoncie
+        if (cs.phase !== 'HIGHWAY_LOOP') {
+          cs.phase = 'HIGHWAY_LOOP';
+          this.sfx.win();
+          cs.subtitle = this.lang === 'uk'
+            ? '★ КОНТРАКТ ЗАКРИТО ($1,000,000) — ТИ ЗДОБУВ ПОВНУ СВОБОДУ ★'
+            : '★ KONTRAKT ZAMKNIĘTY ($1,000,000) — ODZYSKAŁEŚ PEŁNĄ WOLNOŚĆ ★';
+        }
+        cs.blackAlpha = Math.max(0, 1 - (t - 12.2) / 1.4);
+      }
+    },
+
+    drawCutsceneWorldUnderPlayer(ctx) {
+      const cs = this.cutscene;
+      if (!cs || !cs.active) return;
+
+      if (cs.switchedToStreet) {
+        ctx.save();
+        // 1. Limuzyna Syndykatu po lewej stronie (x: 225, y: 278, w: 160, h: 72)
+        const lx = 225, ly = 278, lw = 160, lh = 72;
+        const beamGrad = ctx.createLinearGradient(lx + lw, ly + lh / 2, 595, ly + lh / 2);
+        beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.36)');
+        beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(lx + lw, ly + 8);
+        ctx.lineTo(595, 240);
+        ctx.lineTo(595, 390);
+        ctx.lineTo(lx + lw, ly + lh - 8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        this.drawRoundedRect(ctx, lx + 5, ly + 7, lw, lh, 12);
+        ctx.fill();
+        this.drawRoundedRect(ctx, lx, ly, lw, lh, 12);
+        ctx.fillStyle = '#09090b';
+        ctx.fill();
+        ctx.strokeStyle = cs.type === 'VICTORY' ? '#fbbf24' : '#dc2626';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        this.drawRoundedRect(ctx, lx + 26, ly + 8, lw - 54, lh - 16, 6);
+        ctx.fillStyle = '#18181b';
+        ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(lx + lw - 5, ly + 8, 5, 14);
+        ctx.fillRect(lx + lw - 5, ly + lh - 22, 5, 14);
+
+        // 2. Jeśli to Cutscenka Zwycięstwa ($1M): Stół rozliczeniowy oraz sportowy Cyber-Interceptor gracza czekający na odjazd
+        if (cs.type === 'VICTORY') {
+          // Stół rozliczeniowy przed Donem
+          this.drawRoundedRect(ctx, 436, 293, 32, 44, 5);
+          ctx.fillStyle = '#1e1b2e';
+          ctx.fill();
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+
+          // Sportowy samochód gracza (Cyber-Interceptor V12) po prawej stronie ulicy
+          const cx = cs.escapeCarX || 685;
+          const cy = cs.escapeCarY || 355;
+          const cwCar = 118, chCar = 54;
+
+          // Światła przednie auta gracza skierowane na wschód
+          const pBeam = ctx.createLinearGradient(cx + cwCar / 2, cy, cx + cwCar / 2 + 240, cy);
+          pBeam.addColorStop(0, 'rgba(56, 189, 248, 0.42)');
+          pBeam.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          ctx.fillStyle = pBeam;
+          ctx.beginPath();
+          ctx.moveTo(cx + cwCar / 2, cy - 18);
+          ctx.lineTo(cx + cwCar / 2 + 240, cy - 68);
+          ctx.lineTo(cx + cwCar / 2 + 240, cy + 68);
+          ctx.lineTo(cx + cwCar / 2, cy + 18);
+          ctx.closePath();
+          ctx.fill();
+
+          // Płomienie dopalacza z wydechu podczas odjazdu
+          if (cs.playerInCar && cs.escapeCarSpeed > 20) {
+            const flameLen = 18 + Math.random() * 26;
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.moveTo(cx - cwCar / 2, cy - 12);
+            ctx.lineTo(cx - cwCar / 2 - flameLen, cy - 12);
+            ctx.lineTo(cx - cwCar / 2, cy - 6);
+            ctx.moveTo(cx - cwCar / 2, cy + 12);
+            ctx.lineTo(cx - cwCar / 2 - flameLen, cy + 12);
+            ctx.lineTo(cx - cwCar / 2, cy + 6);
+            ctx.fill();
+          }
+
+          // Bryła Cyber-Interceptora
+          this.drawNeonGlow(ctx, cx, cy, 78, '#22d3ee', 0.32);
+          ctx.fillStyle = 'rgba(0,0,0,0.72)';
+          this.drawRoundedRect(ctx, cx - cwCar / 2 + 4, cy - chCar / 2 + 6, cwCar, chCar, 12);
+          ctx.fill();
+          this.drawRoundedRect(ctx, cx - cwCar / 2, cy - chCar / 2, cwCar, chCar, 12);
+          ctx.fillStyle = '#0f172a';
+          ctx.fill();
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+
+          // Złote pasy wyścigowe i szyba
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(cx - cwCar / 2 + 8, cy - 3, cwCar - 16, 6);
+          this.drawRoundedRect(ctx, cx - 24, cy - chCar / 2 + 7, 52, chCar - 14, 6);
+          ctx.fillStyle = '#020617';
+          ctx.fill();
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          // Tylne czerwone LED-y i przednie ksenony
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(cx - cwCar / 2, cy - chCar / 2 + 6, 4, 12);
+          ctx.fillRect(cx - cwCar / 2, cy + chCar / 2 - 18, 4, 12);
+          ctx.fillStyle = '#e0f2fe';
+          ctx.fillRect(cx + cwCar / 2 - 4, cy - chCar / 2 + 6, 4, 12);
+          ctx.fillRect(cx + cwCar / 2 - 4, cy + chCar / 2 - 18, 4, 12);
+
+          if (!cs.playerInCar) {
+            this.renderPropBadgeImmediate(ctx, cx, cy - 42, '🏎️ TWÓJ CYBER-INTERCEPTOR V12', '#67e8f9', '#083344');
+          }
+        }
+        ctx.restore();
+      }
+
+      if (cs.bloodPoolR > 0) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(153, 27, 27, 0.85)';
+        ctx.beginPath();
+        ctx.ellipse(this.player.x, this.player.y + 2, cs.bloodPoolR, cs.bloodPoolR * 0.68, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        for (const bd of cs.bloodDrops) {
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.arc(bd.x, bd.y, bd.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    },
+
+    drawCutsceneWorldOverPlayer(ctx) {
+      const cs = this.cutscene;
+      if (!cs || !cs.active) return;
+
+      if (cs.type === 'VICTORY') {
+        cs.goons.forEach((g, idx) => {
+          g.facing = 0;
+          this.drawTopDownNpc(ctx, g, 70 + idx);
+        });
+
+        // Złota walizka $1,000,000 (otwierająca się ze złotymi sztabkami/plikami gotówki)
+        const bx = cs.briefcaseX || 452;
+        const by = cs.briefcaseY || 315;
+        this.drawNeonGlow(ctx, bx, by, 65 + (cs.briefcaseOpen || 0) * 45, '#fbbf24', 0.5);
+        ctx.save();
+        this.drawRoundedRect(ctx, bx - 12, by - 9, 24, 18, 3);
+        ctx.fillStyle = '#d97706';
+        ctx.fill();
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if ((cs.briefcaseOpen || 0) > 0.2) {
+          // Zielone pliki dolarów wewnątrz otwartej walizki
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(bx - 9, by - 6, 8, 12);
+          ctx.fillRect(bx + 1, by - 6, 8, 12);
+        } else {
+          ctx.fillStyle = '#09090b';
+          ctx.font = '800 8px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('$1M', bx, by);
+        }
+
+        // Unoszące się złote cząsteczki banknotów
+        if (cs.cashParticles) {
+          ctx.font = '800 10px "JetBrains Mono", monospace';
+          for (const cp of cs.cashParticles) {
+            ctx.fillStyle = `rgba(52, 211, 153, ${Math.min(1, cp.life)})`;
+            ctx.fillText('$', cp.x, cp.y);
+          }
+        }
+        ctx.restore();
+
+        const badgeTxt = (cs.briefcaseOpen || 0) > 0.5
+          ? '✓ ZWERYFIKOWANO: $1,000,000 (DŁUG SPŁACONY)'
+          : '💼 WALIZKA: $1,000,000';
+        this.renderPropBadgeImmediate(ctx, bx, by - 25, badgeTxt, '#fde047', '#451a03');
+        this.renderPropBadgeImmediate(ctx, cs.goons[1].x, cs.goons[1].y - 26, '👑 DON SYNDYKATU', '#6ee7b7', '#064e3b');
+        return;
+      }
+
+      // Standardowa cutscenka porażki
+      cs.goons.forEach((g, idx) => {
+        const aimAngle = Math.atan2(this.player.y - g.y, this.player.x - g.x);
+        g.facing = aimAngle;
+        this.drawTopDownNpc(ctx, g, 70 + idx);
+        const muzzleX = g.x + Math.cos(aimAngle) * 22;
+        const muzzleY = g.y + Math.sin(aimAngle) * 22;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(muzzleX, muzzleY);
+        ctx.lineTo(this.player.x, this.player.y);
+        ctx.stroke();
+        ctx.restore();
+      });
+    },
+
+    // ------------------------------------------------------------------------
+    // PRZEBUDOWANY PRZEJAZD 3D PRZEZ NIESKOŃCZONĄ DROGĘ NA HORYZONT
+    // ------------------------------------------------------------------------
+    drawEndlessHorizonHighway(ctx, cw, ch, cs) {
+      const t = this.animTime;
+      const horizonY = Math.floor(ch * 0.48);
+
+      // 1. Wielowarstwowe niebo Synthwave / Cyberpunk Sunset
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+      skyGrad.addColorStop(0, '#02040a');
+      skyGrad.addColorStop(0.32, '#0f172a');
+      skyGrad.addColorStop(0.68, '#4c1d95');
+      skyGrad.addColorStop(0.88, '#be185d');
+      skyGrad.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, cw, horizonY);
+
+      // Migoczące gwiazdy na niebie
+      for (let s = 0; s < 55; s++) {
+        const sx = ((s * 137) % cw);
+        const sy = ((s * 61) % Math.floor(horizonY * 0.72));
+        const twinkle = 0.35 + 0.65 * Math.sin(t * 2.5 + s);
+        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle.toFixed(2)})`;
+        ctx.fillRect(sx, sy, (s % 2) + 1, (s % 2) + 1);
+      }
+
+      // Dynamiczna krzywizna drogi (łagodne łuki w lewo i w prawo)
+      const curve = Math.sin(t * 0.55) * (cw * 0.14) + Math.cos(t * 0.27) * (cw * 0.06);
+      const vanishX = cw * 0.5 + curve * 0.35;
+
+      // 2. Ogromne Słońce Wolności podążające delikatnie za punktem zbiegu horyzontu
+      const sunR = Math.min(cw, ch) * 0.22;
+      const sunX = cw * 0.5 + curve * 0.18;
+      const sunY = horizonY - sunR * 0.10;
+
+      const sunHalo = ctx.createRadialGradient(sunX, sunY, sunR * 0.1, sunX, sunY, sunR * 2.5);
+      sunHalo.addColorStop(0, 'rgba(254, 240, 138, 0.75)');
+      sunHalo.addColorStop(0.4, 'rgba(244, 63, 94, 0.35)');
+      sunHalo.addColorStop(0.75, 'rgba(168, 85, 247, 0.15)');
+      sunHalo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = sunHalo;
+      ctx.fillRect(0, 0, cw, horizonY);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunR, Math.PI, 0, false);
+      ctx.closePath();
+      const sunGrad = ctx.createLinearGradient(0, sunY - sunR, 0, horizonY);
+      sunGrad.addColorStop(0, '#fef9c3');
+      sunGrad.addColorStop(0.45, '#fbbf24');
+      sunGrad.addColorStop(0.8, '#f43f5e');
+      sunGrad.addColorStop(1, '#9333ea');
+      ctx.fillStyle = sunGrad;
+      ctx.fill();
+
+      // Animowane wycięcia synthwave na tarczy słońca
+      ctx.fillStyle = '#2e1065';
+      for (let i = 0; i < 7; i++) {
+        const barOffset = ((t * 12 + i * 14) % 95);
+        const by = horizonY - barOffset * 0.85;
+        const bh = Math.max(1.5, (1 - barOffset / 95) * 7);
+        if (by > sunY - sunR * 0.2 && by < horizonY) {
+          ctx.fillRect(sunX - sunR, by, sunR * 2, bh);
+        }
+      }
+      ctx.restore();
+
+      // 3. Dwuwarstwowe góry na horyzoncie z paralaksą
+      const drawMountainLayer = (parallax, heightScale, color, ridgeColor) => {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = ridgeColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        const shift = curve * parallax;
+        for (let x = -40; x <= cw + 40; x += 28) {
+          const wx = x - shift;
+          const h = (Math.sin(wx * 0.012) * 28 + Math.cos(wx * 0.029) * 18 + 34) * heightScale;
+          ctx.lineTo(x, horizonY - Math.max(4, h));
+        }
+        ctx.lineTo(cw, horizonY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
+      drawMountainLayer(0.12, 1.15, '#17092b', 'rgba(244, 63, 94, 0.35)');
+      drawMountainLayer(0.24, 0.65, '#090414', 'rgba(34, 211, 238, 0.45)');
+
+      // 4. Prawdziwa trójwymiarowa szosa segmentowa (42 pasma Z-buffer z zakrętami i krawężnikami)
+      const numSegs = 42;
+      const roadMaxW = Math.min(cw * 0.92, 820);
+      const roadMinW = 24;
+      const speedScroll = t * 14;
+
+      for (let i = 0; i < numSegs; i++) {
+        const z0 = i / numSegs;
+        const z1 = (i + 1) / numSegs;
+        const p0 = Math.pow(z0, 2.15);
+        const p1 = Math.pow(z1, 2.15);
+
+        const y0 = horizonY + p0 * (ch - horizonY);
+        const y1 = horizonY + p1 * (ch - horizonY);
+
+        // Krzywizna rośnie bliżej horyzontu
+        const curve0 = curve * Math.pow(1 - z0, 1.7);
+        const curve1 = curve * Math.pow(1 - z1, 1.7);
+        const cx0 = cw * 0.5 + curve0;
+        const cx1 = cw * 0.5 + curve1;
+
+        const w0 = roadMinW + p0 * (roadMaxW - roadMinW);
+        const w1 = roadMinW + p1 * (roadMaxW - roadMinW);
+
+        const bandIdx = Math.floor(i + speedScroll);
+        const isAlt = (bandIdx % 2) === 0;
+
+        // Pobocze z siatką neonową
+        ctx.fillStyle = isAlt ? '#070412' : '#0b061b';
+        ctx.fillRect(0, y0, cw, Math.ceil(y1 - y0) + 1);
+
+        // Asfalt jezdni (3 pasy ruchu)
+        ctx.fillStyle = isAlt ? '#111624' : '#161c2e';
+        ctx.beginPath();
+        ctx.moveTo(cx0 - w0 * 0.5, y0);
+        ctx.lineTo(cx0 + w0 * 0.5, y0);
+        ctx.lineTo(cx1 + w1 * 0.5, y1);
+        ctx.lineTo(cx1 - w1 * 0.5, y1);
+        ctx.closePath();
+        ctx.fill();
+
+        // Krawężniki (Rumble Strips — turkusowo-złote)
+        const curbW0 = Math.max(2, w0 * 0.045);
+        const curbW1 = Math.max(2.5, w1 * 0.045);
+        ctx.fillStyle = isAlt ? '#22d3ee' : '#f43f5e';
+        // Lewy krawężnik
+        ctx.beginPath();
+        ctx.moveTo(cx0 - w0 * 0.5 - curbW0, y0);
+        ctx.lineTo(cx0 - w0 * 0.5, y0);
+        ctx.lineTo(cx1 - w1 * 0.5, y1);
+        ctx.lineTo(cx1 - w1 * 0.5 - curbW1, y1);
+        ctx.closePath();
+        ctx.fill();
+        // Prawy krawężnik
+        ctx.beginPath();
+        ctx.moveTo(cx0 + w0 * 0.5, y0);
+        ctx.lineTo(cx0 + w0 * 0.5 + curbW0, y0);
+        ctx.lineTo(cx1 + w1 * 0.5 + curbW1, y1);
+        ctx.lineTo(cx1 + w1 * 0.5, y1);
+        ctx.closePath();
+        ctx.fill();
+
+        // Przerywane pasy ruchu (dwie linie dzielące 3 pasy)
+        if ((bandIdx % 3) === 0) {
+          ctx.fillStyle = '#fbbf24';
+          [-0.17, 0.17].forEach(laneOffset => {
+            const lx0 = cx0 + w0 * laneOffset;
+            const lx1 = cx1 + w1 * laneOffset;
+            const lw0 = Math.max(1, w0 * 0.014);
+            const lw1 = Math.max(1.5, w1 * 0.014);
+            ctx.beginPath();
+            ctx.moveTo(lx0 - lw0, y0);
+            ctx.lineTo(lx0 + lw0, y0);
+            ctx.lineTo(lx1 + lw1, y1);
+            ctx.lineTo(lx1 - lw1, y1);
+            ctx.closePath();
+            ctx.fill();
+          });
+        }
+      }
+
+      // 5. Mijane przydrożne latarnie neonowe i palmy Synthwave wzdłuż zakręcającej drogi
+      const numProps = 9;
+      for (let i = 0; i < numProps; i++) {
+        const z = ((i + (t * 0.85) % 1) / numProps);
+        const p = Math.pow(z, 2.15);
+        const py = horizonY + p * (ch - horizonY);
+        const cx = cw * 0.5 + curve * Math.pow(1 - z, 1.7);
+        const rw = roadMinW + p * (roadMaxW - roadMinW);
+        const scale = 0.15 + p * 1.35;
+
+        [-1, 1].forEach(side => {
+          const px = cx + side * (rw * 0.62);
+          const poleH = 85 * scale;
+          ctx.save();
+          // Słup latarni
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = Math.max(1.5, 4 * scale);
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px, py - poleH);
+          ctx.lineTo(px - side * (22 * scale), py - poleH);
+          ctx.stroke();
+
+          // Oprawa neonowa
+          const lampX = px - side * (22 * scale);
+          const lampY = py - poleH;
+          ctx.fillStyle = (i % 2 === 0) ? '#22d3ee' : '#f43f5e';
+          ctx.beginPath();
+          ctx.arc(lampX, lampY, Math.max(2, 5.5 * scale), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      // 6. Sportowy Cyber-Interceptor V12 gracza (widok 3D od tyłu, przechylający się na zakrętach)
+      const carX = cw * 0.5 - curve * 0.12 + Math.sin(t * 2.2) * 8;
+      const carY = ch - Math.max(96, ch * 0.18) + Math.sin(t * 14) * 1.2;
+      const carW = Math.min(200, Math.max(135, cw * 0.24));
+      const carH = carW * 0.46;
+      const carTilt = Math.max(-0.08, Math.min(0.08, -curve / (cw * 1.8)));
+
+      ctx.save();
+      ctx.translate(carX, carY);
+      ctx.rotate(carTilt);
+
+      // Cień i neon podwozia (Underglow)
+      const underGlow = ctx.createRadialGradient(0, carH * 0.38, 6, 0, carH * 0.38, carW * 0.68);
+      underGlow.addColorStop(0, 'rgba(34, 211, 238, 0.55)');
+      underGlow.addColorStop(0.5, 'rgba(236, 72, 153, 0.25)');
+      underGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = underGlow;
+      ctx.beginPath();
+      ctx.ellipse(0, carH * 0.38, carW * 0.68, carH * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Szerokie opony tylne z bieżnikiem
+      ctx.fillStyle = '#09090b';
+      this.drawRoundedRect(ctx, -carW * 0.49, carH * 0.08, carW * 0.18, carH * 0.34, 5);
+      ctx.fill();
+      this.drawRoundedRect(ctx, carW * 0.31, carH * 0.08, carW * 0.18, carH * 0.34, 5);
+      ctx.fill();
+
+      // Dolny dyfuzor i podwójne rury wydechowe z płomieniami dopalacza
+      this.drawRoundedRect(ctx, -carW * 0.46, -carH * 0.14, carW * 0.92, carH * 0.42, 10);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      // Płomienie Nitro z podwójnego wydechu
+      [-carW * 0.24, carW * 0.24].forEach(exX => {
+        const fH = 10 + Math.random() * 14;
+        const fGrad = ctx.createLinearGradient(exX, carH * 0.22, exX, carH * 0.22 + fH);
+        fGrad.addColorStop(0, '#ffffff');
+        fGrad.addColorStop(0.4, '#38bdf8');
+        fGrad.addColorStop(1, 'rgba(244, 63, 94, 0)');
+        ctx.fillStyle = fGrad;
+        ctx.beginPath();
+        ctx.ellipse(exX, carH * 0.22 + fH * 0.4, 5, fH * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Kabina i pochylona tylna szyba z żaluzjami (Louvers)
+      ctx.beginPath();
+      ctx.moveTo(-carW * 0.29, -carH * 0.52);
+      ctx.lineTo(carW * 0.29, -carH * 0.52);
+      ctx.lineTo(carW * 0.42, -carH * 0.12);
+      ctx.lineTo(-carW * 0.42, -carH * 0.12);
+      ctx.closePath();
+      const glassGrad = ctx.createLinearGradient(0, -carH * 0.52, 0, -carH * 0.12);
+      glassGrad.addColorStop(0, '#311042');
+      glassGrad.addColorStop(1, '#090d16');
+      ctx.fillStyle = glassGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Poziome żaluzje na tylnej szybie
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.lineWidth = 2;
+      for (let ly = -carH * 0.44; ly < -carH * 0.16; ly += carH * 0.08) {
+        ctx.beginPath();
+        ctx.moveTo(-carW * 0.28, ly);
+        ctx.lineTo(carW * 0.28, ly);
+        ctx.stroke();
+      }
+
+      // Spojler tylny (Wing)
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 1.8;
+      this.drawRoundedRect(ctx, -carW * 0.48, -carH * 0.24, carW * 0.96, carH * 0.09, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Szeroki tylny pas świetlny LED (Cyberpunk Tailbar)
+      ctx.save();
+      ctx.fillStyle = '#f43f5e';
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 18;
+      ctx.fillRect(-carW * 0.44, -carH * 0.05, carW * 0.88, carH * 0.08);
+      ctx.fillStyle = '#fecdd3';
+      ctx.fillRect(-carW * 0.42, -carH * 0.03, carW * 0.22, carH * 0.04);
+      ctx.fillRect(carW * 0.20, -carH * 0.03, carW * 0.22, carH * 0.04);
+      ctx.restore();
+
+      // Podświetlana tablica rejestracyjna "FREE $1M"
+      this.drawRoundedRect(ctx, -carW * 0.16, carH * 0.06, carW * 0.32, carH * 0.16, 3);
+      ctx.fillStyle = '#09090b';
+      ctx.fill();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '800 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('FREE $1M', 0, carH * 0.14);
+
+      ctx.restore();
+
+      // 7. Cyfrowy licznik prędkości i telemetria na dole ekranu
+      const speedKmh = 258 + Math.round(Math.sin(t * 3.2) * 6);
+      ctx.save();
+      this.drawRoundedRect(ctx, cw * 0.5 - 125, ch - 84, 250, 26, 6);
+      ctx.fillStyle = 'rgba(9, 9, 11, 0.85)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#22d3ee';
+      ctx.font = '800 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`⚡ ${speedKmh} KM/H • V12 OVERDRIVE • CEL: HORYZONT`, cw * 0.5, ch - 71);
+      ctx.restore();
+    }
+  });
+
+  // Podpięcie automatycznego zapisu do kluczowych akcji gry po załadowaniu obiektu window.game
+  function hookGamePersistence() {
+    const g = window.game;
+    if (!g || g._persistenceHooked) return;
+    g._persistenceHooked = true;
+
+    // 1. Wczytaj zapisany stan gry od razu na starcie
+    g.loadGameState(false);
+    g.updateSaveBadgesUI();
+
+    // 2. Zapisuj stan przy przejściu między strefami
+    const origTrans = g.transitionToZone.bind(g);
+    g.transitionToZone = function (targetZone, targetX, targetY) {
+      origTrans(targetZone, targetX, targetY);
+      setTimeout(() => this.saveGameState(true), 260);
+    };
+
+    // 3. Zapisuj stan po rozpoczęciu zmiany, ukończeniu dnia, wygranej i zakupie reliktu
+    ['startNightShift', 'advanceToNextDay', 'buyRelic', 'takeBloodLoan', 'pawnTokenForCash', 'buyBlackMarketItem', 'useStreetSmugglerDrop'].forEach((fnName) => {
+      if (typeof g[fnName] === 'function') {
+        const origFn = g[fnName].bind(g);
+        g[fnName] = function (...args) {
+          const res = origFn(...args);
+          this.saveGameState(true);
+          return res;
+        };
+      }
+    });
+
+    const origWin = g.recordWinPayout.bind(g);
+    g.recordWinPayout = function (baseBetOrWin, multiplier = 1.0) {
+      const res = origWin(baseBetOrWin, multiplier);
+      this.saveGameState(true);
+      return res;
+    };
+
+    const origPause = g.openPauseModal.bind(g);
+    g.openPauseModal = function () {
+      this.saveGameState(true);
+      origPause();
+      this.updateSaveBadgesUI();
+    };
+
+    // Przy egzekucji / przegranej wyczyść stary zapis, aby nowy run startował czysto od Dnia 1
+    const origMafia = g.startMafiaCutscene.bind(g);
+    g.startMafiaCutscene = function (reason) {
+      this.clearSavedGameState(false);
+      origMafia(reason);
+    };
+
+    const origRestart = g.restartRun.bind(g);
+    g.restartRun = function () {
+      origRestart();
+      if (!this._skipSaveOnRestart) {
+        this.saveGameState(true);
+      }
+    };
+
+    // 4. Cykliczny Auto-Save co 3 sekundy podczas rozgrywki (zapisuje dokładną pozycję gracza i sekundy zegara)
+    setInterval(() => {
+      if (!g.mainMenuOpen && !(g.cutscene && g.cutscene.active)) {
+        g.saveGameState(true);
+      }
+    }, 3000);
+
+    window.addEventListener('beforeunload', () => {
+      if (!g.mainMenuOpen && !(g.cutscene && g.cutscene.active)) {
+        g.saveGameState(true);
+      }
+    });
+  }
+
+  if (window.game) {
+    hookGamePersistence();
+  } else {
+    window.addEventListener('DOMContentLoaded', () => setTimeout(hookGamePersistence, 50));
+  }
+})();
 if (!window.game) window.game = new VelvetPitGame();
